@@ -1,0 +1,25 @@
+{
+  "globalEnabled": false,
+  "rules": [
+    {
+      "id": "69aa94b1-3c70-445f-90c0-880bb3c712ab",
+      "name": "规则",
+      "nodeIds": [
+        74,
+        73,
+        69
+      ],
+      "metric": "cpu",
+      "operator": "range",
+      "threshold": 80,
+      "action": "disable",
+      "thresholdLow": 79,
+      "actionLow": "enable",
+      "interval": 300,
+      "cooldown": 600,
+      "triggerCount": 2,
+      "enabled": false,
+      "createdAt": 1783402393789
+    }
+  ]
+}

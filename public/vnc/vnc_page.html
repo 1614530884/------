@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>VNC 控制台</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d2e;
+            --bg-tertiary: #252840;
+            --bg-hover: #2d3158;
+            --border-color: #2e3354;
+            --border-light: #3d4270;
+            --text-primary: #e8eaf0;
+            --text-secondary: #8b90b0;
+            --text-muted: #5c6188;
+            --accent-blue: #4f7cff;
+            --accent-blue-hover: #6b93ff;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
+            --accent-orange: #fbbf24;
+            --accent-purple: #a78bfa;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== 顶部工具栏 ===== */
+        #toolbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 16px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+        #toolbar .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-right: 16px;
+            border-right: 1px solid var(--border-color);
+            margin-right: 4px;
+        }
+        #toolbar .brand svg {
+            width: 20px; height: 20px;
+            color: var(--accent-blue);
+        }
+        #toolbar .brand span {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            color: var(--text-primary);
+        }
+        #status {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        #status .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            transition: background var(--transition);
+        }
+        #status .dot.connected { background: var(--accent-green); box-shadow: 0 0 8px rgba(52,211,153,0.5); }
+        #status .dot.connecting { background: var(--accent-orange); animation: pulse 1.2s infinite; }
+        #status .dot.error { background: var(--accent-red); box-shadow: 0 0 8px rgba(248,113,113,0.5); }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+        .toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding-left: 16px;
+            border-left: 1px solid var(--border-color);
+        }
+        .tool-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            white-space: nowrap;
+            user-select: none;
+        }
+        .tool-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        .tool-btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        .tool-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+        .tool-btn.danger:hover {
+            border-color: rgba(248,113,113,0.4);
+            background: rgba(248,113,113,0.1);
+            color: var(--accent-red);
+        }
+        .tool-btn.accent:hover {
+            border-color: rgba(79,124,255,0.4);
+            background: rgba(79,124,255,0.1);
+            color: var(--accent-blue);
+        }
+
+        /* ===== VNC屏幕区域 ===== */
+        #screen {
+            flex: 1;
+            overflow: hidden;
+            background: var(--bg-primary);
+            position: relative;
+        }
+        #screen canvas {
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        /* ===== 加载遮罩 ===== */
+        #loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            z-index: 50;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        #loading-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .loader {
+            width: 48px; height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loading-overlay .loading-text {
+            font-size: 15px;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+        #loading-overlay .loading-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ===== 错误遮罩 ===== */
+        #error-overlay {
+            position: absolute;
+            inset: 0;
+            background: var(--bg-primary);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            z-index: 60;
+        }
+        #error-overlay.visible { display: flex; }
+        .error-icon {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            background: rgba(248,113,113,0.1);
+            border: 2px solid rgba(248,113,113,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .error-icon svg { width: 32px; height: 32px; color: var(--accent-red); }
+        .error-title { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+        .error-desc { font-size: 13px; color: var(--text-secondary); max-width: 400px; text-align: center; line-height: 1.6; }
+        .retry-btn {
+            margin-top: 8px;
+            padding: 10px 28px;
+            background: var(--accent-blue);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .retry-btn:hover { background: var(--accent-blue-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+        /* ===== 剪切板弹窗 ===== */
+        #clipboard-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        #clipboard-modal.visible { display: flex; }
+        .modal-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            width: 420px;
+            max-width: 90vw;
+            box-shadow: var(--shadow-lg);
+        }
+        .modal-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+        .modal-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+        .modal-card textarea {
+            width: 100%;
+            height: 100px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 10px 12px;
+            font-size: 13px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            resize: vertical;
+            outline: none;
+            transition: border-color var(--transition);
+        }
+        .modal-card textarea:focus { border-color: var(--accent-blue); }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .modal-btn {
+            padding: 8px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            border: 1px solid var(--border-color);
+        }
+        .modal-btn.cancel {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+        .modal-btn.cancel:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .modal-btn.confirm {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: transparent;
+        }
+        .modal-btn.confirm:hover { background: var(--accent-blue-hover); }
+
+        /* ===== 密码弹窗 ===== */
+        #password-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        #password-modal.visible { display: flex; }
+        .pwd-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            width: 360px;
+            max-width: 90vw;
+            box-shadow: var(--shadow-lg);
+        }
+        .pwd-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+        .pwd-card input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color var(--transition);
+        }
+        .pwd-card input:focus { border-color: var(--accent-blue); }
+
+        /* ===== Toast通知 ===== */
+        #toast-container {
+            position: fixed;
+            top: 60px;
+            right: 16px;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: #fff;
+            box-shadow: var(--shadow-md);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast.success { background: rgba(52,211,153,0.9); }
+        .toast.error { background: rgba(248,113,113,0.9); }
+        .toast.info { background: rgba(79,124,255,0.9); }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 768px) {
+            #toolbar { padding: 0 10px; height: 44px; gap: 8px; }
+            #toolbar .brand span { display: none; }
+            .tool-btn span { display: none; }
+            .tool-btn { padding: 6px 10px; }
+            .toolbar-actions { gap: 4px; }
+        }
+        @media (max-width: 480px) {
+            #toolbar .brand { display: none; }
+            .tool-btn { padding: 6px 8px; }
+        }
+    </style>
+
+    <script src="/vnc/noVNC/vendor/promise.js"></script>
+    <script src="/vnc/noVNC/utils/jquery.min.js"></script>
+
+    <script type="module">
+        window._noVNC_has_module_support = true;
+    </script>
+    <script>
+        window.addEventListener("load", function() {
+            var title = /&title=([^&]+)/.exec(location.href);
+            if (title) document.title = title[1];
+            if (window._noVNC_has_module_support) return;
+            const loader = document.createElement("script");
+            loader.src = "/vnc/noVNC/vendor/browser-es-module-loader/dist/browser-es-module-loader.js";
+            document.head.appendChild(loader);
+        });
+
+        document.onkeydown = function(e) {
+            e = window.event || e;
+            var k = e.keyCode;
+            if ((e.ctrlKey && k == 82) || k == 116 || (e.ctrlKey && k == 116) || k == 114) {
+                e.keyCode = 0;
+                e.returnValue = false;
+                e.cancelBubble = true;
+                return false;
+            }
+        };
+    </script>
+
+    <script type="module" crossorigin="anonymous">
+        import RFB from '/vnc/noVNC/core/rfb.js';
+
+        let rfb;
+        let desktopName = '';
+        let isConnected = false;
+
+        const vncPassword = readQueryVariable('password', __VNC_PASS__);
+        const vncUrl = __VNC_URL__;
+        const osPassword = __OS_PASSWORD__;
+
+        // ===== 工具函数 =====
+        function readQueryVariable(name, defaultValue) {
+            const re = new RegExp('.*[?&]' + name + '=([^&#]*)');
+            const match = document.location.href.match(re);
+            if (typeof defaultValue === 'undefined') defaultValue = null;
+            return match ? decodeURIComponent(match[1]) : defaultValue;
+        }
+
+        function updateStatus(text, state) {
+            document.getElementById('status-text').textContent = text;
+            const dot = document.getElementById('status-dot');
+            dot.className = 'dot ' + (state || '');
+        }
+
+        function showToast(message, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + (type || 'info');
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = '0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        function showError(title, desc) {
+            document.getElementById('error-title').textContent = title;
+            document.getElementById('error-desc').textContent = desc;
+            document.getElementById('error-overlay').classList.add('visible');
+            hideLoading();
+        }
+
+        // ===== VNC事件 =====
+        function connectedToServer(e) {
+            isConnected = true;
+            updateStatus('已连接' + (desktopName ? ' - ' + desktopName : ''), 'connected');
+            hideLoading();
+            showToast('VNC连接成功', 'success');
+        }
+
+        function disconnectedFromServer(e) {
+            isConnected = false;
+            if (e.detail.clean) {
+                updateStatus('已断开连接', '');
+                showToast('VNC连接已断开', 'info');
+            } else {
+                updateStatus('连接异常关闭', 'error');
+                showError('连接异常关闭', 'VNC连接意外断开，可能是网络波动或服务器关机。请尝试重新连接。');
+            }
+        }
+
+        function credentialsAreRequired(e) {
+            const modal = document.getElementById('password-modal');
+            modal.classList.add('visible');
+            document.getElementById('vnc-pwd-input').value = '';
+            document.getElementById('vnc-pwd-input').focus();
+        }
+
+        function submitVncPassword() {
+            const pwd = document.getElementById('vnc-pwd-input').value;
+            rfb.sendCredentials({ password: pwd });
+            document.getElementById('password-modal').classList.remove('visible');
+        }
+
+        function updateDesktopName(e) {
+            desktopName = e.detail.name;
+            if (isConnected) {
+                updateStatus('已连接 - ' + desktopName, 'connected');
+            }
+        }
+
+        function sendCtrlAltDel() {
+            if (rfb) rfb.sendCtrlAltDel();
+        }
+
+        // ===== 剪切板 =====
+        function openClipboard() {
+            document.getElementById('clipboard-modal').classList.add('visible');
+            document.getElementById('clipboard-input').value = '';
+            document.getElementById('clipboard-input').focus();
+        }
+
+        async function submitClipboard() {
+            const text = document.getElementById('clipboard-input').value;
+            document.getElementById('clipboard-modal').classList.remove('visible');
+            if (text && rfb) {
+                rfb.focus();
+                await new Promise(r => setTimeout(r, 200));
+                await pasteText(rfb, text.split(''));
+                showToast('文本已发送', 'success');
+            }
+        }
+
+        async function pastePassword() {
+            if (!rfb) return;
+            if (!osPassword) {
+                showToast('未获取到实例密码', 'error');
+                return;
+            }
+            rfb.focus();
+            showToast('正在粘贴密码...', 'info');
+            await new Promise(r => setTimeout(r, 200));
+            await pasteText(rfb, osPassword.split(''));
+            showToast('密码已粘贴', 'success');
+        }
+
+        async function pasteText(rfb, chars) {
+            if (!chars) return;
+            const SHIFT = 0xffe1;
+            const shiftChars = "!@#$%^&*()_+{}:\"<>?~|";
+            const upperChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            for (let i = 0; i < chars.length; i++) {
+                const letter = chars[i];
+                const code = letter.charCodeAt();
+                const needsShift = shiftChars.indexOf(letter) !== -1 || upperChars.indexOf(letter) !== -1;
+                if (needsShift) rfb.sendKey(SHIFT, 'XK_Shift_L', 1);
+                rfb.sendKey(code, letter, 1);
+                rfb.sendKey(code, letter, 0);
+                if (needsShift) rfb.sendKey(SHIFT, 'XK_Shift_L', 0);
+                // 字符间延迟30ms，防止发送过快丢失
+                if (i < chars.length - 1) await new Promise(r => setTimeout(r, 30));
+            }
+        }
+
+        function retryConnect() {
+            document.getElementById('error-overlay').classList.remove('visible');
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            updateStatus('正在重新连接...', 'connecting');
+            try {
+                rfb = new RFB(document.getElementById('screen'), vncUrl,
+                    { credentials: { password: vncPassword } });
+                rfb.addEventListener("connect", connectedToServer);
+                rfb.addEventListener("disconnect", disconnectedFromServer);
+                rfb.addEventListener("credentialsrequired", credentialsAreRequired);
+                rfb.addEventListener("desktopname", updateDesktopName);
+                rfb.scaleViewport = true;
+                rfb.resizeSession = true;
+                rfb.qualityLevel = 9;
+            } catch (e) {
+                showError('连接失败', e.message || '无法建立VNC连接');
+            }
+        }
+
+        // ===== 初始化连接 =====
+        updateStatus('正在连接...', 'connecting');
+
+        try {
+            rfb = new RFB(document.getElementById('screen'), vncUrl,
+                { credentials: { password: vncPassword } });
+            rfb.addEventListener("connect", connectedToServer);
+            rfb.addEventListener("disconnect", disconnectedFromServer);
+            rfb.addEventListener("credentialsrequired", credentialsAreRequired);
+            rfb.addEventListener("desktopname", updateDesktopName);
+            rfb.viewOnly = readQueryVariable('view_only', false);
+            rfb.scaleViewport = true;
+            rfb.resizeSession = true;
+            rfb.qualityLevel = 9;
+
+            // 连接超时检测
+            setTimeout(() => {
+                if (!isConnected) {
+                    updateStatus('连接超时', 'error');
+                }
+            }, 15000);
+        } catch (e) {
+            showError('连接失败', e.message || '无法建立VNC连接，请检查网络或稍后重试。');
+        }
+
+        // 暴露给HTML onclick
+        window.sendCtrlAltDel = sendCtrlAltDel;
+        window.openClipboard = openClipboard;
+        window.submitClipboard = submitClipboard;
+        window.pastePassword = pastePassword;
+        window.submitVncPassword = submitVncPassword;
+        window.retryConnect = retryConnect;
+        window.closeModal = (id) => document.getElementById(id).classList.remove('visible');
+    </script>
+</head>
+
+<body>
+    <!-- 顶部工具栏 -->
+    <div id="toolbar">
+        <div class="brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <span>VNC 控制台</span>
+        </div>
+        <div id="status">
+            <div id="status-dot" class="dot connecting"></div>
+            <span id="status-text">正在连接...</span>
+        </div>
+        <div class="toolbar-actions">
+            <button class="tool-btn accent" onclick="pastePassword()" title="粘贴系统密码">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>粘贴密码</span>
+            </button>
+            <button class="tool-btn" onclick="openClipboard()" title="发送文本到控制台">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+                <span>剪切板</span>
+            </button>
+            <button class="tool-btn danger" onclick="sendCtrlAltDel()" title="发送 Ctrl+Alt+Del">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                <span>Ctrl+Alt+Del</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- VNC屏幕 -->
+    <div id="screen">
+        <!-- 加载遮罩 -->
+        <div id="loading-overlay">
+            <div class="loader"></div>
+            <div class="loading-text">正在连接VNC控制台</div>
+            <div class="loading-sub">请稍候，正在建立安全连接...</div>
+        </div>
+
+        <!-- 错误遮罩 -->
+        <div id="error-overlay">
+            <div class="error-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            <div id="error-title" class="error-title">连接失败</div>
+            <div id="error-desc" class="error-desc">无法建立VNC连接，请检查网络或稍后重试。</div>
+            <button class="retry-btn" onclick="retryConnect()">重新连接</button>
+        </div>
+    </div>
+
+    <!-- 剪切板弹窗 -->
+    <div id="clipboard-modal">
+        <div class="modal-card">
+            <h3>剪切板</h3>
+            <p>输入要发送到控制台的文本，文本将逐字符发送（不会发送回车键）。</p>
+            <textarea id="clipboard-input" placeholder="在此输入文本..."></textarea>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('clipboard-modal')">取消</button>
+                <button class="modal-btn confirm" onclick="submitClipboard()">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VNC密码弹窗 -->
+    <div id="password-modal">
+        <div class="pwd-card">
+            <h3>VNC认证</h3>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">服务器要求输入VNC密码</p>
+            <input type="password" id="vnc-pwd-input" placeholder="请输入VNC密码" onkeydown="if(event.key==='Enter')submitVncPassword()">
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('password-modal')">取消</button>
+                <button class="modal-btn confirm" onclick="submitVncPassword()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast容器 -->
+    <div id="toast-container"></div>
+</body>
+</html>

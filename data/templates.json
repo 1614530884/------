@@ -1,0 +1,40 @@
+[
+  {
+    "id": "ff8270b7-44c1-499d-a8db-85b38b8b6f41",
+    "name": "宝塔版",
+    "content": "亲 宝塔已经给您预装好了\n1.浏览器访问  {{ip}}:8888/login   配置您的宝塔账号密码并登录您的宝塔面板",
+    "osFilters": [
+      "宝塔版"
+    ],
+    "productIds": [],
+    "isDefault": false,
+    "createdAt": 1781424241327,
+    "updatedAt": 1781426402028,
+    "perServer": true
+  },
+  {
+    "id": "d5525978-a8ca-4577-bcaa-86e110f7e627",
+    "name": "linux系统",
+    "content": "1.linux系统需要手动挂载数据盘， 您可以看下教程进行挂载磁盘https://kcnxczng3twt.feishu.cn/wiki/KqwGwTInxig4q5kLLMrcvnwenVb\n2.服务器的操作使用以及各类常见问题，您可以参考看下这个教程文档 https://wiki.95vps.com\n",
+    "osFilters": [
+      "Ubuntu",
+      "Debian"
+    ],
+    "productIds": [],
+    "isDefault": false,
+    "createdAt": 1781424754961,
+    "updatedAt": 1781425740878
+  },
+  {
+    "id": "01fa59a1-b72c-4730-84d3-270b8998adf5",
+    "name": "CentOS换源",
+    "content": "1. 亲 已经给您开好机器了，你可以点击官网的用户中心左侧导航中的云服务器来管理服务器，等待几分钟系统安装完毕就可以连接了\n\n2.linux系统需要手动挂载数据盘， 您可以看下教程进行挂载磁盘https://kcnxczng3twt.feishu.cn/wiki/KqwGwTInxig4q5kLLMrcvnwenVb\n\n3. 由于CentOS官方已全面停止维护CentOS Linux项目，公告指出 CentOS 7和8在2024年6月30日停止技术服务支持，详情见CentOS官方公告。\n导致CentOS系统源已全面失效，比如安装宝塔等等会出现网络不可达等报错，解决方案是更换系统源。输入以下命令：\nbash <(curl -sSL https://www.95vps.com/linux/main.sh)\n然后选择阿里云或者其他源，一直按回车不要选Y。源更换完成后，即可正常安装软件。",
+    "osFilters": [
+      "CentOS"
+    ],
+    "productIds": [],
+    "isDefault": false,
+    "createdAt": 1781425172135,
+    "updatedAt": 1781425733352
+  }
+]
