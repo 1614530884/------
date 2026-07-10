@@ -4,6 +4,8 @@ import path from 'path';
 import { encrypt, decrypt, isEncrypted } from '@/lib/crypto';
 import { MfyService } from '@/lib/services/mfy-service';
 import { clearBaseUrlCache } from '@/app/api/idc/shared/config';
+import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
+import { logUnauthorizedAccess } from '@/lib/access-log';
 
 const CONFIG_PATH = path.join(process.cwd(), 'idc-config.json');
 
@@ -26,7 +28,6 @@ interface Config {
   mfyUrl: string;
   mfyUsername: string;
   mfyPassword: string;
-  remoteUrl: string;
   productSortOrder: number[];
   hiddenProductIds: number[];
   adminUsernames: string;
@@ -41,7 +42,7 @@ function readRawConfig(): Config {
     const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
     return JSON.parse(raw);
   } catch {
-    return { baseUrl: '', financeUrl: '', mfyUrl: '', mfyUsername: '', mfyPassword: '', remoteUrl: '', productSortOrder: [], hiddenProductIds: [], adminUsernames: '', mfyAccounts: [] };
+    return { baseUrl: '', financeUrl: '', mfyUrl: '', mfyUsername: '', mfyPassword: '', productSortOrder: [], hiddenProductIds: [], adminUsernames: '', mfyAccounts: [] };
   }
 }
 
@@ -121,7 +122,12 @@ function writeConfig(config: Config): void {
 }
 
 // GET: 读取配置（返回明文给前端）
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!verifySessionToken(sessionCookie)) {
+    logUnauthorizedAccess(request, 'config-get');
+    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
+  }
   const raw = readRawConfig();
   // 自动迁移：如果文件中有明文密码，加密后写回文件
   if (hasPlaintextSensitive(raw)) {
@@ -134,6 +140,11 @@ export async function GET() {
 
 // POST: 保存配置（前端传来明文，加密后写入文件）
 export async function POST(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!verifySessionToken(sessionCookie)) {
+    logUnauthorizedAccess(request, 'config-post');
+    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
+  }
   const body = await request.json();
   // 从文件读取当前配置（可能是密文），先解密
   const current = decryptConfig(readRawConfig());
@@ -149,9 +160,6 @@ export async function POST(request: NextRequest) {
   }
   if (typeof body.mfyPassword === 'string') {
     current.mfyPassword = body.mfyPassword;
-  }
-  if (typeof body.remoteUrl === 'string') {
-    current.remoteUrl = body.remoteUrl;
   }
   if (Array.isArray(body.productSortOrder)) {
     current.productSortOrder = body.productSortOrder.map(Number);

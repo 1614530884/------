@@ -111,3 +111,21 @@ packages.json
 
 # API reference docs (not source code)
 mofangyunapi/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.db-*
+
+# Deploy package
+deploy-package/
+
+# Build artifacts
+*.css.babelrc
+
+# Debug endpoints
+src/app/api/debug-ws/
+
+# Planning docs
+docs/

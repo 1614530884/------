@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MfyService } from '@/lib/services/mfy-service';
 import { asyncPool } from '@/lib/async-pool';
 import { executeMfyAction } from '../shared/handler';
+import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
+import { logUnauthorizedAccess } from '@/lib/access-log';
 
 interface BatchRequest {
   action: string;
@@ -19,6 +21,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { _loginUser, concurrency: rawConcurrency, requests: rawRequests } = body;
+
+    // 身份验证：校验 httpOnly session cookie
+    const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+    if (!verifySessionToken(sessionCookie)) {
+      logUnauthorizedAccess(request, 'batch');
+      return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
+    }
 
     if (!Array.isArray(rawRequests) || rawRequests.length === 0) {
       return NextResponse.json({ success: false, message: 'requests 必须是非空数组' });

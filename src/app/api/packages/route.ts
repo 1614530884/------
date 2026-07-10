@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
+import { logUnauthorizedAccess } from '@/lib/access-log';
 
 const PACKAGES_FILE = path.join(process.cwd(), 'packages.json');
 
@@ -38,12 +40,22 @@ interface PackageConfig {
   createdAt: number;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!verifySessionToken(sessionCookie)) {
+    logUnauthorizedAccess(request, 'packages-get');
+    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
+  }
   const packages = readPackages();
   return NextResponse.json({ success: true, data: packages });
 }
 
 export async function POST(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!verifySessionToken(sessionCookie)) {
+    logUnauthorizedAccess(request, 'packages-post');
+    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
+  }
   const body = await request.json();
   const { action, pkg } = body;
 

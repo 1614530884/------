@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+@source "../../components";
+@source "../../hooks";
+@source "./**/*.{tsx,ts}";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -165,6 +169,24 @@
 
 body {
   @apply font-sans;
+}
+
+/* xterm 终端选择优化：
+ * 1. 禁用容器原生 user-select，避免拖选时浏览器原生选择扩散到整个页面（"选择后页面变黑"根因）
+ * 2. xterm 内部有自己的选择高亮逻辑，不依赖浏览器原生选择
+ * 3. helper textarea 必须保持可聚焦以接收输入，但不应被原生选中
+ */
+.xterm {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.xterm .xterm-helper-textarea {
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* 选择高亮使用 xterm theme.selectionBackground，覆盖浏览器默认 selection */
+.xterm ::selection {
+  background: transparent;
 }
 
 @keyframes slideDown {

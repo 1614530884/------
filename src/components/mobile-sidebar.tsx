@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   Menu, Zap, Server, Monitor, FileText, RotateCcw,
-  Settings, LogOut, Home, User,
+  Settings, LogOut, Home, User, TerminalSquare,
 } from 'lucide-react';
 
 interface MobileSidebarProps {
@@ -32,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: '首页', href: '/', icon: Home, matchPaths: ['/'] },
   { label: '实例管理', href: '/user-instances', icon: Server, matchPaths: ['/user-instances'] },
   { label: '节点管理', href: '/nodes', icon: Monitor, matchPaths: ['/nodes'] },
+  { label: '服务器工具', href: '/server-tools', icon: TerminalSquare, matchPaths: ['/server-tools'] },
   { label: '话术模板', href: '/templates', icon: FileText, matchPaths: ['/templates'] },
   { label: '回收站', href: '/recycle-bin', icon: RotateCcw, matchPaths: ['/recycle-bin'] },
 ];

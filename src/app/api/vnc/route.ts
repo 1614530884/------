@@ -3,6 +3,8 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createHash, randomBytes } from 'crypto';
 import { MfyService, MfyCredentials } from '@/lib/services/mfy-service';
+import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
+import { logUnauthorizedAccess } from '@/lib/access-log';
 
 const VNC_PAGE_PATH = join(process.cwd(), 'public', 'vnc', 'vnc_page.html');
 
@@ -83,6 +85,11 @@ async function fetchVncFromMfy(account: MfyCredentials, cloudId: number): Promis
 
 // POST: 获取VNC页面URL
 export async function POST(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!verifySessionToken(sessionCookie)) {
+    logUnauthorizedAccess(request, 'vnc-post');
+    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
+  }
   try {
     const body = await request.json();
     const { hostid } = body;
@@ -140,6 +147,11 @@ export async function POST(request: NextRequest) {
 
 // GET: 渲染VNC页面
 export async function GET(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!verifySessionToken(sessionCookie)) {
+    logUnauthorizedAccess(request, 'vnc-get');
+    return new NextResponse('未授权，请先登录', { status: 401, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const hostid = searchParams.get('hostid');

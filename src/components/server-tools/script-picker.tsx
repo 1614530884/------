@@ -1,0 +1,334 @@
+'use client';
+
+/**
+ * 脚本选择器弹窗
+ *
+ * 在详情页快捷命令中调用：
+ * 1. 列出所有可用脚本（按分类分组）
+ * 2. 选中后填写参数
+ * 3. 提交创建 run_script 任务
+ */
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2, Play, Search, Lock, Terminal } from 'lucide-react';
+import { toast } from 'sonner';
+import { renderScript } from '@/lib/services/server-tools/script-engine';
+
+interface ScriptParam {
+  name: string;
+  label: string;
+  defaultValue?: string;
+  required: boolean;
+  placeholder?: string;
+}
+
+interface ScriptDef {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  content: string;
+  params: ScriptParam[];
+  builtin: boolean;
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  maintenance: '维护',
+  install: '安装',
+  inspect: '检查',
+  custom: '自定义',
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  maintenance: 'text-blue-400 border-blue-700/50 bg-blue-900/20',
+  install: 'text-emerald-400 border-emerald-700/50 bg-emerald-900/20',
+  inspect: 'text-amber-400 border-amber-700/50 bg-amber-900/20',
+  custom: 'text-purple-400 border-purple-700/50 bg-purple-900/20',
+};
+
+interface ScriptPickerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  connectionId: string;
+  onTaskCreated?: (taskId: string) => void;
+  /** 终端执行回调：将渲染后的脚本命令发送到 SSH 终端执行 */
+  onRunInTerminal?: (command: string) => void;
+}
+
+export default function ScriptPicker({ open, onOpenChange, connectionId, onTaskCreated, onRunInTerminal }: ScriptPickerProps) {
+  const [scripts, setScripts] = useState<ScriptDef[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<ScriptDef | null>(null);
+  const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchScripts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const resp = await fetch('/api/server-tools/scripts');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.success) {
+        setScripts(data.data || []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      fetchScripts();
+      setSelected(null);
+      setParamValues({});
+      setSearchQuery('');
+    }
+  }, [open, fetchScripts]);
+
+  const handleSelect = (script: ScriptDef) => {
+    setSelected(script);
+    // 预填默认值
+    const defaults: Record<string, string> = {};
+    for (const p of script.params) {
+      if (p.defaultValue !== undefined) defaults[p.name] = p.defaultValue;
+    }
+    setParamValues(defaults);
+  };
+
+  const handleRun = async () => {
+    if (!selected) return;
+    // 校验必填
+    for (const p of selected.params) {
+      if (p.required && !paramValues[p.name]?.trim()) {
+        toast.error(`参数 "${p.label}" 为必填项`);
+        return;
+      }
+    }
+    setSubmitting(true);
+    try {
+      const resp = await fetch('/api/server-tools/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          connectionId,
+          type: 'run_script',
+          title: `执行脚本: ${selected.name}`,
+          params: {
+            scriptId: selected.id,
+            paramValues,
+          },
+        }),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        toast.success('脚本任务已创建');
+        onTaskCreated?.(data.data.id);
+        onOpenChange(false);
+      } else {
+        toast.error(data.message || '创建任务失败');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '创建任务失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRunInTerminal = () => {
+    if (!selected) return;
+    if (!onRunInTerminal) {
+      toast.error('终端未连接');
+      return;
+    }
+    // 校验必填
+    for (const p of selected.params) {
+      if (p.required && !paramValues[p.name]?.trim()) {
+        toast.error(`参数 "${p.label}" 为必填项`);
+        return;
+      }
+    }
+    const result = renderScript(selected.content, selected.params, paramValues);
+    if (!result.ok || !result.rendered) {
+      toast.error(result.error || '脚本渲染失败');
+      return;
+    }
+    // 发送到终端执行（末尾加换行符触发执行）
+    onRunInTerminal(result.rendered + '\n');
+    toast.success(`已在终端执行: ${selected.name}`);
+    onOpenChange(false);
+  };
+
+  const filteredScripts = scripts.filter(s =>
+    !searchQuery ||
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  // 按分类分组
+  const grouped: Record<string, ScriptDef[]> = {};
+  for (const s of filteredScripts) {
+    if (!grouped[s.category]) grouped[s.category] = [];
+    grouped[s.category].push(s);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col bg-[#1a1d27] border-gray-800 text-gray-100">
+        <DialogHeader>
+          <DialogTitle className="text-gray-100">
+            {selected ? `运行脚本: ${selected.name}` : '选择脚本'}
+          </DialogTitle>
+        </DialogHeader>
+
+        {!selected ? (
+          <>
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="搜索脚本名称或描述..."
+                className="pl-9 bg-[#222632] border-gray-700 text-gray-100 placeholder-gray-500"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+              {loading ? (
+                <div className="flex items-center justify-center py-12 text-gray-500">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> 加载中...
+                </div>
+              ) : Object.keys(grouped).length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  暂无可用脚本
+                </div>
+              ) : (
+                Object.entries(grouped).map(([cat, list]) => (
+                  <div key={cat}>
+                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                      {CATEGORY_LABELS[cat] || cat}
+                    </div>
+                    <div className="space-y-1.5">
+                      {list.map(script => (
+                        <button
+                          key={script.id}
+                          onClick={() => handleSelect(script)}
+                          className="w-full flex items-start gap-3 p-3 text-left bg-[#222632] hover:bg-[#2a2f3d] border border-gray-700 hover:border-gray-600 rounded-lg transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-sm font-medium text-gray-100">{script.name}</span>
+                              {script.builtin && (
+                                <Lock className="w-3 h-3 text-gray-500" />
+                              )}
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded border ${CATEGORY_COLORS[script.category] || ''}`}>
+                                {CATEGORY_LABELS[script.category] || script.category}
+                              </span>
+                            </div>
+                            {script.description && (
+                              <div className="text-xs text-gray-500 line-clamp-2">{script.description}</div>
+                            )}
+                          </div>
+                          <Play className="w-4 h-4 text-gray-600 mt-0.5" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+            <div className="bg-[#222632] border border-gray-700 rounded-lg p-3">
+              {selected.description && (
+                <div className="text-xs text-gray-400 mb-2">{selected.description}</div>
+              )}
+              <div className="text-[11px] text-gray-500">
+                共 {selected.content.split('\n').length} 行 · {selected.params.length} 个参数
+              </div>
+            </div>
+
+            {selected.params.length > 0 ? (
+              <div className="space-y-3">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">脚本参数</div>
+                {selected.params.map(p => (
+                  <div key={p.name} className="space-y-1.5">
+                    <Label className="text-xs text-gray-300 flex items-center gap-1">
+                      {p.label}
+                      {p.required && <span className="text-red-400">*</span>}
+                    </Label>
+                    <Input
+                      value={paramValues[p.name] ?? ''}
+                      onChange={e => setParamValues(prev => ({ ...prev, [p.name]: e.target.value }))}
+                      placeholder={p.placeholder}
+                      className="bg-[#222632] border-gray-700 text-gray-100 placeholder-gray-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500 text-center py-4">此脚本无需参数</div>
+            )}
+
+            {/* 脚本预览 */}
+            <details className="text-xs">
+              <summary className="cursor-pointer text-gray-400 hover:text-gray-300">查看脚本内容</summary>
+              <pre className="mt-2 p-3 bg-black/40 border border-gray-800 rounded text-[11px] text-gray-300 overflow-x-auto max-h-48 overflow-y-auto">
+{selected.content}
+              </pre>
+            </details>
+          </div>
+        )}
+
+        <DialogFooter className="gap-2">
+          {selected ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => { setSelected(null); setParamValues({}); }}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                disabled={submitting}
+              >
+                返回
+              </Button>
+              <Button
+                onClick={handleRunInTerminal}
+                disabled={submitting || !onRunInTerminal}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                title="将脚本命令发送到 SSH 终端执行"
+              >
+                <Terminal className="w-4 h-4 mr-1.5" />
+                终端执行
+              </Button>
+              <Button
+                onClick={handleRun}
+                disabled={submitting}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                title="创建后台任务执行（输出在任务面板查看）"
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Play className="w-4 h-4 mr-1.5" />}
+                运行脚本
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              取消
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

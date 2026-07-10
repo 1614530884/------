@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { createSessionToken, SESSION_COOKIE_NAME, getSessionCookieOptions } from '@/lib/auth-server';
 
 // 读取后台基础URL配置（从文件读取，安全且可修改）
 function getBaseUrl(urlFromFrontend?: string): string {
@@ -353,6 +354,8 @@ export async function POST(request: NextRequest) {
             phpSessId, // 返回PHPSESSID供后续API调用使用
             userInfo,
           });
+          // 设置 httpOnly session cookie 供 middleware/layout 验证身份
+          response.cookies.set(SESSION_COOKIE_NAME, createSessionToken(username), getSessionCookieOptions(request));
           return response;
         }
 
@@ -430,12 +433,15 @@ export async function POST(request: NextRequest) {
         if (result.status === 200) {
           const token = result.data?.token || result.data?.jwt || '';
           const userInfo = result.data || {};
-          return NextResponse.json({
+          const response = NextResponse.json({
             success: true,
             token,
             cookie: mergedCookie,
             userInfo,
           });
+          // 设置 httpOnly session cookie 供 middleware/layout 验证身份
+          response.cookies.set(SESSION_COOKIE_NAME, createSessionToken(username), getSessionCookieOptions(request));
+          return response;
         }
         return NextResponse.json({
           success: false,

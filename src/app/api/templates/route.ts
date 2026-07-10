@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
+import { logUnauthorizedAccess } from '@/lib/access-log';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const TEMPLATES_FILE = path.join(DATA_DIR, 'templates.json');
@@ -40,12 +42,22 @@ function writeTemplates(templates: Template[]) {
   fs.writeFileSync(TEMPLATES_FILE, JSON.stringify(templates, null, 2), 'utf-8');
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!verifySessionToken(sessionCookie)) {
+    logUnauthorizedAccess(request, 'templates-get');
+    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
+  }
   const templates = readTemplates();
   return NextResponse.json({ success: true, data: templates });
 }
 
 export async function POST(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!verifySessionToken(sessionCookie)) {
+    logUnauthorizedAccess(request, 'templates-post');
+    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
+  }
   const body = await request.json();
   const { action } = body;
 

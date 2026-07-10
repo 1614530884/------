@@ -3,8 +3,15 @@ import { randomUUID } from 'crypto';
 import { readConfig, writeConfig, readLogs, clearLogs } from '@/lib/services/node-monitor-store';
 import { nodeMonitorService } from '@/lib/services/node-monitor-service';
 import type { MonitorRule } from '@/lib/services/node-monitor-types';
+import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
+import { logUnauthorizedAccess } from '@/lib/access-log';
 
 export async function GET(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!verifySessionToken(sessionCookie)) {
+    logUnauthorizedAccess(request, 'node-monitor-get');
+    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
+  }
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action') || 'listRules';
 
@@ -37,6 +44,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!verifySessionToken(sessionCookie)) {
+    logUnauthorizedAccess(request, 'node-monitor-post');
+    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
+  }
   try {
     const body = await request.json();
     const { action } = body;

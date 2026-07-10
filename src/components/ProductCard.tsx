@@ -22,7 +22,6 @@ export interface ProductCardProps {
   savedPackages: any[];
   financeUrl: string;
   mfyUrl: string;
-  remoteUrl: string;
   uid: string | number | null | undefined;
   isAdminUser: boolean;
   onToggleSelect: (id: number) => void;
@@ -43,7 +42,6 @@ const ProductCard = React.memo(function ProductCard({
   savedPackages,
   financeUrl,
   mfyUrl,
-  remoteUrl,
   uid,
   isAdminUser,
   onToggleSelect,
@@ -185,7 +183,7 @@ const ProductCard = React.memo(function ProductCard({
             {isAdminUser && mfyUrl && (
               <Button variant="ghost" size="sm" className="text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onMfyCloud(svc); }}><Cloud className="w-3 h-3 mr-0.5" />魔方云</Button>
             )}
-            {remoteUrl && ip && ip !== '-' && (
+            {ip && ip !== '-' && (
               <Button variant="ghost" size="sm" className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRemote(svc); }}><Monitor className="w-3 h-3 mr-0.5" />远程</Button>
             )}
             <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRefundDelete(svc); }}><Trash2 className="w-3 h-3 mr-0.5" />退款删除</Button>
@@ -206,7 +204,6 @@ const ProductCard = React.memo(function ProductCard({
     && prevProps.savedPackages === nextProps.savedPackages
     && prevProps.financeUrl === nextProps.financeUrl
     && prevProps.mfyUrl === nextProps.mfyUrl
-    && prevProps.remoteUrl === nextProps.remoteUrl
     && prevProps.isAdminUser === nextProps.isAdminUser;
 });
 

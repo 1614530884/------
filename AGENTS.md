@@ -99,3 +99,81 @@
 
 - 模板默认预装核心组件库 `shadcn/ui`，位于`src/components/ui/`目录下
 - Next.js 项目**必须默认**采用 shadcn/ui 组件、风格和规范，**除非用户指定用其他的组件和规范。**
+
+## 服务器管理工具模块 (Server Tools)
+
+独立的服务器管理子系统，位于 `src/lib/services/server-tools/`，提供 SSH 终端、后台任务、文件管理、脚本管理、宝塔面板安装、数据清理等功能。
+
+### 架构
+
+- **存储**: better-sqlite3 (WAL 模式)，DB 文件 `server-tools.db`，6 张表
+- **实时通信**: WebSocket (ws 库)，3 个 WS 路由 (`/ws/ssh`, `/ws/tasks`, `/ws/sftp`)
+- **终端**: @xterm/xterm + addon-fit + addon-web-links
+- **SSH/SFTP**: ssh2 库，SshClientManager / SftpClientManager 单例
+- **加密**: AES-256-GCM (复用 `src/lib/crypto.ts`)
+- **用户隔离**: owner 字段 + admin 可见全部 (adminUsernames 从 idc-config.json 读取)
+- **自定义服务端**: `src/server.ts` 扩展 Next.js，集成 WebSocketServer
+
+### 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `src/lib/services/server-tools/db.ts` | SQLite 单例，WAL 模式，自动建表 |
+| `src/lib/services/server-tools/types.ts` | 全部类型定义（含 WS 消息协议） |
+| `src/lib/services/server-tools/store.ts` | 6 个 store，强制 owner 隔离，Internal 方法供后台任务用 |
+| `src/lib/services/server-tools/ssh-client.ts` | SSH 客户端管理（连接/shell/exec） |
+| `src/lib/services/server-tools/sftp-client.ts` | SFTP 客户端管理（5min 连接缓存） |
+| `src/lib/services/server-tools/auth.ts` | 鉴权辅助（session token 优先，fallback _loginUser） |
+| `src/lib/services/server-tools/task-runner.ts` | 后台任务执行器（4 种任务类型，WS 订阅推送） |
+| `src/lib/services/server-tools/bt-capture.ts` | 宝塔安装输出解析（中英文正则） |
+| `src/lib/services/server-tools/script-engine.ts` | 脚本模板渲染（`{{param}}` + 单引号转义） |
+| `src/lib/services/server-tools/builtin-scripts.ts` | 11 个内置脚本 seed（维护/安装/检查） |
+| `src/lib/services/server-tools/cleanup-scheduler.ts` | 清理调度器（每 6 小时执行） |
+| `src/lib/services/server-tools/service.ts` | 主服务单例（Token/DB/TaskRunner/Cleanup 管理） |
+| `src/ws-handlers/ssh.ts` | SSH WebSocket 处理器 |
+| `src/ws-handlers/tasks.ts` | 任务 WebSocket 处理器 |
+| `src/server.ts` | 自定义服务端（WebSocketServer + Origin/Token 校验） |
+
+### API 路由
+
+所有 API 位于 `/api/server-tools/` 下，统一认证模式：`verifySessionToken` → `getCurrentUser` → owner 隔离。
+
+| 路由 | 方法 | 说明 |
+|------|------|------|
+| `/api/server-tools/connections` | GET/POST | 服务器连接列表/创建 |
+| `/api/server-tools/connections/[id]` | GET/PATCH/DELETE | 连接详情/更新/软删除 |
+| `/api/server-tools/tasks` | GET/POST | 任务列表/创建（异步启动） |
+| `/api/server-tools/tasks/[id]` | GET/DELETE | 任务详情/删除 |
+| `/api/server-tools/tasks/[id]/cancel` | POST | 取消运行中任务 |
+| `/api/server-tools/tasks/[id]/logs` | GET | 分页查询日志（afterSeq/beforeSeq） |
+| `/api/server-tools/bt-panels` | GET | 宝塔信息列表 |
+| `/api/server-tools/bt-panels/[id]` | DELETE | 软删除宝塔信息 |
+| `/api/server-tools/sftp` | GET/POST/DELETE | 文件列表/读取/下载/mkdir/rename/删除 |
+| `/api/server-tools/sftp/upload` | POST | 文件上传（multipart, 50MB 上限） |
+| `/api/server-tools/scripts` | GET/POST | 脚本列表/创建 |
+| `/api/server-tools/scripts/[id]` | GET/PATCH/DELETE | 脚本详情/更新/删除（内置不可改删） |
+| `/api/server-tools/cleanup` | GET/PATCH/POST | 清理规则/更新/立即清理 |
+| `/api/server-tools/stats` | GET | 仪表盘统计 |
+| `/api/ws-token` | GET | 签发 WS Token（24h TTL） |
+
+### 页面
+
+| 路径 | 说明 |
+|------|------|
+| `/server-tools` | 仪表盘（服务器列表 + 统计） |
+| `/server-tools/[id]` | 详情页（SSH 终端 + 任务面板 + 宝塔信息 + 文件管理 + 脚本选择器） |
+| `/server-tools/scripts` | 脚本管理（CRUD + 参数编辑器） |
+| `/server-tools/cleanup` | 清理规则配置（开关 + 保留天数 + 立即清理） |
+
+### 关键技术发现
+
+- **WS Token**: 24h TTL，通过 `/api/ws-token` 签发，WS 连接时 query 参数 `token` 校验
+- **任务执行**: 任务在 server 进程内运行（非 HTTP 请求生命周期），关闭页面后继续运行
+- **WS 日志推送**: task_log 消息含 seq 序号，前端按 seq 去重 + 向上分页（beforeSeq）
+- **脚本渲染**: `{{param}}` 模板，值用单引号包裹（`'value'\''`）防 shell 注入
+- **SFTP 缓存**: 连接缓存 5min TTL，1min 清理过期连接
+- **服务重启**: running 任务自动标记为 interrupted，内置脚本 INSERT OR IGNORE（幂等 seed）
+- **清理调度**: 每 6 小时执行，启动后 1 分钟首次执行，按 retainDays 删除过期数据
+- **认证模式**: 所有 API 必须先 `verifySessionToken(sessionCookie)` 再 `getCurrentUser`，防止 `x-current-user` 头伪造
+- **开发启动**: Windows 下用 `pnpm tsx watch src/server.ts`（bash 脚本不可用），端口 5000
+
