@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Server, Loader2, Search, X, RefreshCw,
+  Server, Loader2, RefreshCw,
   ChevronLeft, ChevronRight,
   Monitor, HardDrive, Wifi, Cpu, MemoryStick,
   Copy, AlertCircle, CheckCircle, XCircle,
@@ -11,8 +11,8 @@ import {
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MonitorSheet } from '@/components/node-monitor/MonitorSheet';
-import MobileSidebar from '@/components/mobile-sidebar';
 import { getLoginUser } from '@/lib/auth-client';
+import { PageHeader } from '@/components/layout/page-header';
 
 interface NodeItem {
   id: number;
@@ -154,7 +154,7 @@ function parseMergedNodeData(statusData: Record<string, unknown> | null, realDat
 }
 
 // 悬停提示进度条
-function TooltipProgressBar({ value, color = 'bg-emerald-500', bgColor = 'bg-gray-700', tooltip }: {
+function TooltipProgressBar({ value, color = 'bg-success', bgColor = 'bg-accent', tooltip }: {
   value: number; color?: string; bgColor?: string; tooltip?: string;
 }) {
   const [show, setShow] = useState(false);
@@ -181,7 +181,7 @@ function TooltipProgressBar({ value, color = 'bg-emerald-500', bgColor = 'bg-gra
         <div className={`h-full rounded-full ${color} transition-all duration-500`} style={{ width: `${pct}%` }} />
       </div>
       {show && tooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-[#2a2d3a] border border-gray-600 rounded-lg shadow-lg text-xs text-gray-200 whitespace-nowrap z-50 pointer-events-none select-none">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-muted border border-border rounded-lg shadow-lg text-xs text-foreground whitespace-nowrap z-50 pointer-events-none select-none">
           {tooltip}
           <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-[#2a2d3a]" />
         </div>
@@ -537,93 +537,73 @@ function NodesContent() {
       {/* 透明遮罩：点击关闭 */}
       <div className="fixed inset-0 z-[15]" onClick={() => setDropdownId(null)} />
       <div
-        className="absolute right-0 top-8 z-20 bg-[#1e2130] border border-gray-700 rounded-lg shadow-xl min-w-[280px] py-2 max-h-[60vh] overflow-y-auto"
+        className="absolute right-0 top-8 z-20 bg-popover border border-border rounded-lg shadow-xl min-w-[280px] py-2 max-h-[60vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-3 py-1.5 text-xs text-gray-500 border-b border-gray-800">节点详情</div>
-        <div className="px-3 py-1.5 text-xs text-gray-400">区域: <span className="text-gray-200">{node.area_name}</span></div>
+        <div className="px-3 py-1.5 text-xs text-muted-foreground border-b border-border">节点详情</div>
+        <div className="px-3 py-1.5 text-xs text-muted-foreground">区域: <span className="text-foreground">{node.area_name}</span></div>
         {node.group_name && node.group_name !== '-' && (
-          <div className="px-3 py-1.5 text-xs text-gray-400">分组: <span className="text-gray-200">{node.group_name}</span></div>
+          <div className="px-3 py-1.5 text-xs text-muted-foreground">分组: <span className="text-foreground">{node.group_name}</span></div>
         )}
         {node.remark && (
-          <div className="px-3 py-1.5 text-xs text-gray-400">备注: <span className="text-gray-200">{node.remark}</span></div>
+          <div className="px-3 py-1.5 text-xs text-muted-foreground">备注: <span className="text-foreground">{node.remark}</span></div>
         )}
         {node.version && (
-          <div className="px-3 py-1.5 text-xs text-gray-400">版本: <span className="text-gray-200">{node.version}</span></div>
+          <div className="px-3 py-1.5 text-xs text-muted-foreground">版本: <span className="text-foreground">{node.version}</span></div>
         )}
 
-        <div className="px-3 py-1.5 text-xs text-gray-500 border-t border-gray-800 mt-1 pt-2">IP地址使用</div>
+        <div className="px-3 py-1.5 text-xs text-muted-foreground border-t border-border mt-1 pt-2">IP地址使用</div>
         {ipSegmentLoadingIds.has(node.id) && !segments ? (
-          <div className="px-3 py-1.5 text-xs text-gray-400 flex items-center gap-1.5">
+          <div className="px-3 py-1.5 text-xs text-muted-foreground flex items-center gap-1.5">
             <Loader2 className="w-3 h-3 animate-spin" />加载中...
           </div>
         ) : segments && segments.length > 0 ? (
           <>
             <div className="px-3 py-1 text-xs">
-              <span className="text-gray-400">IP总数: </span>
-              <span className="text-white font-semibold">{ipTotal}</span>
-              <span className="text-gray-500 mx-1">|</span>
-              <span className="text-gray-400">已用: </span>
-              <span className="text-orange-400 font-semibold">{ipUsed}</span>
-              <span className="text-gray-500 mx-1">|</span>
-              <span className="text-gray-400">空闲: </span>
-              <span className="text-emerald-400 font-semibold">{(ipTotal || 0) - (ipUsed || 0)}</span>
+              <span className="text-muted-foreground">IP总数: </span>
+              <span className="text-foreground font-semibold">{ipTotal}</span>
+              <span className="text-muted-foreground mx-1">|</span>
+              <span className="text-muted-foreground">已用: </span>
+              <span className="text-primary font-semibold">{ipUsed}</span>
+              <span className="text-muted-foreground mx-1">|</span>
+              <span className="text-muted-foreground">空闲: </span>
+              <span className="text-success font-semibold">{(ipTotal || 0) - (ipUsed || 0)}</span>
             </div>
-            <div className="px-3 py-1 text-xs text-gray-500 border-t border-gray-800/50 mt-1 pt-1.5">绑定IP段</div>
+            <div className="px-3 py-1 text-xs text-muted-foreground border-t border-border/50 mt-1 pt-1.5">绑定IP段</div>
             {segments.map(seg => (
               <div key={seg.id} className="px-3 py-1 text-xs flex items-center justify-between">
-                <span className="text-gray-300 truncate max-w-[140px]" title={seg.ip_name}>{seg.ip_name}</span>
-                <span className="text-gray-500 ml-2 shrink-0">
-                  <span className="text-orange-400">{seg.count.used}</span>
-                  <span className="text-gray-600">/</span>
-                  <span className="text-gray-300">{seg.count.total}</span>
+                <span className="text-foreground/80 truncate max-w-[140px]" title={seg.ip_name}>{seg.ip_name}</span>
+                <span className="text-muted-foreground ml-2 shrink-0">
+                  <span className="text-primary">{seg.count.used}</span>
+                  <span className="text-muted-foreground">/</span>
+                  <span className="text-foreground/80">{seg.count.total}</span>
                 </span>
               </div>
             ))}
           </>
         ) : (
-          <div className="px-3 py-1.5 text-xs text-gray-500">无IP段信息</div>
+          <div className="px-3 py-1.5 text-xs text-muted-foreground">无IP段信息</div>
         )}
       </div>
     </>
   );
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white">
-      {/* 顶部导航 */}
-      <div className="sticky top-0 z-10 bg-[#1a1d27] border-b border-gray-800 px-3 py-2 sm:px-4 sm:py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-          <MobileSidebar currentPath="/nodes" variant="subpage" />
-          <button onClick={() => router.push('/')} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors shrink-0 min-h-[44px] min-w-[44px]">
-            <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">首页</span>
-          </button>
-          <h1 className="text-lg font-semibold flex items-center gap-2 shrink-0">
-            <Monitor className="w-5 h-5 text-purple-500" />
-            <span className="hidden sm:inline">节点管理</span>
-          </h1>
-
-          <div className="relative flex-1 sm:max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-            <input
-              type="text"
-              value={searchKeyword}
-              onChange={e => { setSearchKeyword(e.target.value); setCurrentPage(1); }}
-              placeholder="搜索节点名称/IP..."
-              className="w-full pl-9 pr-8 py-2 bg-gray-800/80 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30 transition-colors min-h-[44px]"
-            />
-            {searchKeyword && (
-              <button onClick={() => { setSearchKeyword(''); setCurrentPage(1); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
+    <div className="min-h-screen">
+      <PageHeader
+        title="节点管理"
+        titleIcon={Monitor}
+        search={{
+          value: searchKeyword,
+          onChange: (v) => { setSearchKeyword(v); setCurrentPage(1); },
+          placeholder: '搜索节点名称/IP...',
+        }}
+        actions={
+          <>
             <select
               value={enableFilter}
               onChange={e => { setEnableFilter(e.target.value); setCurrentPage(1); }}
-              className="hidden sm:block bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-xs text-gray-300 focus:outline-none focus:border-purple-500 min-h-[44px]"
+              className="hidden sm:block bg-muted border border-border rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary"
             >
               <option value="-1">全部状态</option>
               <option value="1">已启用</option>
@@ -632,14 +612,14 @@ function NodesContent() {
             <button
               onClick={refreshAll}
               disabled={refreshing}
-              className="p-2.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors disabled:opacity-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
               title="刷新数据"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={() => setMonitorSheetOpen(true)}
-              className={`p-2.5 rounded-lg hover:bg-gray-700 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${selectedNodeIds.size > 0 ? 'text-purple-400 bg-purple-500/10' : 'text-gray-400 hover:text-white'}`}
+              className={`p-2 rounded-lg hover:bg-accent transition-colors ${selectedNodeIds.size > 0 ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
               title="监控规则"
             >
               <Shield className="w-4 h-4" />
@@ -647,60 +627,60 @@ function NodesContent() {
                 <span className="ml-1 text-xs font-semibold">{selectedNodeIds.size}</span>
               )}
             </button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="max-w-7xl mx-auto p-2 sm:p-4 space-y-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* 摘要统计 */}
         {!loading && nodes.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-[#1a1d27] rounded-xl border border-gray-800 p-3">
-              <div className="text-xs text-gray-500">节点总数</div>
-              <div className="text-xl font-bold text-white">{total}</div>
+            <div className="bg-card rounded-xl border border-border p-3">
+              <div className="text-xs text-muted-foreground">节点总数</div>
+              <div className="text-xl font-bold text-foreground">{total}</div>
             </div>
-            <div className="bg-[#1a1d27] rounded-xl border border-gray-800 p-3">
-              <div className="text-xs text-gray-500 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-400" />正常运行</div>
-              <div className="text-xl font-bold text-emerald-400">{stats.online}</div>
+            <div className="bg-card rounded-xl border border-border p-3">
+              <div className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle className="w-3 h-3 text-success" />正常运行</div>
+              <div className="text-xl font-bold text-success">{stats.online}</div>
             </div>
-            <div className="bg-[#1a1d27] rounded-xl border border-gray-800 p-3">
-              <div className="text-xs text-gray-500 flex items-center gap-1"><XCircle className="w-3 h-3 text-red-400" />异常节点</div>
-              <div className="text-xl font-bold text-red-400">{stats.offline}</div>
+            <div className="bg-card rounded-xl border border-border p-3">
+              <div className="text-xs text-muted-foreground flex items-center gap-1"><XCircle className="w-3 h-3 text-destructive" />异常节点</div>
+              <div className="text-xl font-bold text-destructive">{stats.offline}</div>
             </div>
-            <div className="bg-[#1a1d27] rounded-xl border border-gray-800 p-3">
-              <div className="text-xs text-gray-500 flex items-center gap-1"><Server className="w-3 h-3 text-purple-400" />总实例数</div>
-              <div className="text-xl font-bold text-purple-400">{stats.totalClouds}</div>
+            <div className="bg-card rounded-xl border border-border p-3">
+              <div className="text-xs text-muted-foreground flex items-center gap-1"><Server className="w-3 h-3 text-primary" />总实例数</div>
+              <div className="text-xl font-bold text-primary">{stats.totalClouds}</div>
             </div>
           </div>
         )}
 
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-            <span className="ml-3 text-gray-400">加载节点列表...</span>
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">加载节点列表...</span>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg flex items-center gap-2">
+          <div className="bg-destructive/10 border border-destructive/30 text-destructive px-4 py-3 rounded-lg flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             {error}
           </div>
         )}
 
         {!loading && !error && nodes.length === 0 && (
-          <div className="text-center py-20 text-gray-500">
+          <div className="text-center py-20 text-muted-foreground">
             {searchKeyword ? '未找到匹配的节点' : '暂无节点数据'}
           </div>
         )}
 
         {/* ===== 桌面端表格 (md+) ===== */}
         {!loading && nodes.length > 0 && (
-          <div className="hidden md:block bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
+          <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-800 text-gray-400 text-xs">
+                  <tr className="border-b border-border text-muted-foreground text-xs">
                     <th className="px-3 py-3 text-left w-8">
                       <Checkbox
                         checked={nodes.length > 0 && selectedNodeIds.size === nodes.length}
@@ -732,7 +712,7 @@ function NodesContent() {
                     const d = getNodeRowData(node);
                     const isDropdownOpen = dropdownId === node.id;
                     return (
-                      <tr key={node.id} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
+                      <tr key={node.id} className="border-b border-border/60 hover:bg-muted/30 transition-colors">
                         <td className="px-3 py-3">
                           <Checkbox
                             checked={selectedNodeIds.has(node.id)}
@@ -745,89 +725,89 @@ function NodesContent() {
                             }}
                           />
                         </td>
-                        <td className="px-3 py-3 text-gray-400 font-mono text-xs">{node.id}</td>
+                        <td className="px-3 py-3 text-muted-foreground font-mono text-xs">{node.id}</td>
                         <td className="px-3 py-3">
-                          {node.status === 1 ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-red-400" />}
+                          {node.status === 1 ? <CheckCircle className="w-4 h-4 text-success" /> : <XCircle className="w-4 h-4 text-destructive" />}
                         </td>
-                        <td className="px-3 py-3 text-white font-medium">{node.name}</td>
+                        <td className="px-3 py-3 text-foreground font-medium">{node.name}</td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-1">
-                            <span className="text-gray-200 font-mono text-xs">{node.ip}</span>
-                            <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(node.ip); }} className="text-gray-500 hover:text-purple-400 transition-colors" title="复制IP">
+                            <span className="text-foreground font-mono text-xs">{node.ip}</span>
+                            <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(node.ip); }} className="text-muted-foreground hover:text-primary transition-colors" title="复制IP">
                               <Copy className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
                         <td className="px-3 py-3">
-                          <span className={`font-semibold ${node.cloud_num > 0 ? 'text-purple-400' : 'text-gray-500'}`}>{node.cloud_num}</span>
+                          <span className={`font-semibold ${node.cloud_num > 0 ? 'text-primary' : 'text-muted-foreground'}`}>{node.cloud_num}</span>
                         </td>
                         {/* CPU / 内存 */}
                         <td className="px-3 py-3">
                           {!d.nd && realDataLoading ? (
-                            <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
+                            <Loader2 className="w-3 h-3 animate-spin text-primary" />
                           ) : d.nd ? (
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2">
-                                <Cpu className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                                <Cpu className="w-3.5 h-3.5 text-primary shrink-0" />
                                 <div className="flex-1 min-w-[50px]">
                                   <TooltipProgressBar
                                     value={d.cpuPct}
-                                    color={d.cpuPct > 80 ? 'bg-red-500' : d.cpuPct > 50 ? 'bg-yellow-500' : 'bg-emerald-500'}
+                                    color={d.cpuPct > 80 ? 'bg-destructive' : d.cpuPct > 50 ? 'bg-warning' : 'bg-success'}
                                     tooltip={`CPU使用率: ${d.cpuPct.toFixed(1)}%  |  总核心数: ${d.cpuCores}`}
                                   />
                                 </div>
-                                <span className={`text-xs font-mono min-w-[40px] text-right ${d.cpuPct > 80 ? 'text-red-400' : 'text-gray-300'}`}>{d.cpuPct.toFixed(1)}%</span>
+                                <span className={`text-xs font-mono min-w-[40px] text-right ${d.cpuPct > 80 ? 'text-destructive' : 'text-foreground/80'}`}>{d.cpuPct.toFixed(1)}%</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <MemoryStick className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                                <MemoryStick className="w-3.5 h-3.5 text-info shrink-0" />
                                 <div className="flex-1 min-w-[50px]">
                                   <TooltipProgressBar
                                     value={d.memPct}
-                                    color={d.memPct > 80 ? 'bg-red-500' : d.memPct > 50 ? 'bg-yellow-500' : 'bg-cyan-500'}
+                                    color={d.memPct > 80 ? 'bg-destructive' : d.memPct > 50 ? 'bg-warning' : 'bg-info'}
                                     tooltip={`内存使用率: ${d.memPct.toFixed(1)}%  |  用量: ${d.memUsed}  |  总量: ${d.memTotal}`}
                                   />
                                 </div>
-                                <span className={`text-xs font-mono min-w-[40px] text-right ${d.memPct > 80 ? 'text-red-400' : 'text-gray-300'}`}>{d.memPct.toFixed(1)}%</span>
+                                <span className={`text-xs font-mono min-w-[40px] text-right ${d.memPct > 80 ? 'text-destructive' : 'text-foreground/80'}`}>{d.memPct.toFixed(1)}%</span>
                               </div>
                             </div>
-                          ) : <span className="text-xs text-gray-500">-</span>}
+                          ) : <span className="text-xs text-muted-foreground">-</span>}
                         </td>
                         {/* 带宽 */}
                         <td className="px-3 py-3">
-                          {!d.nd ? (realDataLoading ? <Loader2 className="w-3 h-3 animate-spin text-purple-400" /> : <span className="text-xs text-gray-500">-</span>) : (
+                          {!d.nd ? (realDataLoading ? <Loader2 className="w-3 h-3 animate-spin text-primary" /> : <span className="text-xs text-muted-foreground">-</span>) : (
                             <div className="space-y-1">
                               <div className="flex items-center gap-1.5">
-                                <Wifi className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                                <span className="text-xs text-gray-300">入 <span className="text-emerald-400 font-mono">{formatBw(d.nd.net_inbw)}</span></span>
+                                <Wifi className="w-3.5 h-3.5 text-info shrink-0" />
+                                <span className="text-xs text-foreground/80">入 <span className="text-success font-mono">{formatBw(d.nd.net_inbw)}</span></span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <div className="w-3.5" />
-                                <span className="text-xs text-gray-300">出 <span className="text-blue-400 font-mono">{formatBw(d.nd.net_outbw)}</span></span>
+                                <span className="text-xs text-foreground/80">出 <span className="text-info font-mono">{formatBw(d.nd.net_outbw)}</span></span>
                               </div>
                             </div>
                           )}
                         </td>
                         {/* 磁盘 */}
                         <td className="px-3 py-3">
-                          {!d.nd ? (realDataLoading ? <Loader2 className="w-3 h-3 animate-spin text-purple-400" /> : <span className="text-xs text-gray-500">-</span>) : (
+                          {!d.nd ? (realDataLoading ? <Loader2 className="w-3 h-3 animate-spin text-primary" /> : <span className="text-xs text-muted-foreground">-</span>) : (
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2">
-                                <HardDrive className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                                <HardDrive className="w-3.5 h-3.5 text-primary shrink-0" />
                                 <div className="flex-1 min-w-[50px]">
                                   <TooltipProgressBar
                                     value={d.diskPct}
-                                    color={d.diskPct > 80 ? 'bg-red-500' : d.diskPct > 50 ? 'bg-yellow-500' : 'bg-orange-500'}
+                                    color={d.diskPct > 80 ? 'bg-destructive' : d.diskPct > 50 ? 'bg-warning' : 'bg-primary'}
                                     tooltip={`磁盘占用: ${d.diskPct.toFixed(1)}%  |  已用: ${formatDiskSize(d.diskUsedGb)}  |  总量: ${formatDiskSize(d.diskTotalGb)}`}
                                   />
                                 </div>
-                                <span className={`text-xs font-mono min-w-[40px] text-right ${d.diskPct > 80 ? 'text-red-400' : 'text-gray-300'}`}>{d.diskPct.toFixed(1)}%</span>
+                                <span className={`text-xs font-mono min-w-[40px] text-right ${d.diskPct > 80 ? 'text-destructive' : 'text-foreground/80'}`}>{d.diskPct.toFixed(1)}%</span>
                               </div>
                               {(d.nd.io_read > 0 || d.nd.io_write > 0) && (
                                 <div className="flex items-center gap-1.5">
                                   <div className="w-3.5" />
-                                  <span className="text-[10px] text-gray-500">
-                                    读 <span className="text-cyan-400 font-mono">{formatIO(d.nd.io_read)}</span>
-                                    {' '}写 <span className="text-orange-400 font-mono">{formatIO(d.nd.io_write)}</span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    读 <span className="text-info font-mono">{formatIO(d.nd.io_read)}</span>
+                                    {' '}写 <span className="text-primary font-mono">{formatIO(d.nd.io_write)}</span>
                                   </span>
                                 </div>
                               )}
@@ -839,20 +819,20 @@ function NodesContent() {
                           <button
                             onClick={(e) => { e.stopPropagation(); handleToggleEnable(node.id, node.enable); }}
                             disabled={togglingId === node.id}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 ${node.enable === 1 ? 'bg-emerald-600' : 'bg-gray-600'} ${togglingId === node.id ? 'opacity-50' : ''}`}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 ${node.enable === 1 ? 'bg-success' : 'bg-accent'} ${togglingId === node.id ? 'opacity-50' : ''}`}
                             title={node.enable === 1 ? '点击禁用' : '点击启用'}
                           >
-                            {togglingId === node.id && <Loader2 className="w-3 h-3 animate-spin text-white absolute left-1" />}
-                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${togglingId === node.id ? 'opacity-0' : ''} ${node.enable === 1 ? 'translate-x-4.5' : 'translate-x-1'}`} />
+                            {togglingId === node.id && <Loader2 className="w-3 h-3 animate-spin text-foreground absolute left-1" />}
+                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-card transition-transform ${togglingId === node.id ? 'opacity-0' : ''} ${node.enable === 1 ? 'translate-x-4.5' : 'translate-x-1'}`} />
                           </button>
                         </td>
-                        <td className="px-3 py-3 text-gray-400 text-xs">{node.area_name}</td>
-                        <td className="px-3 py-3 text-gray-500 text-xs max-w-[160px] truncate" title={node.remark || ''}>{node.remark || '-'}</td>
+                        <td className="px-3 py-3 text-muted-foreground text-xs">{node.area_name}</td>
+                        <td className="px-3 py-3 text-muted-foreground text-xs max-w-[160px] truncate" title={node.remark || ''}>{node.remark || '-'}</td>
                         <td className="px-3 py-3">
                           <div className="relative">
                             <button
                               onClick={(e) => handleDropdown(node.id, e)}
-                              className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
+                              className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>
@@ -875,7 +855,7 @@ function NodesContent() {
               const d = getNodeRowData(node);
               const isDropdownOpen = dropdownId === node.id;
               return (
-                <div key={node.id} className="bg-[#1a1d27] border border-gray-800 rounded-xl p-4 space-y-3">
+                <div key={node.id} className="bg-card border border-border rounded-xl p-4 space-y-3">
                   {/* 标题行 */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -889,24 +869,24 @@ function NodesContent() {
                           });
                         }}
                       />
-                      {node.status === 1 ? <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" /> : <XCircle className="w-4 h-4 text-red-400 shrink-0" />}
-                      <span className="text-white font-medium truncate">{node.name}</span>
-                      <span className="text-xs text-gray-500 font-mono shrink-0">#{node.id}</span>
+                      {node.status === 1 ? <CheckCircle className="w-4 h-4 text-success shrink-0" /> : <XCircle className="w-4 h-4 text-destructive shrink-0" />}
+                      <span className="text-foreground font-medium truncate">{node.name}</span>
+                      <span className="text-xs text-muted-foreground font-mono shrink-0">#{node.id}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => handleToggleEnable(node.id, node.enable)}
                         disabled={togglingId === node.id}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${node.enable === 1 ? 'bg-emerald-600' : 'bg-gray-600'} ${togglingId === node.id ? 'opacity-50' : ''}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${node.enable === 1 ? 'bg-success' : 'bg-accent'} ${togglingId === node.id ? 'opacity-50' : ''}`}
                         title={node.enable === 1 ? '点击禁用' : '点击启用'}
                       >
-                        {togglingId === node.id && <Loader2 className="w-3 h-3 animate-spin text-white absolute left-1.5" />}
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${togglingId === node.id ? 'opacity-0' : ''} ${node.enable === 1 ? 'translate-x-5.5' : 'translate-x-1.5'}`} />
+                        {togglingId === node.id && <Loader2 className="w-3 h-3 animate-spin text-foreground absolute left-1.5" />}
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${togglingId === node.id ? 'opacity-0' : ''} ${node.enable === 1 ? 'translate-x-5.5' : 'translate-x-1.5'}`} />
                       </button>
                       <div className="relative">
                         <button
                           onClick={(e) => handleDropdown(node.id, e)}
-                          className="p-2 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                          className="p-2 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <MoreVertical className="w-5 h-5" />
                         </button>
@@ -917,83 +897,83 @@ function NodesContent() {
 
                   {/* 基本信息 */}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                    <span className="flex items-center gap-1 text-gray-300 font-mono text-xs">
+                    <span className="flex items-center gap-1 text-foreground/80 font-mono text-xs">
                       {node.ip}
-                      <button onClick={() => navigator.clipboard.writeText(node.ip)} className="text-gray-500 hover:text-purple-400 min-h-[44px] min-w-[44px] flex items-center justify-center -m-1.5 p-1.5">
+                      <button onClick={() => navigator.clipboard.writeText(node.ip)} className="text-muted-foreground hover:text-primary min-h-[44px] min-w-[44px] flex items-center justify-center -m-1.5 p-1.5">
                         <Copy className="w-3.5 h-3.5" />
                       </button>
                     </span>
-                    <span className="text-xs text-gray-400"><Server className="w-3 h-3 inline mr-0.5" />{node.cloud_num}台</span>
-                    <span className="text-xs text-gray-400">{node.area_name}</span>
-                    {node.remark && <span className="text-xs text-gray-500 truncate max-w-[180px]" title={node.remark}>{node.remark}</span>}
+                    <span className="text-xs text-muted-foreground"><Server className="w-3 h-3 inline mr-0.5" />{node.cloud_num}台</span>
+                    <span className="text-xs text-muted-foreground">{node.area_name}</span>
+                    {node.remark && <span className="text-xs text-muted-foreground truncate max-w-[180px]" title={node.remark}>{node.remark}</span>}
                   </div>
 
                   {/* CPU / 内存 */}
                   {!d.nd && realDataLoading ? (
-                    <div className="flex items-center gap-1.5 text-gray-400 text-xs py-2"><Loader2 className="w-3 h-3 animate-spin text-purple-400" />加载实时数据...</div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground text-xs py-2"><Loader2 className="w-3 h-3 animate-spin text-primary" />加载实时数据...</div>
                   ) : d.nd ? (
-                    <div className="space-y-2 pt-2 border-t border-gray-800/60">
+                    <div className="space-y-2 pt-2 border-t border-border/60">
                       <div className="flex items-center gap-2">
-                        <Cpu className="w-4 h-4 text-purple-400 shrink-0" />
-                        <span className="text-xs text-gray-500 shrink-0 w-7">CPU</span>
+                        <Cpu className="w-4 h-4 text-primary shrink-0" />
+                        <span className="text-xs text-muted-foreground shrink-0 w-7">CPU</span>
                         <div className="flex-1 min-w-[60px]">
                           <TooltipProgressBar
                             value={d.cpuPct}
-                            color={d.cpuPct > 80 ? 'bg-red-500' : d.cpuPct > 50 ? 'bg-yellow-500' : 'bg-emerald-500'}
+                            color={d.cpuPct > 80 ? 'bg-destructive' : d.cpuPct > 50 ? 'bg-warning' : 'bg-success'}
                             tooltip={`CPU使用率: ${d.cpuPct.toFixed(1)}%  |  总核心数: ${d.cpuCores}`}
                           />
                         </div>
-                        <span className={`text-xs font-mono min-w-[44px] text-right ${d.cpuPct > 80 ? 'text-red-400' : 'text-gray-300'}`}>{d.cpuPct.toFixed(1)}%</span>
+                        <span className={`text-xs font-mono min-w-[44px] text-right ${d.cpuPct > 80 ? 'text-destructive' : 'text-foreground/80'}`}>{d.cpuPct.toFixed(1)}%</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <MemoryStick className="w-4 h-4 text-cyan-400 shrink-0" />
-                        <span className="text-xs text-gray-500 shrink-0 w-7">内存</span>
+                        <MemoryStick className="w-4 h-4 text-info shrink-0" />
+                        <span className="text-xs text-muted-foreground shrink-0 w-7">内存</span>
                         <div className="flex-1 min-w-[60px]">
                           <TooltipProgressBar
                             value={d.memPct}
-                            color={d.memPct > 80 ? 'bg-red-500' : d.memPct > 50 ? 'bg-yellow-500' : 'bg-cyan-500'}
+                            color={d.memPct > 80 ? 'bg-destructive' : d.memPct > 50 ? 'bg-warning' : 'bg-info'}
                             tooltip={`内存使用率: ${d.memPct.toFixed(1)}%  |  用量: ${d.memUsed}  |  总量: ${d.memTotal}`}
                           />
                         </div>
-                        <span className={`text-xs font-mono min-w-[44px] text-right ${d.memPct > 80 ? 'text-red-400' : 'text-gray-300'}`}>{d.memPct.toFixed(1)}%</span>
+                        <span className={`text-xs font-mono min-w-[44px] text-right ${d.memPct > 80 ? 'text-destructive' : 'text-foreground/80'}`}>{d.memPct.toFixed(1)}%</span>
                       </div>
                     </div>
                   ) : null}
 
                   {/* 带宽 / 磁盘 */}
                   {d.nd && (
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-800/60">
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/60">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5">
-                          <Wifi className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                          <span className="text-xs text-gray-500">带宽</span>
+                          <Wifi className="w-3.5 h-3.5 text-info shrink-0" />
+                          <span className="text-xs text-muted-foreground">带宽</span>
                         </div>
-                        <div className="text-xs text-gray-300 pl-5">入 <span className="text-emerald-400 font-mono">{formatBw(d.nd.net_inbw)}</span></div>
-                        <div className="text-xs text-gray-300 pl-5">出 <span className="text-blue-400 font-mono">{formatBw(d.nd.net_outbw)}</span></div>
+                        <div className="text-xs text-foreground/80 pl-5">入 <span className="text-success font-mono">{formatBw(d.nd.net_inbw)}</span></div>
+                        <div className="text-xs text-foreground/80 pl-5">出 <span className="text-info font-mono">{formatBw(d.nd.net_outbw)}</span></div>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5">
-                          <HardDrive className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                          <span className="text-xs text-gray-500">磁盘</span>
+                          <HardDrive className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span className="text-xs text-muted-foreground">磁盘</span>
                         </div>
                         {d.diskTotalGb > 0 ? (
                           <>
                             <div className="pl-5">
                               <TooltipProgressBar
                                 value={d.diskPct}
-                                color={d.diskPct > 80 ? 'bg-red-500' : d.diskPct > 50 ? 'bg-yellow-500' : 'bg-orange-500'}
+                                color={d.diskPct > 80 ? 'bg-destructive' : d.diskPct > 50 ? 'bg-warning' : 'bg-primary'}
                                 tooltip={`磁盘占用: ${d.diskPct.toFixed(1)}%  |  已用: ${formatDiskSize(d.diskUsedGb)}  |  总量: ${formatDiskSize(d.diskTotalGb)}`}
                               />
                             </div>
-                            <div className="text-[10px] text-gray-500 pl-5">
+                            <div className="text-[10px] text-muted-foreground pl-5">
                               {d.diskPct.toFixed(1)}%
                             </div>
                           </>
-                        ) : <div className="text-xs text-gray-500 pl-5">-</div>}
+                        ) : <div className="text-xs text-muted-foreground pl-5">-</div>}
                         {(d.nd.io_read > 0 || d.nd.io_write > 0) && (
-                          <div className="text-[10px] text-gray-500 pl-5">
-                            读 <span className="text-cyan-400 font-mono">{formatIO(d.nd.io_read)}</span>
-                            {' '}写 <span className="text-orange-400 font-mono">{formatIO(d.nd.io_write)}</span>
+                          <div className="text-[10px] text-muted-foreground pl-5">
+                            读 <span className="text-info font-mono">{formatIO(d.nd.io_read)}</span>
+                            {' '}写 <span className="text-primary font-mono">{formatIO(d.nd.io_write)}</span>
                           </div>
                         )}
                       </div>
@@ -1007,15 +987,15 @@ function NodesContent() {
 
         {/* 分页 */}
         {!loading && total > perPage && (
-          <div className="flex items-center justify-between bg-[#1a1d27] rounded-xl border border-gray-800 p-3">
-            <div className="text-xs text-gray-500">
+          <div className="flex items-center justify-between bg-card rounded-xl border border-border p-3">
+            <div className="text-xs text-muted-foreground">
               第 {(currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, total)} 条，共 {total} 条
             </div>
             <div className="flex items-center gap-2">
               <select
                 value={perPage}
                 onChange={e => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none min-h-[44px]"
+                className="bg-muted border border-border rounded px-2 py-1 text-xs text-foreground/80 focus:outline-none min-h-[44px]"
               >
                 <option value={10}>10条/页</option>
                 <option value={20}>20条/页</option>
@@ -1025,15 +1005,15 @@ function NodesContent() {
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="p-2 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-xs text-gray-400">{currentPage}/{totalPages}</span>
+              <span className="text-xs text-muted-foreground">{currentPage}/{totalPages}</span>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="p-2 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -1056,8 +1036,8 @@ function NodesContent() {
 export default function NodesPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     }>
       <NodesContent />

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, RefreshCw, Power, PowerOff, RotateCcw,
+  RefreshCw, Power, PowerOff, RotateCcw,
   Monitor, Server, Globe, HardDrive, Wifi,
   Loader2, CheckCircle, XCircle, AlertCircle,
   Zap, ScreenShare, KeyRound, Shield, Activity,
@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import MobileSidebar from '@/components/mobile-sidebar';
 import { loadAuth, saveAuth, getLoginUser } from '@/lib/auth-client';
 
 // Tab定义
@@ -1553,13 +1552,13 @@ function AdvancedContent() {
 
   // 电源状态显示
   const getPowerLabel = (status: string | undefined): { label: string; color: string } => {
-    if (!status) return { label: '未知', color: 'text-gray-400' };
+    if (!status) return { label: '未知', color: 'text-muted-foreground' };
     switch (status) {
-      case 'on': case 'running': return { label: '运行中', color: 'text-emerald-400' };
-      case 'off': case 'stopped': return { label: '已关机', color: 'text-red-400' };
-      case 'process': case 'operating': case 'task': return { label: '操作中', color: 'text-yellow-400' };
-      case 'suspend': return { label: '已暂停', color: 'text-yellow-400' };
-      default: return { label: status, color: 'text-gray-400' };
+      case 'on': case 'running': return { label: '运行中', color: 'text-success' };
+      case 'off': case 'stopped': return { label: '已关机', color: 'text-destructive' };
+      case 'process': case 'operating': case 'task': return { label: '操作中', color: 'text-warning' };
+      case 'suspend': return { label: '已暂停', color: 'text-warning' };
+      default: return { label: status, color: 'text-muted-foreground' };
     }
   };
 
@@ -1567,11 +1566,11 @@ function AdvancedContent() {
 
   if (!hostid) {
     return (
-      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center text-gray-400">
+      <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">
         <div className="text-center">
-          <AlertCircle className="w-12 h-12 mx-auto mb-3 text-yellow-500" />
+          <AlertCircle className="w-12 h-12 mx-auto mb-3 text-warning" />
           <p>未指定产品ID</p>
-          <button onClick={() => router.push('/')} className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
+          <button onClick={() => router.push('/')} className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
             返回首页
           </button>
         </div>
@@ -1580,23 +1579,18 @@ function AdvancedContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white">
+    <div className="min-h-screen">
       {/* 顶部导航 */}
-      <div className="sticky top-0 z-10 bg-[#1a1d27] border-b border-gray-800 px-3 py-2 sm:px-4 sm:py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
-          <MobileSidebar currentPath="/advanced" variant="subpage" />
-          <button onClick={() => router.push('/')} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors shrink-0">
-            <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">首页</span>
-          </button>
-          <h1 className="text-lg font-semibold flex items-center gap-2 shrink-0">
-            <Shield className="w-5 h-5 text-purple-500" />
+      <div className="sticky top-14 z-30 bg-background px-3 sm:px-4 py-2.5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 flex-wrap">
+          <h1 className="text-lg font-semibold flex items-center gap-2 shrink-0 text-foreground">
+            <Shield className="w-5 h-5 text-primary" />
             <span className="hidden sm:inline">实例管理</span>
           </h1>
           {/* 全局搜索 */}
-          <div className="relative flex-1 max-w-md mx-2">
+          <div className="relative flex-1 max-w-md ml-auto">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -1612,44 +1606,44 @@ function AdvancedContent() {
                   }
                 }}
                 placeholder="全局搜索（用户/实例）..."
-                className="w-full pl-9 pr-8 py-1.5 bg-gray-800/80 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30 transition-colors"
+                className="w-full pl-9 pr-8 py-1.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
               />
-              {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-purple-400" />}
+              {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-primary" />}
               {searchKeyword && !searchLoading && (
-                <button onClick={() => { setSearchKeyword(''); setSearchResults({ hosts: [], users: [] }); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
+                <button onClick={() => { setSearchKeyword(''); setSearchResults({ hosts: [], users: [] }); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
             {/* 搜索下拉结果 */}
             {showSearchDropdown && (
-              <div ref={searchDropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-[#1e2130] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+              <div ref={searchDropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
                 {/* 搜索历史 */}
                 {searchHistory.length > 0 && !searchKeyword && (
-                  <div className="p-3 border-b border-gray-800">
+                  <div className="p-3 border-b border-border">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500">搜索历史</span>
-                      <button onClick={() => { setSearchHistory([]); try { localStorage.removeItem('mfy_search_history'); } catch {} }} className="text-xs text-gray-600 hover:text-gray-400">清空</button>
+                      <span className="text-xs text-muted-foreground">搜索历史</span>
+                      <button onClick={() => { setSearchHistory([]); try { localStorage.removeItem('mfy_search_history'); } catch {} }} className="text-xs text-muted-foreground hover:text-muted-foreground">清空</button>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {searchHistory.map((h, i) => (
-                        <button key={i} onClick={() => { setSearchKeyword(h); doGlobalSearch(h); saveSearchHistory(h); }} className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded-md text-xs text-gray-300 transition-colors">{h}</button>
+                        <button key={i} onClick={() => { setSearchKeyword(h); doGlobalSearch(h); saveSearchHistory(h); }} className="px-2.5 py-1 bg-muted hover:bg-accent rounded-md text-xs text-foreground transition-colors">{h}</button>
                       ))}
                     </div>
                   </div>
                 )}
                 {/* 搜索结果 - 产品 */}
                 {searchResults.hosts.length > 0 && (
-                  <div className="p-3 border-b border-gray-800">
-                    <div className="text-xs text-gray-500 mb-2 flex items-center gap-1"><Server className="w-3 h-3" />产品</div>
+                  <div className="p-3 border-b border-border">
+                    <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1"><Server className="w-3 h-3" />产品</div>
                     {searchResults.hosts.map((host, i) => (
-                      <button key={i} onClick={() => { setShowSearchDropdown(false); router.push(`/advanced?hostid=${host.id}`); }} className="w-full flex items-center gap-3 px-2 py-2 hover:bg-gray-800/60 rounded-lg transition-colors text-left">
-                        <Server className="w-4 h-4 text-purple-400 shrink-0" />
+                      <button key={i} onClick={() => { setShowSearchDropdown(false); router.push(`/advanced?hostid=${host.id}`); }} className="w-full flex items-center gap-3 px-2 py-2 hover:bg-accent rounded-lg transition-colors text-left">
+                        <Server className="w-4 h-4 text-primary shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm text-white truncate">{host.hostname || '-'}</div>
-                          <div className="text-xs text-gray-500 truncate">{host.mainip || '-'} · {host.node_name || '-'}{host.username ? ` · ${host.username}` : ''}</div>
+                          <div className="text-sm text-foreground truncate">{host.hostname || '-'}</div>
+                          <div className="text-xs text-muted-foreground truncate">{host.mainip || '-'} · {host.node_name || '-'}{host.username ? ` · ${host.username}` : ''}</div>
                         </div>
-                        <span className="text-xs text-gray-600 shrink-0">ID:{host.id}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">ID:{host.id}</span>
                       </button>
                     ))}
                   </div>
@@ -1657,26 +1651,26 @@ function AdvancedContent() {
                 {/* 搜索结果 - 用户 */}
                 {searchResults.users.length > 0 && (
                   <div className="p-3">
-                    <div className="text-xs text-gray-500 mb-2 flex items-center gap-1"><User className="w-3 h-3" />用户</div>
+                    <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1"><User className="w-3 h-3" />用户</div>
                     {searchResults.users.map((user, i) => (
-                      <button key={i} onClick={() => { setShowSearchDropdown(false); const kw = searchKeyword.trim(); router.push(`/user-instances?userId=${user.id}&q=${encodeURIComponent(kw)}`); }} className="w-full flex items-center gap-3 px-2 py-2 hover:bg-gray-800/60 rounded-lg transition-colors text-left">
-                        <User className="w-4 h-4 text-blue-400 shrink-0" />
+                      <button key={i} onClick={() => { setShowSearchDropdown(false); const kw = searchKeyword.trim(); router.push(`/user-instances?userId=${user.id}&q=${encodeURIComponent(kw)}`); }} className="w-full flex items-center gap-3 px-2 py-2 hover:bg-accent rounded-lg transition-colors text-left">
+                        <User className="w-4 h-4 text-info shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm text-white truncate">{user.username || '-'}</div>
-                          <div className="text-xs text-gray-500 truncate">{user.email || '-'}</div>
+                          <div className="text-sm text-foreground truncate">{user.username || '-'}</div>
+                          <div className="text-xs text-muted-foreground truncate">{user.email || '-'}</div>
                         </div>
-                        <span className="text-xs text-gray-600 shrink-0">UID:{user.id}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">UID:{user.id}</span>
                       </button>
                     ))}
                   </div>
                 )}
                 {/* 无结果 */}
                 {searchKeyword && !searchLoading && searchResults.hosts.length === 0 && searchResults.users.length === 0 && (
-                  <div className="p-6 text-center text-gray-500 text-sm">未找到相关结果</div>
+                  <div className="p-6 text-center text-muted-foreground text-sm">未找到相关结果</div>
                 )}
                 {/* 提示 */}
                 {!searchKeyword && searchHistory.length === 0 && (
-                  <div className="p-6 text-center text-gray-500 text-sm">输入关键字后按回车搜索</div>
+                  <div className="p-6 text-center text-muted-foreground text-sm">输入关键字后按回车搜索</div>
                 )}
               </div>
             )}
@@ -1693,7 +1687,7 @@ function AdvancedContent() {
               }
             }}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors disabled:opacity-50 shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent/70 rounded-lg text-sm transition-colors disabled:opacity-50 shrink-0"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">刷新</span>
@@ -1701,32 +1695,32 @@ function AdvancedContent() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto p-2 pb-8 sm:p-4 sm:pb-12 space-y-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 pb-8 sm:py-6 sm:pb-12 space-y-4 sm:space-y-6">
         {/* 提示消息 - 顶部悬浮自动消失 */}
         {msg && (
           <div className={`fixed top-10 sm:top-12 left-0 right-0 z-50 flex justify-center px-3 pt-2 animate-[slideDown_0.3s_ease-out]`}>
             <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border shadow-lg max-w-lg w-full ${
-              msg.type === 'success' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 backdrop-blur-md' :
-              msg.type === 'error' ? 'bg-red-500/15 border-red-500/30 text-red-400 backdrop-blur-md' :
-              'bg-blue-500/15 border-blue-500/30 text-blue-400 backdrop-blur-md'
+              msg.type === 'success' ? 'bg-success/15 border-success/30 text-success backdrop-blur-md' :
+              msg.type === 'error' ? 'bg-destructive/15 border-destructive/30 text-destructive backdrop-blur-md' :
+              'bg-info/15 border-info/30 text-info backdrop-blur-md'
             }`}>
               {msg.type === 'success' && <CheckCircle className="w-5 h-5 shrink-0" />}
               {msg.type === 'error' && <XCircle className="w-5 h-5 shrink-0" />}
               {msg.type === 'info' && <Loader2 className="w-5 h-5 shrink-0 animate-spin" />}
               <span className="flex-1 text-sm">{msg.text}</span>
-              <button onClick={() => setMsg(null)} className="text-gray-500 hover:text-white shrink-0"><X className="w-4 h-4" /></button>
+              <button onClick={() => setMsg(null)} className="text-muted-foreground hover:text-foreground shrink-0"><X className="w-4 h-4" /></button>
             </div>
           </div>
         )}
 
         {isLoading && !cloudDetail ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-            <span className="ml-3 text-gray-400">加载实例信息...</span>
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">加载实例信息...</span>
           </div>
         ) : !cloudId ? (
-          <div className="text-center py-20 text-gray-400">
-            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-yellow-500" />
+          <div className="text-center py-20 text-muted-foreground">
+            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-warning" />
             <p>未找到实例ID</p>
             <p className="text-sm mt-2">该产品可能未对接云平台</p>
           </div>
@@ -1734,23 +1728,23 @@ function AdvancedContent() {
           <>
             {/* ===== 实例信息卡片（独立于tab，始终显示） ===== */}
             {cloudDetail && (
-              <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                <div className="px-3 sm:px-4 py-2 border-b border-gray-800 flex items-center justify-between gap-2">
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="px-3 sm:px-4 py-2 border-b border-border flex items-center justify-between gap-2">
                   <h3 className="font-semibold text-sm sm:text-base flex items-center gap-2 shrink-0">
-                    <Server className="w-4 h-4 text-purple-500" />
+                    <Server className="w-4 h-4 text-primary" />
                     实例信息
                   </h3>
                   <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      powerInfo.color === 'text-emerald-400' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
-                      powerInfo.color === 'text-red-400' ? 'bg-red-500/15 text-red-400 border border-red-500/30' :
-                      'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30'
+                      powerInfo.color === 'text-success' ? 'bg-success/15 text-success border border-success/30' :
+                      powerInfo.color === 'text-destructive' ? 'bg-destructive/15 text-destructive border border-destructive/30' :
+                      'bg-warning/15 text-warning border border-warning/30'
                     }`}>
                       {powerInfo.label}
                     </span>
                     <button
                       onClick={handleVnc}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 transition-colors"
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-primary hover:text-primary hover:bg-primary/10 transition-colors"
                       title="VNC连接"
                     >
                       <ScreenShare className="w-3.5 h-3.5" />
@@ -1778,7 +1772,7 @@ function AdvancedContent() {
                             setMsg({ type: 'error', text: '远程连接失败' });
                           }
                         }}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-info hover:text-info hover:bg-info/10 transition-colors"
                         title="远程连接"
                       >
                         <Monitor className="w-3.5 h-3.5" />
@@ -1800,7 +1794,7 @@ function AdvancedContent() {
                             document.body.removeChild(a); URL.revokeObjectURL(url);
                           } catch { setMsg({ type: 'error', text: 'RDP下载失败' }); }
                         }}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-info hover:text-info hover:bg-info/10 transition-colors"
                         title="下载RDP"
                       >
                         <Download className="w-3.5 h-3.5" />
@@ -1819,7 +1813,7 @@ function AdvancedContent() {
                           setMsg({ type: 'error', text: '复制失败' });
                         });
                       }}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                       title="复制实例信息"
                     >
                       <Copy className="w-3.5 h-3.5" />
@@ -1840,32 +1834,32 @@ function AdvancedContent() {
                   <InfoItem label="客户账号" value={cloudDetail.username || '-'} />
                 </div>
                 {/* 连接信息：电脑一排4列，手机一人一排 */}
-                <div className="px-3 sm:px-4 py-2.5 border-t border-gray-800/50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2">
+                <div className="px-3 sm:px-4 py-2.5 border-t border-border/50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs text-gray-500 shrink-0 flex items-center gap-1"><Globe className="w-3 h-3" />主IP</span>
+                    <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1"><Globe className="w-3 h-3" />主IP</span>
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <span className="text-sm font-medium truncate" title={cloudDetail.mainip || cloudDetail.ip?.[0]?.ip || '-'}>{cloudDetail.mainip || cloudDetail.ip?.[0]?.ip || '-'}</span>
                       <CopyButton value={cloudDetail.mainip || cloudDetail.ip?.[0]?.ip || ''} />
-                      {(cloudDetail.mainip || cloudDetail.ip?.[0]?.ip) && (() => { const _ip = cloudDetail.mainip || cloudDetail.ip?.[0]?.ip; return _ip && _ip !== '-' ? <button onClick={() => handlePing('main', _ip)} className="text-gray-500 hover:text-emerald-400 transition-colors shrink-0" title="Ping" disabled={pingMap['main']?.loading}>{pingMap['main']?.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}</button> : null; })()}
-                      {pingMap['main']?.result && <span className={`text-[10px] font-mono shrink-0 ${pingMap['main'].result?.reachable ? 'text-emerald-400' : 'text-red-400'}`}>{pingMap['main'].result?.reachable ? `${pingMap['main'].result?.avgLatency}ms` : (pingMap['main'].result?.error || '超时')}</span>}
+                      {(cloudDetail.mainip || cloudDetail.ip?.[0]?.ip) && (() => { const _ip = cloudDetail.mainip || cloudDetail.ip?.[0]?.ip; return _ip && _ip !== '-' ? <button onClick={() => handlePing('main', _ip)} className="text-muted-foreground hover:text-success transition-colors shrink-0" title="Ping" disabled={pingMap['main']?.loading}>{pingMap['main']?.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}</button> : null; })()}
+                      {pingMap['main']?.result && <span className={`text-[10px] font-mono shrink-0 ${pingMap['main'].result?.reachable ? 'text-success' : 'text-destructive'}`}>{pingMap['main'].result?.reachable ? `${pingMap['main'].result?.avgLatency}ms` : (pingMap['main'].result?.error || '超时')}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs text-gray-500 shrink-0 flex items-center gap-1"><Network className="w-3 h-3" />端口</span>
+                    <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1"><Network className="w-3 h-3" />端口</span>
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <span className="text-sm font-medium truncate">{cloudDetail.port || '-'}</span>
                       <CopyButton value={String(cloudDetail.port || '-')} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs text-gray-500 shrink-0 flex items-center gap-1"><User className="w-3 h-3" />用户名</span>
+                    <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1"><User className="w-3 h-3" />用户名</span>
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <span className="text-sm font-medium truncate">{cloudDetail.osuser || cloudDetail.username || '-'}</span>
                       <CopyButton value={cloudDetail.osuser || cloudDetail.username || ''} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs text-gray-500 shrink-0 flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
                       <KeyRound className="w-3 h-3" />
                       密码
                     </span>
@@ -1873,7 +1867,7 @@ function AdvancedContent() {
                       <span className="text-sm font-medium truncate" title={passwordVisible ? (cloudDetail.rootpassword || cloudDetail.password || '-') : undefined}>
                         {passwordVisible ? (cloudDetail.rootpassword || cloudDetail.password || '-') : '••••••••'}
                       </span>
-                      <button onClick={() => setPasswordVisible(v => !v)} className="p-1 text-gray-500 hover:text-white transition-colors shrink-0" title={passwordVisible ? '隐藏密码' : '显示密码'}>
+                      <button onClick={() => setPasswordVisible(v => !v)} className="p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0" title={passwordVisible ? '隐藏密码' : '显示密码'}>
                         {passwordVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
                       <CopyButton value={cloudDetail.rootpassword || cloudDetail.password || ''} />
@@ -1884,7 +1878,7 @@ function AdvancedContent() {
             )}
 
             {/* Tab导航 */}
-            <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-x-auto">
+            <div className="bg-card dark:bg-accent rounded-xl border border-border shadow-sm overflow-x-auto">
               <div className="flex p-1 gap-1 min-w-max">
                 {TABS.map(tab => {
                   const Icon = tab.icon;
@@ -1893,8 +1887,8 @@ function AdvancedContent() {
                     <button
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key)}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                        isActive ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -1909,79 +1903,79 @@ function AdvancedContent() {
             {activeTab === 'overview' && cloudDetail && (
               <div className="space-y-4">
                 {/* 实时状态 */}
-                <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                  <div className="px-3 sm:px-4 py-2.5 border-b border-gray-800 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-emerald-400" />
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="px-3 sm:px-4 py-2.5 border-b border-border flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-success" />
                     <span className="font-semibold text-sm flex items-center gap-2">
                       实时状态
-                      {realDataLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-500" />}
+                      {realDataLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
                     </span>
                   </div>
                   {realDataLoading && !realData ? (
                     <div className="flex items-center justify-center py-6 gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
-                      <span className="text-sm text-gray-500">加载实时数据...</span>
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">加载实时数据...</span>
                     </div>
                   ) : realData ? (
                     <div className="p-3 sm:p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                       {/* CPU */}
-                      <div className="bg-[#0f1117] rounded-lg p-3 space-y-2">
+                      <div className="bg-background rounded-lg p-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500 flex items-center gap-1"><Zap className="w-3 h-3" />CPU</span>
-                          <span className={`text-sm font-semibold ${Number(realData.cpu_usage) > 80 ? 'text-red-400' : Number(realData.cpu_usage) > 50 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3" />CPU</span>
+                          <span className={`text-sm font-semibold ${Number(realData.cpu_usage) > 80 ? 'text-destructive' : Number(realData.cpu_usage) > 50 ? 'text-warning' : 'text-success'}`}>
                             {Number(realData.cpu_usage).toFixed(1)}%
                           </span>
                         </div>
-                        <div className="w-full h-1.5 rounded-full bg-gray-700 overflow-hidden">
-                          <div className={`h-full rounded-full transition-all duration-700 ${Number(realData.cpu_usage) > 80 ? 'bg-red-500' : Number(realData.cpu_usage) > 50 ? 'bg-yellow-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, Number(realData.cpu_usage))}%` }} />
+                        <div className="w-full h-1.5 rounded-full bg-accent overflow-hidden">
+                          <div className={`h-full rounded-full transition-all duration-700 ${Number(realData.cpu_usage) > 80 ? 'bg-destructive' : Number(realData.cpu_usage) > 50 ? 'bg-warning' : 'bg-success'}`} style={{ width: `${Math.min(100, Number(realData.cpu_usage))}%` }} />
                         </div>
                       </div>
                       {/* 内存 */}
-                      <div className="bg-[#0f1117] rounded-lg p-3 space-y-2">
+                      <div className="bg-background rounded-lg p-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500 flex items-center gap-1"><HardDrive className="w-3 h-3" />内存</span>
-                          <span className={`text-sm font-semibold ${Number(realData.memory_usage) > 80 ? 'text-red-400' : Number(realData.memory_usage) > 50 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1"><HardDrive className="w-3 h-3" />内存</span>
+                          <span className={`text-sm font-semibold ${Number(realData.memory_usage) > 80 ? 'text-destructive' : Number(realData.memory_usage) > 50 ? 'text-warning' : 'text-success'}`}>
                             {(Number(realData.memory_usage) === -1 ? 0 : Number(realData.memory_usage)).toFixed(1)}%
                           </span>
                         </div>
-                        <div className="w-full h-1.5 rounded-full bg-gray-700 overflow-hidden">
-                          <div className={`h-full rounded-full transition-all duration-700 ${Number(realData.memory_usage) > 80 ? 'bg-red-500' : Number(realData.memory_usage) > 50 ? 'bg-yellow-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, Number(realData.memory_usage) === -1 ? 0 : Number(realData.memory_usage))}%` }} />
+                        <div className="w-full h-1.5 rounded-full bg-accent overflow-hidden">
+                          <div className={`h-full rounded-full transition-all duration-700 ${Number(realData.memory_usage) > 80 ? 'bg-destructive' : Number(realData.memory_usage) > 50 ? 'bg-warning' : 'bg-success'}`} style={{ width: `${Math.min(100, Number(realData.memory_usage) === -1 ? 0 : Number(realData.memory_usage))}%` }} />
                         </div>
                       </div>
                       {/* 入带宽 */}
-                      <div className="bg-[#0f1117] rounded-lg p-3 space-y-2">
+                      <div className="bg-background rounded-lg p-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500 flex items-center gap-1"><Wifi className="w-3 h-3" />入带宽</span>
-                          <span className="text-sm font-semibold text-blue-400">{realData.current_in_bw || '-'}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1"><Wifi className="w-3 h-3" />入带宽</span>
+                          <span className="text-sm font-semibold text-info">{realData.current_in_bw || '-'}</span>
                         </div>
                       </div>
                       {/* 出带宽 */}
-                      <div className="bg-[#0f1117] rounded-lg p-3 space-y-2">
+                      <div className="bg-background rounded-lg p-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500 flex items-center gap-1"><Wifi className="w-3 h-3" />出带宽</span>
-                          <span className="text-sm font-semibold text-purple-400">{realData.current_out_bw || '-'}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1"><Wifi className="w-3 h-3" />出带宽</span>
+                          <span className="text-sm font-semibold text-primary">{realData.current_out_bw || '-'}</span>
                         </div>
                       </div>
                       {/* 磁盘IO */}
-                      <div className="bg-[#0f1117] rounded-lg p-3 space-y-1.5 col-span-2 sm:col-span-1">
-                        <span className="text-xs text-gray-500 flex items-center gap-1"><HardDrive className="w-3 h-3" />磁盘IO</span>
+                      <div className="bg-background rounded-lg p-3 space-y-1.5 col-span-2 sm:col-span-1">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1"><HardDrive className="w-3 h-3" />磁盘IO</span>
                         <div className="flex items-center gap-3 text-xs">
-                          <span className="text-emerald-400">读 {Number(realData.current_read_byte).toFixed(1)} MB/s</span>
-                          <span className="text-orange-400">写 {Number(realData.current_write_byte).toFixed(1)} MB/s</span>
+                          <span className="text-success">读 {Number(realData.current_read_byte).toFixed(1)} MB/s</span>
+                          <span className="text-primary">写 {Number(realData.current_write_byte).toFixed(1)} MB/s</span>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-6 text-sm text-gray-600">暂无实时数据</div>
+                    <div className="text-center py-6 text-sm text-muted-foreground">暂无实时数据</div>
                   )}
                 </div>
 
                 {/* IP列表 */}
                 {ipv4List.length > 0 && (
-                  <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-gray-800">
+                  <div className="bg-card rounded-xl border border-border overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border">
                       <h3 className="font-semibold flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-purple-500" />
+                        <Globe className="w-4 h-4 text-primary" />
                         IP地址 ({ipv4List.length})
                         {ipv4List.length > 0 && (
                           <button
@@ -1990,7 +1984,7 @@ function AdvancedContent() {
                               navigator.clipboard.writeText(allIps);
                               setMsg({ type: 'success', text: `已复制 ${ipv4List.length} 个IP地址` });
                             }}
-                            className="ml-auto px-2 py-0.5 text-xs text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded transition-colors flex items-center gap-1"
+                            className="ml-auto px-2 py-0.5 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors flex items-center gap-1"
                           >
                             <Copy className="w-3 h-3" />
                             复制所有IP
@@ -2005,14 +1999,14 @@ function AdvancedContent() {
                           const pingKey = `ipv4-${i}`;
                           return (
                           <span key={i} className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-mono ${
-                            ip.is_main || ip.mainip ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30' : 'bg-gray-800 text-gray-300'
+                            ip.is_main || ip.mainip ? 'bg-primary/10 text-primary border border-primary/30' : 'bg-muted text-foreground'
                           }`}>
                             {ipAddr}
                             {(ip.is_main || ip.mainip) && <span className="text-xs opacity-60">(主)</span>}
-                            <button onClick={() => handlePing(pingKey, ipAddr)} className="text-gray-500 hover:text-emerald-400 transition-colors" title="Ping" disabled={pingMap[pingKey]?.loading}>
+                            <button onClick={() => handlePing(pingKey, ipAddr)} className="text-muted-foreground hover:text-success transition-colors" title="Ping" disabled={pingMap[pingKey]?.loading}>
                               {pingMap[pingKey]?.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3" />}
                             </button>
-                            {pingMap[pingKey]?.result && <span className={`text-[10px] font-mono ${pingMap[pingKey].result?.reachable ? 'text-emerald-400' : 'text-red-400'}`}>{pingMap[pingKey].result?.reachable ? `${pingMap[pingKey].result?.avgLatency}ms` : (pingMap[pingKey].result?.error || '超时')}</span>}
+                            {pingMap[pingKey]?.result && <span className={`text-[10px] font-mono ${pingMap[pingKey].result?.reachable ? 'text-success' : 'text-destructive'}`}>{pingMap[pingKey].result?.reachable ? `${pingMap[pingKey].result?.avgLatency}ms` : (pingMap[pingKey].result?.error || '超时')}</span>}
                           </span>
                           );
                         })}
@@ -2023,10 +2017,10 @@ function AdvancedContent() {
 
                 {/* 磁盘概览 */}
                 {disks.length > 0 && (
-                  <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                    <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-800">
+                  <div className="bg-card rounded-xl border border-border overflow-hidden">
+                    <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border">
                       <h3 className="font-semibold flex items-center gap-2 text-sm sm:text-base">
-                        <HardDrive className="w-4 h-4 text-purple-500" />
+                        <HardDrive className="w-4 h-4 text-primary" />
                         磁盘 ({disks.length})
                       </h3>
                     </div>
@@ -2037,22 +2031,22 @@ function AdvancedContent() {
                         const isMounted = diskStatus === 1 || diskStatus === 2;
                         const mountLabel = diskStatus === 2 ? '挂载中' : (isMounted ? '已挂载' : '未挂载');
                         return (
-                          <div key={disk.id || i} className="bg-[#0f1117] rounded-lg px-3 py-2 sm:px-4 sm:py-2.5">
+                          <div key={disk.id || i} className="bg-background rounded-lg px-3 py-2 sm:px-4 sm:py-2.5">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                                <HardDrive className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                                <HardDrive className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                                 <span className="text-xs sm:text-sm truncate">{disk.name || `磁盘${i + 1}`}</span>
                                 <span className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded shrink-0 ${
-                                  isSystem ? 'bg-purple-500/15 text-purple-400' : 'bg-blue-500/15 text-blue-400'
+                                  isSystem ? 'bg-primary/10 text-primary' : 'bg-info/15 text-info'
                                 }`}>
                                   {isSystem ? '系统盘' : '数据盘'}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                                <span className="text-xs sm:text-sm text-gray-400">{formatBytes((disk.size || 0) * 1024 * 1024 * 1024)}</span>
+                                <span className="text-xs sm:text-sm text-muted-foreground">{formatBytes((disk.size || 0) * 1024 * 1024 * 1024)}</span>
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] sm:text-xs ${
-                                  diskStatus === 2 ? 'bg-yellow-500/15 text-yellow-400' :
-                                  isMounted ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-700 text-gray-400'
+                                  diskStatus === 2 ? 'bg-warning/15 text-warning' :
+                                  isMounted ? 'bg-success/15 text-success' : 'bg-accent text-muted-foreground'
                                 }`}>
                                   {mountLabel}
                                 </span>
@@ -2069,21 +2063,21 @@ function AdvancedContent() {
 
             {/* ===== 电源操作 ===== */}
             {activeTab === 'power' && (
-              <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-800">
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="px-4 py-3 border-b border-border">
                   <h3 className="font-semibold flex items-center gap-2">
-                    <Power className="w-4 h-4 text-purple-500" />
+                    <Power className="w-4 h-4 text-primary" />
                     电源操作
                   </h3>
                 </div>
                 <div className="p-4 space-y-6">
                   {/* 当前状态 */}
-                  <div className="flex items-center gap-3 bg-[#0f1117] rounded-lg px-4 py-3">
-                    <span className="text-sm text-gray-400">当前状态</span>
+                  <div className="flex items-center gap-3 bg-background rounded-lg px-4 py-3">
+                    <span className="text-sm text-muted-foreground">当前状态</span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      powerInfo.color === 'text-emerald-400' ? 'bg-emerald-500/15 text-emerald-400' :
-                      powerInfo.color === 'text-red-400' ? 'bg-red-500/15 text-red-400' :
-                      'bg-yellow-500/15 text-yellow-400'
+                      powerInfo.color === 'text-success' ? 'bg-success/15 text-success' :
+                      powerInfo.color === 'text-destructive' ? 'bg-destructive/15 text-destructive' :
+                      'bg-warning/15 text-warning'
                     }`}>
                       {powerInfo.label}
                     </span>
@@ -2099,8 +2093,8 @@ function AdvancedContent() {
                   </div>
 
                   {/* VNC & 重装 & 重置密码 */}
-                  <div className="border-t border-gray-800 pt-4">
-                    <h4 className="text-sm font-medium text-gray-400 mb-3">控制台与系统</h4>
+                  <div className="border-t border-border pt-4">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3">控制台与系统</h4>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                       <ActionButton icon={ScreenShare} label="VNC控制台" color="purple" loading={actionLoading === 'cloudVnc'} disabled={!!actionLoading} onClick={handleVnc} />
                       <ActionButton icon={Monitor} label="重装系统" color="orange" loading={actionLoading === 'cloudReinstall'} disabled={!!actionLoading} onClick={() => {
@@ -2122,80 +2116,80 @@ function AdvancedContent() {
             {/* ===== 配置修改 ===== */}
             {activeTab === 'config' && (
               <div className="space-y-4">
-                <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-800">
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border">
                     <h3 className="font-semibold flex items-center gap-2">
-                      <Settings className="w-4 h-4 text-purple-500" />
+                      <Settings className="w-4 h-4 text-primary" />
                       实例配置
                     </h3>
                   </div>
                   <div className="p-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm text-gray-400 mb-1 block">CPU (核心数)</label>
+                        <label className="text-sm text-muted-foreground mb-1 block">CPU (核心数)</label>
                         <input type="number" min="1" value={configForm.cpu || ''} onChange={e => setConfigForm(p => ({ ...p, cpu: Number(e.target.value) }))}
-                          className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none" />
+                          className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
                       </div>
                       <div>
-                        <label className="text-sm text-gray-400 mb-1 block">内存 (GB)</label>
+                        <label className="text-sm text-muted-foreground mb-1 block">内存 (GB)</label>
                         <input type="number" min="1" step="1" value={configForm.memory || ''} onChange={e => setConfigForm(p => ({ ...p, memory: Number(e.target.value) }))}
-                          className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none" />
+                          className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
                       </div>
                     </div>
                     <button onClick={handleSaveConfig} disabled={configSaving}
-                      className="px-5 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg transition-colors text-sm font-medium flex items-center gap-2">
+                      className="px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground disabled:bg-accent disabled:text-muted-foreground rounded-lg transition-colors text-sm font-medium flex items-center gap-2">
                       {configSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                       保存CPU/内存配置
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-800">
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border">
                     <h3 className="font-semibold flex items-center gap-2">
-                      <Wifi className="w-4 h-4 text-purple-500" />
+                      <Wifi className="w-4 h-4 text-primary" />
                       带宽配置
                     </h3>
                   </div>
                   <div className="p-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm text-gray-400 mb-1 block">入站带宽 (Mbps) <span className="text-gray-600">当前: {cloudDetail?.default_bw_group?.in_bw ?? configForm.in_bw ?? 0} Mbps</span></label>
+                        <label className="text-sm text-muted-foreground mb-1 block">入站带宽 (Mbps) <span className="text-muted-foreground">当前: {cloudDetail?.default_bw_group?.in_bw ?? configForm.in_bw ?? 0} Mbps</span></label>
                         <input type="number" min="0" value={configForm.in_bw ?? ''} onChange={e => { const v = e.target.value; setConfigForm(p => ({ ...p, in_bw: v === '' ? '' : Number(v) })); }}
-                          className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none" />
+                          className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
                       </div>
                       <div>
-                        <label className="text-sm text-gray-400 mb-1 block">出站带宽 (Mbps) <span className="text-gray-600">当前: {cloudDetail?.default_bw_group?.out_bw ?? configForm.out_bw ?? 0} Mbps</span></label>
+                        <label className="text-sm text-muted-foreground mb-1 block">出站带宽 (Mbps) <span className="text-muted-foreground">当前: {cloudDetail?.default_bw_group?.out_bw ?? configForm.out_bw ?? 0} Mbps</span></label>
                         <input type="number" min="0" value={configForm.out_bw ?? ''} onChange={e => { const v = e.target.value; setConfigForm(p => ({ ...p, out_bw: v === '' ? '' : Number(v) })); }}
-                          className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none" />
+                          className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
                       </div>
                     </div>
                     {/* 临时修改状态显示 */}
                     {bwTempExpireTimeDisplay && (
-                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2 flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-yellow-400" />
-                        <span className="text-sm text-yellow-400">临时带宽生效中，到期时间: {bwTempExpireTimeDisplay}</span>
+                      <div className="bg-warning/10 border border-warning/30 rounded-lg px-3 py-2 flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-warning" />
+                        <span className="text-sm text-warning">临时带宽生效中，到期时间: {bwTempExpireTimeDisplay}</span>
                       </div>
                     )}
                     {/* 临时修改开关 */}
                     <div className="flex items-center gap-3">
                       <div className={`flex items-center gap-2 ${bwTempExpireTimeDisplay ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         onClick={() => { if (!bwTempExpireTimeDisplay) setBwTempMode(v => !v); }}>
-                        <div className={`relative w-10 h-5 rounded-full transition-colors ${bwTempMode ? 'bg-purple-600' : 'bg-gray-700'}`}>
-                          <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${bwTempMode ? 'translate-x-5' : ''}`} />
+                        <div className={`relative w-10 h-5 rounded-full transition-colors ${bwTempMode ? 'bg-primary' : 'bg-accent'}`}>
+                          <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-card transition-transform ${bwTempMode ? 'translate-x-5' : ''}`} />
                         </div>
-                        <span className="text-sm text-gray-400">临时修改</span>
+                        <span className="text-sm text-muted-foreground">临时修改</span>
                       </div>
                       {bwTempMode && !bwTempExpireTimeDisplay && (
                         <input type="datetime-local" value={bwTempExpireTime} onChange={e => setBwTempExpireTime(e.target.value)}
-                          className="bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-purple-500 focus:outline-none min-w-[200px] [color-scheme:dark]" />
+                          className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none min-w-[200px] [color-scheme:light] dark:[color-scheme:dark]" />
                       )}
                       {bwTempExpireTimeDisplay && (
-                        <span className="text-xs text-gray-500">临时修改生效期间无法关闭</span>
+                        <span className="text-xs text-muted-foreground">临时修改生效期间无法关闭</span>
                       )}
                     </div>
                     <button onClick={handleSaveBw} disabled={configSaving}
-                      className="px-5 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg transition-colors text-sm font-medium flex items-center gap-2">
+                      className="px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground disabled:bg-accent disabled:text-muted-foreground rounded-lg transition-colors text-sm font-medium flex items-center gap-2">
                       {configSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                       保存带宽配置
                     </button>
@@ -2206,59 +2200,59 @@ function AdvancedContent() {
 
             {/* ===== 磁盘管理 ===== */}
             {activeTab === 'disk' && (
-              <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-800 flex items-center justify-between">
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border flex items-center justify-between">
                   <h3 className="font-semibold flex items-center gap-2 text-sm sm:text-base">
-                    <HardDrive className="w-4 h-4 text-purple-500" />
+                    <HardDrive className="w-4 h-4 text-primary" />
                     磁盘管理 ({disks.length})
                   </h3>
                   <button onClick={() => { setAddDiskForm({ size: 10, store: 0, driver: 'virtio' }); fetchDiskStores(); setShowAddDiskDialog(true); }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 bg-purple-600 hover:bg-purple-500 rounded-lg text-xs sm:text-sm transition-colors">
+                    className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs sm:text-sm transition-colors">
                     <Plus className="w-3.5 h-3.5" />
                     添加
                   </button>
                 </div>
                 <div className="p-2 sm:p-4 space-y-2 sm:space-y-3">
                   {disks.length === 0 ? (
-                    <p className="text-gray-400 text-center py-8">暂无磁盘信息</p>
+                    <p className="text-muted-foreground text-center py-8">暂无磁盘信息</p>
                   ) : disks.map((disk, i) => {
                     const isSystem = disk.type === 'system' || disk.disk_type === 'system' || i === 0;
                     const diskStatus = Number(disk.status ?? -1);
                     const isMounted = diskStatus === 1 || diskStatus === 2;
                     const mountLabel = diskStatus === 2 ? '挂载中' : (isMounted ? '已挂载' : '未挂载');
                     return (
-                      <div key={disk.id || i} className="bg-[#0f1117] rounded-lg border border-gray-800 p-3 sm:p-4">
+                      <div key={disk.id || i} className="bg-background rounded-lg border border-border p-3 sm:p-4">
                         {/* 头部：名称+标签+大小 */}
                         <div className="flex items-center justify-between gap-2 mb-2">
                           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                            <HardDrive className="w-4 h-4 text-purple-400 shrink-0" />
+                            <HardDrive className="w-4 h-4 text-primary shrink-0" />
                             <span className="text-sm font-medium truncate">{disk.name || `磁盘${i + 1}`}</span>
                             <span className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded shrink-0 ${
-                              isSystem ? 'bg-purple-500/15 text-purple-400' : 'bg-blue-500/15 text-blue-400'
+                              isSystem ? 'bg-primary/10 text-primary' : 'bg-info/15 text-info'
                             }`}>
                               {isSystem ? '系统盘' : '数据盘'}
                             </span>
                             <span className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded shrink-0 ${
-                              diskStatus === 2 ? 'bg-yellow-500/15 text-yellow-400' :
-                              isMounted ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-700 text-gray-400'
+                              diskStatus === 2 ? 'bg-warning/15 text-warning' :
+                              isMounted ? 'bg-success/15 text-success' : 'bg-accent text-muted-foreground'
                             }`}>
                               {mountLabel}
                             </span>
                           </div>
-                          <span className="text-sm sm:text-lg font-semibold text-purple-400 shrink-0">{formatBytes((disk.size || 0) * 1024 * 1024 * 1024)}</span>
+                          <span className="text-sm sm:text-lg font-semibold text-primary shrink-0">{formatBytes((disk.size || 0) * 1024 * 1024 * 1024)}</span>
                         </div>
                         {/* 详情信息 */}
                         <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:text-sm">
-                          {disk.id && <div className="text-gray-500">ID: <span className="text-gray-300">{disk.id}</span></div>}
-                          {disk.dev && <div className="text-gray-500">设备: <span className="text-gray-300">{disk.dev}</span></div>}
-                          {disk.bus && <div className="text-gray-500">总线: <span className="text-gray-300">{disk.bus}</span></div>}
-                          {disk.mount_point && <div className="text-gray-500">挂载点: <span className="text-gray-300">{disk.mount_point}</span></div>}
-                          {disk.driver && <div className="text-gray-500">驱动: <span className="text-gray-300">{disk.driver}</span></div>}
+                          {disk.id && <div className="text-muted-foreground">ID: <span className="text-foreground">{disk.id}</span></div>}
+                          {disk.dev && <div className="text-muted-foreground">设备: <span className="text-foreground">{disk.dev}</span></div>}
+                          {disk.bus && <div className="text-muted-foreground">总线: <span className="text-foreground">{disk.bus}</span></div>}
+                          {disk.mount_point && <div className="text-muted-foreground">挂载点: <span className="text-foreground">{disk.mount_point}</span></div>}
+                          {disk.driver && <div className="text-muted-foreground">驱动: <span className="text-foreground">{disk.driver}</span></div>}
                         </div>
                         {/* 磁盘操作区 */}
-                        <div className="mt-2 pt-2 sm:mt-3 sm:pt-3 border-t border-gray-800 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <div className="mt-2 pt-2 sm:mt-3 sm:pt-3 border-t border-border flex flex-wrap items-center gap-1.5 sm:gap-2">
                           {isSystem ? (
-                            <span className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1">
+                            <span className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
                               <AlertCircle className="w-3 h-3" />
                               系统盘不支持扩容
                             </span>
@@ -2266,7 +2260,7 @@ function AdvancedContent() {
                             <>
                               <button
                                 onClick={() => { setResizeDiskTarget({ id: Number(disk.id), name: disk.name || `磁盘${i + 1}`, currentSize: Number(disk.size) || 10 }); setResizeDiskValue(Number(disk.size) || 10); }}
-                                className="px-2 py-1 sm:px-3 sm:py-1.5 bg-purple-600 hover:bg-purple-500 rounded text-xs sm:text-sm transition-colors flex items-center gap-1"
+                                className="px-2 py-1 sm:px-3 sm:py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded text-xs sm:text-sm transition-colors flex items-center gap-1"
                               >
                                 <Edit3 className="w-3 h-3" />
                                 扩容
@@ -2291,7 +2285,7 @@ function AdvancedContent() {
                                     }).finally(() => setActionLoading(null));
                                   }}
                                   disabled={!!actionLoading}
-                                  className="px-2 py-1 sm:px-3 sm:py-1.5 bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-700 disabled:text-gray-500 rounded text-xs sm:text-sm transition-colors flex items-center gap-1"
+                                  className="px-2 py-1 sm:px-3 sm:py-1.5 bg-warning text-warning-foreground hover:bg-warning/90 disabled:bg-accent disabled:text-muted-foreground rounded text-xs sm:text-sm transition-colors flex items-center gap-1"
                                 >
                                   {actionLoading === `diskUnmount_${disk.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <HardDrive className="w-3 h-3" />}
                                   卸载
@@ -2316,7 +2310,7 @@ function AdvancedContent() {
                                     }).finally(() => setActionLoading(null));
                                   }}
                                   disabled={!!actionLoading}
-                                  className="px-2 py-1 sm:px-3 sm:py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-500 rounded text-xs sm:text-sm transition-colors flex items-center gap-1"
+                                  className="px-2 py-1 sm:px-3 sm:py-1.5 bg-success text-success-foreground hover:bg-success/90 disabled:bg-accent disabled:text-muted-foreground rounded text-xs sm:text-sm transition-colors flex items-center gap-1"
                                 >
                                   {actionLoading === `diskMount_${disk.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <HardDrive className="w-3 h-3" />}
                                   挂载
@@ -2328,7 +2322,7 @@ function AdvancedContent() {
                                   setDeleteDiskTarget({ id: Number(disk.id), name: disk.name || `磁盘${i + 1}` });
                                 }}
                                 disabled={!!actionLoading}
-                                className="px-2 py-1 sm:px-3 sm:py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 rounded text-xs sm:text-sm transition-colors flex items-center gap-1"
+                                className="px-2 py-1 sm:px-3 sm:py-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:bg-accent disabled:text-muted-foreground rounded text-xs sm:text-sm transition-colors flex items-center gap-1"
                               >
                                 <Trash2 className="w-3 h-3" />
                                 删除
@@ -2346,11 +2340,11 @@ function AdvancedContent() {
             {/* ===== IP管理 ===== */}
             {activeTab === 'ip' && (
               <div className="space-y-4">
-                <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                  <div className="px-3 sm:px-4 py-3 border-b border-gray-800">
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="px-3 sm:px-4 py-3 border-b border-border">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="font-semibold flex items-center gap-2 shrink-0">
-                        <Globe className="w-4 h-4 text-purple-500" />
+                        <Globe className="w-4 h-4 text-primary" />
                         <span className="hidden sm:inline">IPv4地址</span>
                         <span className="sm:hidden">IP</span>
                         ({ipv4List.length})
@@ -2363,7 +2357,7 @@ function AdvancedContent() {
                               navigator.clipboard.writeText(allIps);
                               setMsg({ type: 'success', text: `已复制 ${ipv4List.length} 个IP地址` });
                             }}
-                            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs sm:text-sm transition-colors text-gray-300"
+                            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-accent hover:bg-accent rounded-lg text-xs sm:text-sm transition-colors text-foreground"
                           >
                             <Copy className="w-3.5 h-3.5" />
                             <span className="hidden sm:inline">复制所有IP</span>
@@ -2371,13 +2365,13 @@ function AdvancedContent() {
                         )}
                         {selectedIps.size > 0 && (
                           <button onClick={handleDeleteSelectedIps} disabled={!!actionLoading}
-                            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg text-xs sm:text-sm transition-colors">
+                            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:bg-accent disabled:text-muted-foreground rounded-lg text-xs sm:text-sm transition-colors">
                             {actionLoading === 'cloudUpdateIp' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
                             <span className="hidden sm:inline">删除选中</span> ({selectedIps.size})
                           </button>
                         )}
                         <button onClick={() => { setSelectedFreeIps(new Set()); fetchFreeIps(); setShowAddIpDialog(true); }}
-                          className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-purple-600 hover:bg-purple-500 rounded-lg text-xs sm:text-sm transition-colors">
+                          className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs sm:text-sm transition-colors">
                           <Plus className="w-3.5 h-3.5" />
                           <span className="hidden sm:inline">添加IP</span>
                         </button>
@@ -2386,7 +2380,7 @@ function AdvancedContent() {
                   </div>
                   <div className="p-4 sm:p-6 min-h-[50vh] sm:min-h-[60vh]">
                     {ipv4List.length === 0 ? (
-                      <p className="text-gray-400 text-center py-8">暂无IPv4地址</p>
+                      <p className="text-muted-foreground text-center py-8">暂无IPv4地址</p>
                     ) : (
                       <div className="space-y-3">
                         {ipv4List.map((ip, i) => {
@@ -2395,7 +2389,7 @@ function AdvancedContent() {
                           const ipAddr = ip.ip || ip.ipaddress;
                           const pingKey = `ipm-${i}`;
                           return (
-                            <div key={i} className={`flex items-center justify-between rounded-lg px-4 py-3 sm:px-5 sm:py-3.5 ${isSelected ? 'bg-red-500/10 border border-red-500/30' : 'bg-[#0f1117] border border-gray-800/50'}`}>
+                            <div key={i} className={`flex items-center justify-between rounded-lg px-4 py-3 sm:px-5 sm:py-3.5 ${isSelected ? 'bg-destructive/10 border border-destructive/30' : 'bg-background border border-border/50'}`}>
                               <div className="flex items-center gap-3">
                                 {!isMain && (
                                   <div onClick={() => {
@@ -2406,19 +2400,19 @@ function AdvancedContent() {
                                       });
                                     }}
                                     className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center cursor-pointer transition-colors shrink-0 ${
-                                      isSelected ? 'bg-red-600 border-red-600' : 'border-gray-600 hover:border-gray-400'
+                                      isSelected ? 'bg-destructive border-destructive' : 'border-border hover:border-border'
                                     }`}>
-                                    {isSelected && <Check className="w-3 h-3 text-white" />}
+                                    {isSelected && <Check className="w-3 h-3 text-foreground" />}
                                   </div>
                                 )}
                                 <span className="font-mono text-sm sm:text-base">{ipAddr}</span>
-                                {isMain && <span className="text-xs bg-purple-500/15 text-purple-400 px-2 py-0.5 rounded">主IP</span>}
-                                <button onClick={() => handlePing(pingKey, ipAddr)} className="text-gray-500 hover:text-emerald-400 transition-colors" title="Ping" disabled={pingMap[pingKey]?.loading}>
+                                {isMain && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">主IP</span>}
+                                <button onClick={() => handlePing(pingKey, ipAddr)} className="text-muted-foreground hover:text-success transition-colors" title="Ping" disabled={pingMap[pingKey]?.loading}>
                                   {pingMap[pingKey]?.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
                                 </button>
-                                {pingMap[pingKey]?.result && <span className={`text-[10px] font-mono ${pingMap[pingKey].result?.reachable ? 'text-emerald-400' : 'text-red-400'}`}>{pingMap[pingKey].result?.reachable ? `${pingMap[pingKey].result?.avgLatency}ms` : (pingMap[pingKey].result?.error || '超时')}</span>}
+                                {pingMap[pingKey]?.result && <span className={`text-[10px] font-mono ${pingMap[pingKey].result?.reachable ? 'text-success' : 'text-destructive'}`}>{pingMap[pingKey].result?.reachable ? `${pingMap[pingKey].result?.avgLatency}ms` : (pingMap[pingKey].result?.error || '超时')}</span>}
                               </div>
-                              <div className="text-xs text-gray-500 shrink-0">
+                              <div className="text-xs text-muted-foreground shrink-0">
                                 {ip.subnet_mask && `/${ip.subnet_mask}`}
                                 {ip.gateway && ` GW: ${ip.gateway}`}
                               </div>
@@ -2436,21 +2430,21 @@ function AdvancedContent() {
             {activeTab === 'security' && (
               <div className="space-y-4">
                 {/* 当前安全组 */}
-                <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                     <h3 className="font-semibold flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-purple-500" />
+                      <Shield className="w-4 h-4 text-primary" />
                       安全组
                     </h3>
                     <div className="flex items-center gap-2">
                       {cloudDetail?.security && (
                         <button onClick={handleUnbindSecurityGroup} disabled={!!actionLoading}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg text-sm transition-colors">
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:bg-accent disabled:text-muted-foreground rounded-lg text-sm transition-colors">
                           解绑当前安全组
                         </button>
                       )}
                       <button onClick={() => { fetchSecurityGroups(); setShowSecurityGroupDialog(true); }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm transition-colors">
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm transition-colors">
                         <Plus className="w-4 h-4" />
                         绑定安全组
                       </button>
@@ -2459,59 +2453,59 @@ function AdvancedContent() {
                   <div className="p-4">
                     {cloudDetail?.security ? (
                       <div className="space-y-3">
-                        <div className="flex items-center gap-3 bg-[#0f1117] rounded-lg px-4 py-3">
-                          <Shield className="w-5 h-5 text-purple-400" />
+                        <div className="flex items-center gap-3 bg-background rounded-lg px-4 py-3">
+                          <Shield className="w-5 h-5 text-primary" />
                           <div className="flex-1">
                             <div className="text-sm font-medium">{cloudDetail.security_name || `安全组 #${cloudDetail.security}`}</div>
-                            <div className="text-xs text-gray-500">ID: {cloudDetail.security}</div>
+                            <div className="text-xs text-muted-foreground">ID: {cloudDetail.security}</div>
                           </div>
                           <button onClick={() => fetchSecurityDetail(Number(cloudDetail.security))}
-                            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors">
+                            className="px-3 py-1.5 bg-accent hover:bg-accent rounded text-sm transition-colors">
                             查看规则
                           </button>
                         </div>
                         {/* 安全组规则列表 */}
                         {securityLoading ? (
-                          <div className="flex items-center justify-center py-4 text-gray-400">
+                          <div className="flex items-center justify-center py-4 text-muted-foreground">
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />加载规则...
                           </div>
                         ) : securityRules.length > 0 ? (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-400">规则列表 ({securityRules.length})</span>
+                              <span className="text-sm text-muted-foreground">规则列表 ({securityRules.length})</span>
                               <button onClick={() => { setSecurityRuleForm({ direction: 'in', protocol: 'tcp', port: '', ip: '', description: '' }); setShowSecurityRuleDialog(true); }}
-                                className="text-xs text-purple-400 hover:text-purple-300">+ 添加规则</button>
+                                className="text-xs text-primary hover:text-primary">+ 添加规则</button>
                             </div>
                             {securityRules.map(rule => (
-                              <div key={rule.id} className="flex items-center gap-3 bg-[#0f1117] rounded-lg px-4 py-2.5">
-                                <span className={`text-xs px-2 py-0.5 rounded ${rule.direction === 'in' ? 'bg-blue-500/15 text-blue-400' : 'bg-orange-500/15 text-orange-400'}`}>
+                              <div key={rule.id} className="flex items-center gap-3 bg-background rounded-lg px-4 py-2.5">
+                                <span className={`text-xs px-2 py-0.5 rounded ${rule.direction === 'in' ? 'bg-info/15 text-info' : 'bg-primary/15 text-primary'}`}>
                                   {rule.direction === 'in' ? '入' : '出'}
                                 </span>
-                                <span className="text-sm text-gray-300">{rule.protocol?.toUpperCase()}</span>
-                                <span className="text-sm text-white font-mono">{rule.port || '-'}</span>
-                                <span className="text-sm text-gray-400 font-mono">{rule.ip || '-'}</span>
-                                {rule.description && <span className="text-xs text-gray-500 truncate flex-1" title={rule.description}>{rule.description}</span>}
+                                <span className="text-sm text-foreground">{rule.protocol?.toUpperCase()}</span>
+                                <span className="text-sm text-foreground font-mono">{rule.port || '-'}</span>
+                                <span className="text-sm text-muted-foreground font-mono">{rule.ip || '-'}</span>
+                                {rule.description && <span className="text-xs text-muted-foreground truncate flex-1" title={rule.description}>{rule.description}</span>}
                                 <button onClick={() => handleDeleteSecurityRule(rule.id)} disabled={!!actionLoading}
-                                  className="p-1 text-gray-500 hover:text-red-400 transition-colors shrink-0">
+                                  className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0">
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             ))}
                           </div>
                         ) : currentSecurityGroup ? (
-                          <div className="text-center py-4 text-gray-500 text-sm">
+                          <div className="text-center py-4 text-muted-foreground text-sm">
                             暂无规则
                             <button onClick={() => { setSecurityRuleForm({ direction: 'in', protocol: 'tcp', port: '', ip: '', description: '' }); setShowSecurityRuleDialog(true); }}
-                              className="ml-2 text-purple-400 hover:text-purple-300">添加规则</button>
+                              className="ml-2 text-primary hover:text-primary">添加规则</button>
                           </div>
                         ) : null}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <Shield className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Shield className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
                         <p>未绑定安全组</p>
                         <button onClick={() => { fetchSecurityGroups(); setShowSecurityGroupDialog(true); }}
-                          className="mt-3 text-purple-400 hover:text-purple-300 text-sm">绑定安全组</button>
+                          className="mt-3 text-primary hover:text-primary text-sm">绑定安全组</button>
                       </div>
                     )}
                   </div>
@@ -2523,22 +2517,22 @@ function AdvancedContent() {
             {activeTab === 'network' && (
               <div className="space-y-4">
                 {/* 当前网络模式 */}
-                <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-800">
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border">
                     <h3 className="font-semibold flex items-center gap-2">
-                      <Wifi className="w-4 h-4 text-purple-500" />
+                      <Wifi className="w-4 h-4 text-primary" />
                       网络模式
                     </h3>
                   </div>
                   <div className="p-4 space-y-4">
-                    <div className="flex items-center gap-4 bg-[#0f1117] rounded-lg px-4 py-3">
-                      <div className={`w-3 h-3 rounded-full ${cloudDetail?.network_type === 'vpc' ? 'bg-purple-500' : 'bg-emerald-500'}`} />
+                    <div className="flex items-center gap-4 bg-background rounded-lg px-4 py-3">
+                      <div className={`w-3 h-3 rounded-full ${cloudDetail?.network_type === 'vpc' ? 'bg-primary/10' : 'bg-success'}`} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium">
                           {cloudDetail?.network_type === 'vpc' ? 'VPC网络' : '经典网络'}
                         </div>
                         {cloudDetail?.network_type === 'vpc' && cloudDetail?.vpc_name && (
-                          <div className="text-xs text-gray-500 mt-0.5">VPC: {cloudDetail.vpc_name}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">VPC: {cloudDetail.vpc_name}</div>
                         )}
                         {cloudDetail?.network_type === 'vpc' && (() => {
                           // 从 network 数组提取内网IP
@@ -2574,13 +2568,13 @@ function AdvancedContent() {
                             }
                           }
                           const uniqueIps = [...new Set(innerIps)];
-                          return uniqueIps.length > 0 ? <div className="text-xs text-cyan-400 mt-0.5 font-mono truncate">内网IP: {uniqueIps.join(', ')}</div> : null;
+                          return uniqueIps.length > 0 ? <div className="text-xs text-info mt-0.5 font-mono truncate">内网IP: {uniqueIps.join(', ')}</div> : null;
                         })()}
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded ${
                         cloudDetail?.network_type === 'vpc'
-                          ? 'bg-purple-500/15 text-purple-400'
-                          : 'bg-emerald-500/15 text-emerald-400'
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-success/15 text-success'
                       }`}>
                         {cloudDetail?.network_type === 'vpc' ? 'VPC' : '经典'}
                       </span>
@@ -2590,19 +2584,19 @@ function AdvancedContent() {
                     <div className="flex gap-3">
                       {cloudDetail?.network_type !== 'normal' && (
                         <button onClick={() => { setNetworkSwitchTarget('normal'); setShowNetworkSwitchDialog(true); }}
-                          className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm transition-colors">
+                          className="flex-1 px-4 py-2 bg-success text-success-foreground hover:bg-success/90 rounded-lg text-sm transition-colors">
                           切换到经典网络
                         </button>
                       )}
                       {cloudDetail?.network_type !== 'vpc' && (
                         <button onClick={() => { setNetworkSwitchTarget('vpc'); fetchVpcNetworks(); setSelectedVpcId(0); setVpcIpSegment(''); setShowNetworkSwitchDialog(true); }}
-                          className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm transition-colors">
+                          className="flex-1 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm transition-colors">
                           切换到VPC网络
                         </button>
                       )}
                       {cloudDetail?.network_type === 'vpc' && (
                         <button onClick={() => { setNetworkSwitchTarget('vpc'); fetchVpcNetworks(); setSelectedVpcId(0); setVpcIpSegment(''); setShowNetworkSwitchDialog(true); }}
-                          className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm transition-colors">
+                          className="flex-1 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm transition-colors">
                           切换到其他VPC
                         </button>
                       )}
@@ -2612,22 +2606,22 @@ function AdvancedContent() {
 
                 {/* 带宽信息 */}
                 {cloudDetail?.default_bw_group && (
-                  <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-gray-800">
+                  <div className="bg-card rounded-xl border border-border overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border">
                       <h3 className="font-semibold flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-purple-500" />
+                        <Activity className="w-4 h-4 text-primary" />
                         带宽信息
                       </h3>
                     </div>
                     <div className="p-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
-                          <div className="text-xs text-gray-500 mb-1">入站带宽</div>
-                          <div className="text-lg font-semibold text-white">{cloudDetail.default_bw_group.in_bw || 0} Mbps</div>
+                        <div className="bg-background rounded-lg p-3 border border-border">
+                          <div className="text-xs text-muted-foreground mb-1">入站带宽</div>
+                          <div className="text-lg font-semibold text-foreground">{cloudDetail.default_bw_group.in_bw || 0} Mbps</div>
                         </div>
-                        <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
-                          <div className="text-xs text-gray-500 mb-1">出站带宽</div>
-                          <div className="text-lg font-semibold text-white">{cloudDetail.default_bw_group.out_bw || 0} Mbps</div>
+                        <div className="bg-background rounded-lg p-3 border border-border">
+                          <div className="text-xs text-muted-foreground mb-1">出站带宽</div>
+                          <div className="text-lg font-semibold text-foreground">{cloudDetail.default_bw_group.out_bw || 0} Mbps</div>
                         </div>
                       </div>
                     </div>
@@ -2640,13 +2634,13 @@ function AdvancedContent() {
             {activeTab === 'traffic' && (
               <div className="space-y-4">
                 {/* 流量配额概览 */}
-                <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-800">
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border">
                     <h3 className="font-semibold flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-purple-500" />
+                      <BarChart3 className="w-4 h-4 text-primary" />
                       流量统计
                       {trafficData?.traffic_type && (
-                        <span className="text-xs font-normal text-gray-500 ml-auto">
+                        <span className="text-xs font-normal text-muted-foreground ml-auto">
                           统计方向: {({1: '入站', 2: '出站', 3: '总计'} as Record<number, string>)[trafficData.traffic_type] || '总计'}
                         </span>
                       )}
@@ -2654,86 +2648,86 @@ function AdvancedContent() {
                   </div>
                   <div className="p-4">
                     {trafficLoading ? (
-                      <div className="flex items-center justify-center py-8 text-gray-400">
+                      <div className="flex items-center justify-center py-8 text-muted-foreground">
                         <Loader2 className="w-5 h-5 animate-spin mr-2" />
                         加载流量数据...
                       </div>
                     ) : trafficError ? (
                       <div className="flex flex-col items-center justify-center py-8 gap-3">
-                        <p className="text-red-400 text-sm">{trafficError}</p>
-                        <button onClick={() => cloudId && fetchTraffic(cloudId)} className="text-xs text-purple-400 hover:text-purple-300 underline">重试</button>
+                        <p className="text-destructive text-sm">{trafficError}</p>
+                        <button onClick={() => cloudId && fetchTraffic(cloudId)} className="text-xs text-primary hover:text-primary underline">重试</button>
                       </div>
                     ) : (
                       <div className="space-y-4">
                         {/* 多维度流量卡片 */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           {/* 今日 */}
-                          <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
-                            <div className="text-xs text-gray-500 mb-1">今日流量</div>
-                            <div className="text-lg font-semibold text-white">{(trafficPeriods.today?.gb_flow || 0).toFixed(4)} GB</div>
+                          <div className="bg-background rounded-lg p-3 border border-border">
+                            <div className="text-xs text-muted-foreground mb-1">今日流量</div>
+                            <div className="text-lg font-semibold text-foreground">{(trafficPeriods.today?.gb_flow || 0).toFixed(4)} GB</div>
                             <div className="flex gap-3 mt-1.5">
-                              <span className="text-xs text-emerald-400">↓入 {(trafficPeriods.today?.in_gb || 0).toFixed(4)}</span>
-                              <span className="text-xs text-orange-400">↑出 {(trafficPeriods.today?.out_gb || 0).toFixed(4)}</span>
+                              <span className="text-xs text-success">↓入 {(trafficPeriods.today?.in_gb || 0).toFixed(4)}</span>
+                              <span className="text-xs text-primary">↑出 {(trafficPeriods.today?.out_gb || 0).toFixed(4)}</span>
                             </div>
                             {trafficPeriods.today?.gb_flow > 0 && trafficData?.total_gb > 0 && (
-                              <div className="text-xs text-gray-600 mt-1">{((trafficPeriods.today.gb_flow / (trafficData?.total_gb || 1)) * 100).toFixed(2)}%</div>
+                              <div className="text-xs text-muted-foreground mt-1">{((trafficPeriods.today.gb_flow / (trafficData?.total_gb || 1)) * 100).toFixed(2)}%</div>
                             )}
                           </div>
                           {/* 最近7天 */}
-                          <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
-                            <div className="text-xs text-gray-500 mb-1">最近7天</div>
-                            <div className="text-lg font-semibold text-white">{(trafficPeriods.week?.gb_flow || 0).toFixed(4)} GB</div>
+                          <div className="bg-background rounded-lg p-3 border border-border">
+                            <div className="text-xs text-muted-foreground mb-1">最近7天</div>
+                            <div className="text-lg font-semibold text-foreground">{(trafficPeriods.week?.gb_flow || 0).toFixed(4)} GB</div>
                             <div className="flex gap-3 mt-1.5">
-                              <span className="text-xs text-emerald-400">↓入 {(trafficPeriods.week?.in_gb || 0).toFixed(4)}</span>
-                              <span className="text-xs text-orange-400">↑出 {(trafficPeriods.week?.out_gb || 0).toFixed(4)}</span>
+                              <span className="text-xs text-success">↓入 {(trafficPeriods.week?.in_gb || 0).toFixed(4)}</span>
+                              <span className="text-xs text-primary">↑出 {(trafficPeriods.week?.out_gb || 0).toFixed(4)}</span>
                             </div>
                             {trafficPeriods.week?.gb_flow > 0 && trafficData?.total_gb > 0 && (
-                              <div className="text-xs text-gray-600 mt-1">{((trafficPeriods.week.gb_flow / (trafficData?.total_gb || 1)) * 100).toFixed(2)}%</div>
+                              <div className="text-xs text-muted-foreground mt-1">{((trafficPeriods.week.gb_flow / (trafficData?.total_gb || 1)) * 100).toFixed(2)}%</div>
                             )}
                           </div>
                           {/* 本月 */}
-                          <div className="bg-[#0f1117] rounded-lg p-3 border border-purple-800/50">
-                            <div className="text-xs text-gray-500 mb-1">本月流量</div>
-                            <div className="text-lg font-semibold text-purple-400">{(trafficPeriods.month?.gb_flow || 0).toFixed(4)} GB</div>
+                          <div className="bg-background rounded-lg p-3 border border-primary/50">
+                            <div className="text-xs text-muted-foreground mb-1">本月流量</div>
+                            <div className="text-lg font-semibold text-primary">{(trafficPeriods.month?.gb_flow || 0).toFixed(4)} GB</div>
                             <div className="flex gap-3 mt-1.5">
-                              <span className="text-xs text-emerald-400">↓入 {(trafficPeriods.month?.in_gb || 0).toFixed(4)}</span>
-                              <span className="text-xs text-orange-400">↑出 {(trafficPeriods.month?.out_gb || 0).toFixed(4)}</span>
+                              <span className="text-xs text-success">↓入 {(trafficPeriods.month?.in_gb || 0).toFixed(4)}</span>
+                              <span className="text-xs text-primary">↑出 {(trafficPeriods.month?.out_gb || 0).toFixed(4)}</span>
                             </div>
                             {trafficPeriods.month?.gb_flow > 0 && trafficData?.total_gb > 0 && (
-                              <div className="text-xs text-gray-600 mt-1">{((trafficPeriods.month.gb_flow / (trafficData?.total_gb || 1)) * 100).toFixed(2)}%</div>
+                              <div className="text-xs text-muted-foreground mt-1">{((trafficPeriods.month.gb_flow / (trafficData?.total_gb || 1)) * 100).toFixed(2)}%</div>
                             )}
                           </div>
                           {/* 重置周期(30天) */}
-                          <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
-                            <div className="text-xs text-gray-500 mb-1">重置周期</div>
-                            <div className="text-lg font-semibold text-white">{(trafficPeriods.cycle?.gb_flow || 0).toFixed(4)} GB</div>
+                          <div className="bg-background rounded-lg p-3 border border-border">
+                            <div className="text-xs text-muted-foreground mb-1">重置周期</div>
+                            <div className="text-lg font-semibold text-foreground">{(trafficPeriods.cycle?.gb_flow || 0).toFixed(4)} GB</div>
                             <div className="flex gap-3 mt-1.5">
-                              <span className="text-xs text-emerald-400">↓入 {(trafficPeriods.cycle?.in_gb || 0).toFixed(4)}</span>
-                              <span className="text-xs text-orange-400">↑出 {(trafficPeriods.cycle?.out_gb || 0).toFixed(4)}</span>
+                              <span className="text-xs text-success">↓入 {(trafficPeriods.cycle?.in_gb || 0).toFixed(4)}</span>
+                              <span className="text-xs text-primary">↑出 {(trafficPeriods.cycle?.out_gb || 0).toFixed(4)}</span>
                             </div>
                             {trafficPeriods.cycle?.gb_flow > 0 && trafficData?.total_gb > 0 && (
-                              <div className="text-xs text-gray-600 mt-1">{((trafficPeriods.cycle.gb_flow / (trafficData?.total_gb || 1)) * 100).toFixed(2)}%</div>
+                              <div className="text-xs text-muted-foreground mt-1">{((trafficPeriods.cycle.gb_flow / (trafficData?.total_gb || 1)) * 100).toFixed(2)}%</div>
                             )}
                           </div>
                         </div>
 
                         {/* 流量使用进度条 */}
                         {trafficData && trafficData.total_gb > 0 && (
-                          <div className="bg-[#0f1117] rounded-lg p-4 border border-gray-800">
+                          <div className="bg-background rounded-lg p-4 border border-border">
                             <div className="flex justify-between text-sm mb-2">
-                              <span className="text-gray-400">流量配额使用</span>
-                              <span className="text-white">{trafficData.used_gb?.toFixed(4)} GB / {trafficData.total_gb} GB</span>
+                              <span className="text-muted-foreground">流量配额使用</span>
+                              <span className="text-foreground">{trafficData.used_gb?.toFixed(4)} GB / {trafficData.total_gb} GB</span>
                             </div>
-                            <div className="h-4 bg-gray-700 rounded-full overflow-hidden">
+                            <div className="h-4 bg-accent rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all ${
-                                  (trafficData.used_gb / trafficData.total_gb) > 0.9 ? 'bg-red-500' :
-                                  (trafficData.used_gb / trafficData.total_gb) > 0.7 ? 'bg-yellow-500' : 'bg-purple-500'
+                                  (trafficData.used_gb / trafficData.total_gb) > 0.9 ? 'bg-destructive' :
+                                  (trafficData.used_gb / trafficData.total_gb) > 0.7 ? 'bg-warning' : 'bg-primary/10'
                                 }`}
                                 style={{ width: `${Math.min((trafficData.used_gb / trafficData.total_gb) * 100, 100)}%` }}
                               />
                             </div>
-                            <div className="flex justify-between text-xs text-gray-500 mt-1.5">
+                            <div className="flex justify-between text-xs text-muted-foreground mt-1.5">
                               <span>已用 {((trafficData.used_gb / trafficData.total_gb) * 100).toFixed(1)}%</span>
                               <span>剩余 {trafficData.leave_gb?.toFixed(4)} GB</span>
                               <span>重置日: 每月{trafficData.reset_flow_day || 1}日</span>
@@ -2743,30 +2737,30 @@ function AdvancedContent() {
 
                         {/* 入站/出站详细对比 */}
                         {trafficData && (trafficData.in_traffic_gb > 0 || trafficData.out_traffic_gb > 0) && (
-                          <div className="bg-[#0f1117] rounded-lg p-4 border border-gray-800">
-                            <div className="text-xs text-gray-500 mb-3">本月入站/出站对比</div>
+                          <div className="bg-background rounded-lg p-4 border border-border">
+                            <div className="text-xs text-muted-foreground mb-3">本月入站/出站对比</div>
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                                  <span className="text-sm text-gray-400">入站流量</span>
+                                  <div className="w-2.5 h-2.5 rounded-full bg-success" />
+                                  <span className="text-sm text-muted-foreground">入站流量</span>
                                 </div>
-                                <div className="text-xl font-semibold text-emerald-400">{trafficData.in_traffic_gb?.toFixed(4)} GB</div>
+                                <div className="text-xl font-semibold text-success">{trafficData.in_traffic_gb?.toFixed(4)} GB</div>
                                 {trafficData.total_gb > 0 && (
-                                  <div className="mt-1.5 h-2 bg-gray-700 rounded-full overflow-hidden">
-                                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min((trafficData.in_traffic_gb / trafficData.total_gb) * 100, 100)}%` }} />
+                                  <div className="mt-1.5 h-2 bg-accent rounded-full overflow-hidden">
+                                    <div className="h-full bg-success rounded-full" style={{ width: `${Math.min((trafficData.in_traffic_gb / trafficData.total_gb) * 100, 100)}%` }} />
                                   </div>
                                 )}
                               </div>
                               <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                                  <span className="text-sm text-gray-400">出站流量</span>
+                                  <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                                  <span className="text-sm text-muted-foreground">出站流量</span>
                                 </div>
-                                <div className="text-xl font-semibold text-orange-400">{trafficData.out_traffic_gb?.toFixed(4)} GB</div>
+                                <div className="text-xl font-semibold text-primary">{trafficData.out_traffic_gb?.toFixed(4)} GB</div>
                                 {trafficData.total_gb > 0 && (
-                                  <div className="mt-1.5 h-2 bg-gray-700 rounded-full overflow-hidden">
-                                    <div className="h-full bg-orange-500 rounded-full" style={{ width: `${Math.min((trafficData.out_traffic_gb / trafficData.total_gb) * 100, 100)}%` }} />
+                                  <div className="mt-1.5 h-2 bg-accent rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min((trafficData.out_traffic_gb / trafficData.total_gb) * 100, 100)}%` }} />
                                   </div>
                                 )}
                               </div>
@@ -2782,10 +2776,10 @@ function AdvancedContent() {
 
             {/* ===== 监控图表 ===== */}
             {activeTab === 'monitor' && (
-              <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-800">
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="px-4 py-3 border-b border-border">
                   <h3 className="font-semibold flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-purple-500" />
+                    <Activity className="w-4 h-4 text-primary" />
                     监控图表
                   </h3>
                 </div>
@@ -2793,7 +2787,7 @@ function AdvancedContent() {
                   {/* 类型与时间范围选择 */}
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-xs text-gray-500 shrink-0">类型</span>
+                      <span className="text-xs text-muted-foreground shrink-0">类型</span>
                       {[
                         { key: 'cpu', label: 'CPU' },
                         { key: 'memory', label: '内存' },
@@ -2804,14 +2798,14 @@ function AdvancedContent() {
                       ].map(t => (
                         <button key={t.key} onClick={() => { setMonitorType(t.key); setMonitorNic(''); setMonitorDisk(''); }}
                           className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                            monitorType === t.key ? 'bg-purple-600 text-white' : 'bg-[#0f1117] text-gray-400 hover:text-white hover:bg-gray-800'
+                            monitorType === t.key ? 'bg-primary/15 text-primary' : 'bg-background text-muted-foreground hover:text-foreground hover:bg-accent'
                           }`}>
                           {t.label}
                         </button>
                       ))}
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-xs text-gray-500 shrink-0">范围</span>
+                      <span className="text-xs text-muted-foreground shrink-0">范围</span>
                       {[
                         { key: 'all', label: '全部' },
                         { key: '1h', label: '1时' },
@@ -2825,7 +2819,7 @@ function AdvancedContent() {
                           setMonitorRange(r.key);
                         }}
                           className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                            monitorRange === r.key ? 'bg-purple-600 text-white' : 'bg-[#0f1117] text-gray-400 hover:text-white hover:bg-gray-800'
+                            monitorRange === r.key ? 'bg-primary/15 text-primary' : 'bg-background text-muted-foreground hover:text-foreground hover:bg-accent'
                           }`}>
                           {r.label}
                         </button>
@@ -2845,12 +2839,12 @@ function AdvancedContent() {
                       if (nics.length <= 1) return null;
                       return (
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-xs text-gray-500 shrink-0">网卡</span>
+                        <span className="text-xs text-muted-foreground shrink-0">网卡</span>
                         {nics.map((nic, i) => (
                           <button key={nic.idx}
                             onClick={() => { setMonitorNic(String(nic.idx)); }}
                             className={`px-2 py-1 rounded text-xs font-medium transition-colors font-mono ${
-                              (monitorNic === '' ? i === 0 : monitorNic === String(nic.idx)) ? 'bg-purple-600 text-white' : 'bg-[#0f1117] text-gray-400 hover:text-white hover:bg-gray-800'
+                              (monitorNic === '' ? i === 0 : monitorNic === String(nic.idx)) ? 'bg-primary/15 text-primary' : 'bg-background text-muted-foreground hover:text-foreground hover:bg-accent'
                             }`}>
                             {nic.mac || `网卡${i + 1}`}
                           </button>
@@ -2866,12 +2860,12 @@ function AdvancedContent() {
                       })();
                       return (
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-xs text-gray-500 shrink-0">磁盘</span>
+                        <span className="text-xs text-muted-foreground shrink-0">磁盘</span>
                         {disks.map((disk, idx) => (
                           <button key={idx}
                             onClick={() => { setMonitorDisk(disk.dev || ''); }}
                             className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                              (monitorDisk === '' ? disk.dev === defaultDiskDev : monitorDisk === (disk.dev || '')) ? 'bg-purple-600 text-white' : 'bg-[#0f1117] text-gray-400 hover:text-white hover:bg-gray-800'
+                              (monitorDisk === '' ? disk.dev === defaultDiskDev : monitorDisk === (disk.dev || '')) ? 'bg-primary/15 text-primary' : 'bg-background text-muted-foreground hover:text-foreground hover:bg-accent'
                             }`}>
                             {disk.name || disk.dev || `磁盘${idx + 1}`}
                           </button>
@@ -2883,7 +2877,7 @@ function AdvancedContent() {
 
                   {/* 自定义时间范围 */}
                   {monitorRange === 'custom' && (
-                    <div className="bg-[#0f1117] rounded-lg p-4 border border-gray-800 space-y-3">
+                    <div className="bg-background rounded-lg p-4 border border-border space-y-3">
                       {/* 数据可用范围提示 */}
                       {(() => {
                         // 计算实例创建时间作为最早可选日期
@@ -2892,14 +2886,14 @@ function AdvancedContent() {
                         const latestTime = fullDataTimeEnd > 0 ? fullDataTimeEnd : Date.now();
                         return (
                         <div className="flex items-center gap-2 text-xs">
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-800/60 rounded-md">
-                            <Activity className="w-3 h-3 text-purple-400" />
-                            <span className="text-gray-400">可选范围:</span>
-                            <span className="text-gray-200 font-medium tabular-nums">
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md">
+                            <Activity className="w-3 h-3 text-primary" />
+                            <span className="text-muted-foreground">可选范围:</span>
+                            <span className="text-foreground font-medium tabular-nums">
                               {new Date(earliestTime).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                             </span>
-                            <span className="text-gray-600">→</span>
-                            <span className="text-gray-200 font-medium tabular-nums">
+                            <span className="text-muted-foreground">→</span>
+                            <span className="text-foreground font-medium tabular-nums">
                               {new Date(latestTime).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
@@ -2913,7 +2907,7 @@ function AdvancedContent() {
                               setCustomStartTime(toLocalISOString(new Date(fullDataTimeStart)));
                               setCustomEndTime(toLocalISOString(new Date(fullDataTimeEnd)));
                             }}
-                            className="px-2 py-1 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-md transition-colors font-medium"
+                            className="px-2 py-1 text-primary hover:text-primary hover:bg-primary/10 rounded-md transition-colors font-medium"
                           >
                             填入数据范围
                           </button>
@@ -2926,20 +2920,20 @@ function AdvancedContent() {
                         <Popover>
                           <PopoverTrigger asChild>
                             <button
-                              className="flex items-center gap-2 bg-[#1a1d27] border border-gray-700 rounded-md px-3 py-1.5 text-sm text-white hover:border-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30 transition-colors"
+                              className="flex items-center gap-2 bg-card border border-border rounded-md px-3 py-1.5 text-sm text-foreground hover:border-border focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
                             >
-                              <CalendarIcon className="w-3.5 h-3.5 text-gray-400" />
+                              <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                               {customStartTime && customEndTime
                                 ? <>
                                     <span className="tabular-nums">{new Date(customStartTime).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                                    <span className="text-gray-600">→</span>
+                                    <span className="text-muted-foreground">→</span>
                                     <span className="tabular-nums">{new Date(customEndTime).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                                   </>
-                                : <span className="text-gray-400">选择时间范围</span>
+                                : <span className="text-muted-foreground">选择时间范围</span>
                               }
                             </button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 bg-[#1a1d27] border-gray-700 text-gray-200 [&_.rdp-month]:text-gray-200 [&_.rdp-weekday]:text-gray-400 [&_.rdp-day]:text-gray-200 [&_.rdp-day_disabled]:text-gray-600 [&_.rdp-day_disabled]:opacity-60 [&_.rdp-day_outside]:text-gray-600 [&_.rdp-caption_label]:text-gray-100 [&_.rdp-button_previous]:text-gray-300 [&_.rdp-button_next]:text-gray-300 [&_[data-selected-single=true]]:bg-purple-600 [&_[data-selected-single=true]]:text-white [&_[data-range-start=true]]:bg-purple-600 [&_[data-range-start=true]]:text-white [&_[data-range-end=true]]:bg-purple-600 [&_[data-range-end=true]]:text-white [&_[data-range-middle=true]]:bg-purple-600/20 [&_[data-range-middle=true]]:text-purple-200 [&_[aria-current=date]]:bg-purple-500/20 [&_[aria-current=date]_button]:text-purple-300 [&_[aria-current=date]_button]:font-semibold" align="start">
+                          <PopoverContent className="w-auto p-0 bg-card border-border text-foreground [&_.rdp-month]:text-foreground [&_.rdp-weekday]:text-muted-foreground [&_.rdp-day]:text-foreground [&_.rdp-day_disabled]:text-muted-foreground [&_.rdp-day_disabled]:opacity-60 [&_.rdp-day_outside]:text-muted-foreground [&_.rdp-caption_label]:text-foreground [&_.rdp-button_previous]:text-foreground [&_.rdp-button_next]:text-foreground [&_[data-selected-single=true]]:bg-primary/10 [&_[data-selected-single=true]]:text-foreground [&_[data-range-start=true]]:bg-primary/10 [&_[data-range-start=true]]:text-foreground [&_[data-range-end=true]]:bg-primary/10 [&_[data-range-end=true]]:text-foreground [&_[data-range-middle=true]]:bg-primary/10 [&_[data-range-middle=true]]:text-primary [&_[aria-current=date]]:bg-primary/10 [&_[aria-current=date]_button]:text-primary [&_[aria-current=date]_button]:font-semibold" align="start">
                             <Calendar
                               mode="range"
                               numberOfMonths={2}
@@ -2979,31 +2973,31 @@ function AdvancedContent() {
                               }}
                             />
                             {/* 时间微调 */}
-                            <div className="flex items-center gap-3 px-3 pb-3 pt-1 border-t border-gray-700 mt-1">
+                            <div className="flex items-center gap-3 px-3 pb-3 pt-1 border-t border-border mt-1">
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-gray-400">开始</span>
-                                <div className="flex items-center bg-[#0f1117] border border-gray-700 rounded px-2 py-1 gap-1">
-                                  <Clock className="w-3 h-3 text-gray-500" />
+                                <span className="text-xs text-muted-foreground">开始</span>
+                                <div className="flex items-center bg-background border border-border rounded px-2 py-1 gap-1">
+                                  <Clock className="w-3 h-3 text-muted-foreground" />
                                   <input type="time" value={customStartTime ? customStartTime.split('T')[1] || '00:00' : '00:00'}
                                     onChange={e => {
                                       const datePart = customStartTime ? customStartTime.split('T')[0] : new Date().toISOString().split('T')[0];
                                       setCustomStartTime(`${datePart}T${e.target.value}`);
                                     }}
-                                    className="bg-transparent text-xs text-white focus:outline-none w-[65px] tabular-nums"
+                                    className="bg-transparent text-xs text-foreground focus:outline-none w-[65px] tabular-nums"
                                   />
                                 </div>
                               </div>
-                              <span className="text-gray-600 text-xs">→</span>
+                              <span className="text-muted-foreground text-xs">→</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-gray-400">结束</span>
-                                <div className="flex items-center bg-[#0f1117] border border-gray-700 rounded px-2 py-1 gap-1">
-                                  <Clock className="w-3 h-3 text-gray-500" />
+                                <span className="text-xs text-muted-foreground">结束</span>
+                                <div className="flex items-center bg-background border border-border rounded px-2 py-1 gap-1">
+                                  <Clock className="w-3 h-3 text-muted-foreground" />
                                   <input type="time" value={customEndTime ? customEndTime.split('T')[1] || '23:59' : '23:59'}
                                     onChange={e => {
                                       const datePart = customEndTime ? customEndTime.split('T')[0] : new Date().toISOString().split('T')[0];
                                       setCustomEndTime(`${datePart}T${e.target.value}`);
                                     }}
-                                    className="bg-transparent text-xs text-white focus:outline-none w-[65px] tabular-nums"
+                                    className="bg-transparent text-xs text-foreground focus:outline-none w-[65px] tabular-nums"
                                   />
                                 </div>
                               </div>
@@ -3019,7 +3013,7 @@ function AdvancedContent() {
                             fetchMonitor(undefined, 'custom', st, et);
                           }}
                           disabled={!customStartTime || !customEndTime}
-                          className="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-md text-sm font-medium transition-colors"
+                          className="px-4 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary disabled:bg-accent disabled:text-muted-foreground rounded-md text-sm font-medium transition-colors"
                         >
                           查询
                         </button>
@@ -3029,7 +3023,7 @@ function AdvancedContent() {
 
                   {/* 监控图表 */}
                   {monitorLoading ? (
-                    <div className="flex items-center justify-center py-8 text-gray-400">
+                    <div className="flex items-center justify-center py-8 text-muted-foreground">
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
                       加载监控数据...
                     </div>
@@ -3037,7 +3031,7 @@ function AdvancedContent() {
                     <MonitorChart data={monitorData} type={monitorType} totalMemoryGB={cloudDetail?.memory || 0}
                       onDataTimeRange={handleMonitorDataTimeRange} />
                   ) : (
-                    <div className="flex items-center justify-center py-8 text-gray-400">
+                    <div className="flex items-center justify-center py-8 text-muted-foreground">
                       暂无监控数据
                     </div>
                   )}
@@ -3047,23 +3041,23 @@ function AdvancedContent() {
 
             {/* ===== VNC控制台 ===== */}
             {activeTab === 'vnc' && (
-              <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-800">
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="px-4 py-3 border-b border-border">
                   <h3 className="font-semibold flex items-center gap-2">
-                    <ScreenShare className="w-4 h-4 text-purple-500" />
+                    <ScreenShare className="w-4 h-4 text-primary" />
                     VNC控制台
                   </h3>
                 </div>
                 <div className="p-4">
                   <div className="text-center py-8 space-y-4">
-                    <ScreenShare className="w-16 h-16 mx-auto text-purple-500/50" />
-                    <p className="text-gray-400">点击下方按钮打开VNC控制台</p>
-                    <p className="text-xs text-gray-500">VNC将在新窗口中打开，使用noVNC通过WebSocket连接</p>
-                    <p className="text-xs text-gray-600">支持：粘贴密码 / 剪切板 / Ctrl+Alt+Del</p>
+                    <ScreenShare className="w-16 h-16 mx-auto text-primary/50" />
+                    <p className="text-muted-foreground">点击下方按钮打开VNC控制台</p>
+                    <p className="text-xs text-muted-foreground">VNC将在新窗口中打开，使用noVNC通过WebSocket连接</p>
+                    <p className="text-xs text-muted-foreground">支持：粘贴密码 / 剪切板 / Ctrl+Alt+Del</p>
                     <button
                       onClick={handleVnc}
                       disabled={actionLoading === 'cloudVnc'}
-                      className="px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg transition-colors font-medium flex items-center gap-2 mx-auto"
+                      className="px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary disabled:bg-accent disabled:text-muted-foreground rounded-lg transition-colors font-medium flex items-center gap-2 mx-auto"
                     >
                       {actionLoading === 'cloudVnc' ? <Loader2 className="w-5 h-5 animate-spin" /> : <ScreenShare className="w-5 h-5" />}
                       打开VNC控制台
@@ -3079,15 +3073,15 @@ function AdvancedContent() {
       {/* 重装系统弹窗 */}
       {showReinstallDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowReinstallDialog(false)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Monitor className="w-5 h-5 text-orange-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-primary" />
               重装系统
             </h3>
             <div className="space-y-4">
               {/* 镜像分组 */}
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">镜像分组</label>
+                <label className="text-sm text-muted-foreground mb-1 block">镜像分组</label>
                 <select value={reinstallForm.image_group} onChange={e => {
 	                    const newGroupId = Number(e.target.value);
 	                    const group = imageGroups.find((g: Record<string, any>) => Number(g.id) === newGroupId);
@@ -3095,7 +3089,7 @@ function AdvancedContent() {
 	                    const newPort = groupName.includes('windows') ? 3389 : 22;
 	                    setReinstallForm(p => ({ ...p, image_group: newGroupId, image_id: 0, port: newPort }));
 	                  }}
-                  className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-orange-500 focus:outline-none">
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none">
                   <option value={0}>请选择分组</option>
                   {imageGroups
                     .filter((g: Record<string, any>) => imageList.some((img: Record<string, any>) =>
@@ -3107,7 +3101,7 @@ function AdvancedContent() {
               </div>
               {/* 选择镜像 */}
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">选择镜像</label>
+                <label className="text-sm text-muted-foreground mb-1 block">选择镜像</label>
                 <select value={reinstallForm.image_id} onChange={e => {
 	                    const newImageId = Number(e.target.value);
 	                    const selectedImg = imageList.find((img: Record<string, any>) => Number(img.id) === newImageId);
@@ -3120,7 +3114,7 @@ function AdvancedContent() {
 	                    }
 	                    setReinstallForm(p => ({ ...p, image_id: newImageId, port: newPort }));
 	                  }}
-	                  className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-orange-500 focus:outline-none">
+	                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none">
 	                  <option value={0}>请选择镜像</option>
                   {imageList
                     .filter((img: Record<string, any>) => {
@@ -3133,61 +3127,61 @@ function AdvancedContent() {
                 </select>
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">新密码</label>
+                <label className="text-sm text-muted-foreground mb-1 block">新密码</label>
                 <div className="flex gap-2">
                   <input type="text" value={reinstallForm.password} onChange={e => setReinstallForm(p => ({ ...p, password: e.target.value }))}
-                    placeholder="留空则自动生成" className="flex-1 bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-orange-500 focus:outline-none" />
+                    placeholder="留空则自动生成" className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
                   <button type="button" onClick={() => setReinstallForm(p => ({ ...p, password: generateRandomPassword() }))}
-                    className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-gray-300 transition-colors whitespace-nowrap">
+                    className="px-3 py-2 bg-accent hover:bg-accent rounded-lg text-xs text-foreground transition-colors whitespace-nowrap">
                     随机生成
                   </button>
                 </div>
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">SSH端口</label>
+                <label className="text-sm text-muted-foreground mb-1 block">SSH端口</label>
                 <input type="number" value={reinstallForm.port} onChange={e => setReinstallForm(p => ({ ...p, port: Number(e.target.value) }))}
-                  className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-orange-500 focus:outline-none" />
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
               </div>
               {/* 系统盘大小开关 */}
               <div>
-                <label className="flex items-center gap-3 text-sm text-gray-400 cursor-pointer">
-                  <div className={`relative w-10 h-5 rounded-full transition-colors ${reinstallDiskSize ? 'bg-purple-600' : 'bg-gray-700'}`}
+                <label className="flex items-center gap-3 text-sm text-muted-foreground cursor-pointer">
+                  <div className={`relative w-10 h-5 rounded-full transition-colors ${reinstallDiskSize ? 'bg-primary/10' : 'bg-accent'}`}
                     onClick={() => setReinstallDiskSize(v => !v)}>
-                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${reinstallDiskSize ? 'translate-x-5' : ''}`} />
+                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-card transition-transform ${reinstallDiskSize ? 'translate-x-5' : ''}`} />
                   </div>
                   自定义系统盘大小
                 </label>
                 {reinstallDiskSize && (
                   <div className="mt-2 ml-[52px]">
-                    <label className="text-xs text-gray-500 mb-1 block">系统盘大小 (GB)</label>
+                    <label className="text-xs text-muted-foreground mb-1 block">系统盘大小 (GB)</label>
                     <input type="number" min="10" step={1}
 	                      value={reinstallForm.custom_disk_size || ''}
 	                      onChange={e => {
 	                        setReinstallForm(p => ({ ...p, custom_disk_size: Number(e.target.value) }));
 	                      }}
-	                      className="w-32 bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:border-purple-500 focus:outline-none" />
-	                    <p className="text-xs text-gray-600 mt-1">重装后系统盘将调整为此大小，默认为当前系统盘大小</p>
+	                      className="w-32 bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none" />
+	                    <p className="text-xs text-muted-foreground mt-1">重装后系统盘将调整为此大小，默认为当前系统盘大小</p>
                   </div>
                 )}
               </div>
               {/* 格式化数据盘 */}
-              <label className="flex items-center gap-3 text-sm text-gray-400 cursor-pointer">
-                <div className={`relative w-10 h-5 rounded-full transition-colors ${reinstallForm.format_data_disk ? 'bg-red-600' : 'bg-gray-700'}`}
+              <label className="flex items-center gap-3 text-sm text-muted-foreground cursor-pointer">
+                <div className={`relative w-10 h-5 rounded-full transition-colors ${reinstallForm.format_data_disk ? 'bg-destructive' : 'bg-accent'}`}
                   onClick={() => setReinstallForm(p => ({ ...p, format_data_disk: !p.format_data_disk }))}>
-                  <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${reinstallForm.format_data_disk ? 'translate-x-5' : ''}`} />
+                  <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-card transition-transform ${reinstallForm.format_data_disk ? 'translate-x-5' : ''}`} />
                 </div>
                 <span>格式化数据盘</span>
-                {reinstallForm.format_data_disk && <span className="text-xs text-red-400">将清除所有数据盘数据</span>}
+                {reinstallForm.format_data_disk && <span className="text-xs text-destructive">将清除所有数据盘数据</span>}
               </label>
               {/* 数据盘大小提示 */}
               {disks.filter(d => d.type !== 'system' && d.disk_type !== 'system').length > 0 && (
-                <p className="text-xs text-gray-600">如需修改数据盘大小，请在重装后通过磁盘管理操作</p>
+                <p className="text-xs text-muted-foreground">如需修改数据盘大小，请在重装后通过磁盘管理操作</p>
               )}
             </div>
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setShowReinstallDialog(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+              <button onClick={() => setShowReinstallDialog(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
               <button onClick={handleReinstall} disabled={!reinstallForm.image_id || !!actionLoading}
-                className="px-4 py-2 text-sm bg-orange-600 hover:bg-orange-500 text-white rounded-lg disabled:opacity-50 transition-colors">
+                className="px-4 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50 transition-colors">
                 确认重装
               </button>
             </div>
@@ -3198,25 +3192,25 @@ function AdvancedContent() {
       {/* 重置密码弹窗 */}
       {showResetPwdDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowResetPwdDialog(false)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-orange-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" />
               重置密码
             </h3>
             <div className="flex gap-2">
               <input type="text" value={resetPwdValue} onChange={e => setResetPwdValue(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleResetPassword(); }}
                 placeholder="输入新密码" autoFocus
-                className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 text-sm" />
+                className="flex-1 px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary text-sm" />
               <button type="button" onClick={() => setResetPwdValue(generateRandomPassword())}
-                className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-gray-300 transition-colors whitespace-nowrap">
+                className="px-3 py-2 bg-accent hover:bg-accent rounded-lg text-xs text-foreground transition-colors whitespace-nowrap">
                 随机生成
               </button>
             </div>
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setShowResetPwdDialog(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+              <button onClick={() => setShowResetPwdDialog(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
               <button onClick={handleResetPassword} disabled={!resetPwdValue.trim()}
-                className="px-4 py-2 text-sm bg-orange-600 hover:bg-orange-500 text-white rounded-lg disabled:opacity-50 transition-colors">确认重置</button>
+                className="px-4 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50 transition-colors">确认重置</button>
             </div>
           </div>
         </div>
@@ -3225,22 +3219,22 @@ function AdvancedContent() {
       {/* 添加IP弹窗 */}
       {showAddIpDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => { setShowAddIpDialog(false); setSelectedFreeIps(new Set()); }}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-lg shadow-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-purple-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-lg shadow-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-primary" />
               添加IP地址
               {selectedFreeIps.size > 0 && (
-                <span className="text-sm font-normal text-purple-400 ml-auto">已选 {selectedFreeIps.size} 个IP</span>
+                <span className="text-sm font-normal text-primary ml-auto">已选 {selectedFreeIps.size} 个IP</span>
               )}
             </h3>
             <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
               {freeIpLoading ? (
-                <div className="flex items-center justify-center py-8 text-gray-400">
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />加载IP池...
                 </div>
               ) : freeIpList.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Globe className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                <div className="text-center py-8 text-muted-foreground">
+                  <Globe className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
                   <p>暂无可用IP</p>
                 </div>
               ) : (
@@ -3249,30 +3243,30 @@ function AdvancedContent() {
                   const segmentIps = segment.ip || [];
                   const segmentSelected = segmentIps.filter((ipItem: { id: number; ip: string }) => selectedFreeIps.has(ipItem.id)).length;
                   return (
-                    <div key={segment.id} className="bg-[#0f1117] rounded-lg border border-gray-800 overflow-hidden">
+                    <div key={segment.id} className="bg-background rounded-lg border border-border overflow-hidden">
                       <button
                         onClick={() => setExpandedIpSegments(prev => {
                           const next = new Set(prev);
                           if (next.has(segment.id)) next.delete(segment.id); else next.add(segment.id);
                           return next;
                         })}
-                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-800/50 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-accent transition-colors"
                       >
                         <div className="flex items-center gap-2">
-                          <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
                           <span className="text-sm font-medium">{segment.ip_name || `IP段 #${segment.id}`}</span>
-                          <span className="text-xs text-gray-500">({segmentIps.length}个可用)</span>
+                          <span className="text-xs text-muted-foreground">({segmentIps.length}个可用)</span>
                         </div>
                         {segmentSelected > 0 && (
-                          <span className="text-xs bg-purple-500/15 text-purple-400 px-2 py-0.5 rounded">已选{segmentSelected}</span>
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">已选{segmentSelected}</span>
                         )}
                       </button>
                       {isExpanded && segmentIps.length > 0 && (
-                        <div className="border-t border-gray-800 p-2 space-y-1">
+                        <div className="border-t border-border p-2 space-y-1">
                           {segmentIps.map((ipItem: { id: number; ip: string }) => {
                             const isSelected = selectedFreeIps.has(ipItem.id);
                             return (
-                              <label key={ipItem.id} className="flex items-center gap-3 px-2 py-1.5 hover:bg-gray-800/50 rounded cursor-pointer"
+                              <label key={ipItem.id} className="flex items-center gap-3 px-2 py-1.5 hover:bg-accent rounded cursor-pointer"
                                 onClick={() => {
                                   setSelectedFreeIps(prev => {
                                     const next = new Set(prev);
@@ -3281,11 +3275,11 @@ function AdvancedContent() {
                                   });
                                 }}>
                                 <div className={`w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition-colors ${
-                                  isSelected ? 'bg-purple-600 border-purple-600' : 'border-gray-600 hover:border-gray-400'
+                                  isSelected ? 'bg-primary/10 border-primary' : 'border-border hover:border-border'
                                 }`} style={{ width: '18px', height: '18px', minWidth: '18px' }}>
-                                  {isSelected && <Check className="w-3 h-3 text-white" />}
+                                  {isSelected && <Check className="w-3 h-3 text-foreground" />}
                                 </div>
-                                <span className="text-sm font-mono text-gray-300">{ipItem.ip}</span>
+                                <span className="text-sm font-mono text-foreground">{ipItem.ip}</span>
                               </label>
                             );
                           })}
@@ -3296,10 +3290,10 @@ function AdvancedContent() {
                 })
               )}
             </div>
-            <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-800">
-              <button onClick={() => { setShowAddIpDialog(false); setSelectedFreeIps(new Set()); }} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+            <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-border">
+              <button onClick={() => { setShowAddIpDialog(false); setSelectedFreeIps(new Set()); }} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
               <button onClick={handleAddIp} disabled={selectedFreeIps.size === 0 || !!actionLoading}
-                className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2">
+                className="px-4 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2">
                 {actionLoading === 'cloudAddFloatIp' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 添加 {selectedFreeIps.size > 0 ? `${selectedFreeIps.size} 个IP` : ''}
               </button>
@@ -3311,21 +3305,21 @@ function AdvancedContent() {
       {/* 添加磁盘弹窗 */}
       {showAddDiskDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowAddDiskDialog(false)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-purple-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-primary" />
               添加磁盘
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">磁盘大小 (GB)</label>
+                <label className="text-sm text-muted-foreground mb-1 block">磁盘大小 (GB)</label>
                 <input type="number" min="1" value={addDiskForm.size} onChange={e => setAddDiskForm(p => ({ ...p, size: Number(e.target.value) }))}
-                  className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none" />
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">存储</label>
+                <label className="text-sm text-muted-foreground mb-1 block">存储</label>
                 <select value={addDiskForm.store} onChange={e => setAddDiskForm(p => ({ ...p, store: Number(e.target.value) }))}
-                  className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none">
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none">
                   <option value={0}>请选择存储</option>
                   {diskStores.map((s: Record<string, any>) => (
                     <option key={s.id} value={s.id}>{s.show_name || s.name || s.store_name || `存储#${s.id}`}{s.type ? ` (${s.type})` : ''}</option>
@@ -3333,9 +3327,9 @@ function AdvancedContent() {
                 </select>
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">磁盘驱动</label>
+                <label className="text-sm text-muted-foreground mb-1 block">磁盘驱动</label>
                 <select value={addDiskForm.driver} onChange={e => setAddDiskForm(p => ({ ...p, driver: e.target.value }))}
-                  className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none">
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none">
                   <option value="virtio">VirtIO</option>
                   <option value="ide">IDE</option>
                   <option value="sata">SATA</option>
@@ -3344,9 +3338,9 @@ function AdvancedContent() {
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setShowAddDiskDialog(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+              <button onClick={() => setShowAddDiskDialog(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
               <button onClick={handleAddDisk} disabled={addDiskForm.size < 1 || !addDiskForm.store || !!actionLoading}
-                className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg disabled:opacity-50 transition-colors">确认添加</button>
+                className="px-4 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50 transition-colors">确认添加</button>
             </div>
           </div>
         </div>
@@ -3355,17 +3349,17 @@ function AdvancedContent() {
       {/* 删除磁盘确认弹窗 */}
       {deleteDiskTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setDeleteDiskTarget(null)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
               确认删除磁盘
             </h3>
-            <p className="text-sm text-gray-300 mb-2">
-              确定要删除磁盘 <span className="text-white font-medium">「{deleteDiskTarget.name}」</span> 吗？
+            <p className="text-sm text-foreground mb-2">
+              确定要删除磁盘 <span className="text-foreground font-medium">「{deleteDiskTarget.name}」</span> 吗？
             </p>
-            <p className="text-xs text-red-400">此操作不可撤销，磁盘数据将被永久删除。</p>
+            <p className="text-xs text-destructive">此操作不可撤销，磁盘数据将被永久删除。</p>
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setDeleteDiskTarget(null)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+              <button onClick={() => setDeleteDiskTarget(null)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
               <button
                 onClick={async () => {
                   setActionLoading('diskDelete');
@@ -3387,7 +3381,7 @@ function AdvancedContent() {
                   }
                 }}
                 disabled={!!actionLoading}
-                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 text-white rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1"
+                className="px-4 py-2 text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1"
               >
                 {actionLoading === 'diskDelete' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 确认删除
@@ -3400,30 +3394,30 @@ function AdvancedContent() {
       {/* 电源操作确认弹窗 */}
       {powerConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setPowerConfirm(null)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-yellow-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-warning" />
               确认{powerConfirm.name}
             </h3>
-            <p className="text-sm text-gray-300 mb-2">
-              确定要执行 <span className="text-white font-medium">「{powerConfirm.name}」</span> 操作吗？
+            <p className="text-sm text-foreground mb-2">
+              确定要执行 <span className="text-foreground font-medium">「{powerConfirm.name}」</span> 操作吗？
             </p>
             {(powerConfirm.action === 'cloudHardOff' || powerConfirm.action === 'cloudHardReboot') && (
-              <p className="text-xs text-red-400">强制操作可能导致数据丢失，请确认已保存重要数据。</p>
+              <p className="text-xs text-destructive">强制操作可能导致数据丢失，请确认已保存重要数据。</p>
             )}
             {(powerConfirm.action === 'cloudOff' || powerConfirm.action === 'cloudReboot') && (
-              <p className="text-xs text-yellow-400">建议先在系统内正常关机/重启，强制操作可能导致数据丢失。</p>
+              <p className="text-xs text-warning">建议先在系统内正常关机/重启，强制操作可能导致数据丢失。</p>
             )}
             {powerConfirm.action === 'cloudRebuild' && (
-              <p className="text-xs text-red-400">一键重建将使用当前镜像重新安装系统，所有数据将被清除。</p>
+              <p className="text-xs text-destructive">一键重建将使用当前镜像重新安装系统，所有数据将被清除。</p>
             )}
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setPowerConfirm(null)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+              <button onClick={() => setPowerConfirm(null)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
               <button
                 onClick={() => { executePowerAction(powerConfirm.action, powerConfirm.name); setPowerConfirm(null); }}
                 disabled={!!actionLoading}
-                className={`px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1 ${
-                  powerConfirm.action === 'cloudHardOff' || powerConfirm.action === 'cloudHardReboot' || powerConfirm.action === 'cloudRebuild' ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'
+                className={`px-4 py-2 text-sm rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1 ${
+                  powerConfirm.action === 'cloudHardOff' || powerConfirm.action === 'cloudHardReboot' || powerConfirm.action === 'cloudRebuild' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary/10 text-primary hover:bg-primary/20'
                 }`}
               >
                 确认{powerConfirm.name}
@@ -3436,34 +3430,34 @@ function AdvancedContent() {
       {/* 扩容磁盘弹窗 */}
       {resizeDiskTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setResizeDiskTarget(null)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Edit3 className="w-5 h-5 text-purple-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Edit3 className="w-5 h-5 text-primary" />
               扩容磁盘
             </h3>
             <div className="space-y-3">
-              <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
-                <div className="text-sm text-gray-400">磁盘名称</div>
+              <div className="bg-background rounded-lg p-3 border border-border">
+                <div className="text-sm text-muted-foreground">磁盘名称</div>
                 <div className="text-sm font-medium mt-0.5">{resizeDiskTarget.name}</div>
               </div>
-              <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
-                <div className="text-sm text-gray-400">当前大小</div>
+              <div className="bg-background rounded-lg p-3 border border-border">
+                <div className="text-sm text-muted-foreground">当前大小</div>
                 <div className="text-sm font-medium mt-0.5">{resizeDiskTarget.currentSize} GB</div>
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">新大小 (GB)</label>
+                <label className="text-sm text-muted-foreground mb-1 block">新大小 (GB)</label>
                 <input type="number" min={resizeDiskTarget.currentSize + 1} step={1}
                   value={resizeDiskValue} onChange={e => setResizeDiskValue(Number(e.target.value))}
-                  className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none" />
-                <p className="text-xs text-gray-600 mt-1">新大小必须大于当前大小 {resizeDiskTarget.currentSize} GB</p>
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
+                <p className="text-xs text-muted-foreground mt-1">新大小必须大于当前大小 {resizeDiskTarget.currentSize} GB</p>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setResizeDiskTarget(null)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+              <button onClick={() => setResizeDiskTarget(null)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
               <button
                 onClick={() => { handleResizeDisk(resizeDiskTarget.id, resizeDiskValue); setResizeDiskTarget(null); }}
                 disabled={resizeDiskValue <= resizeDiskTarget.currentSize || !!actionLoading}
-                className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1"
+                className="px-4 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1"
               >
                 {actionLoading === `diskResize_${resizeDiskTarget.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit3 className="w-4 h-4" />}
                 确认扩容
@@ -3476,22 +3470,22 @@ function AdvancedContent() {
       {/* 安全组绑定弹窗 */}
       {showSecurityGroupDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowSecurityGroupDialog(false)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-md shadow-2xl max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-purple-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-md shadow-2xl max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
               选择安全组
             </h3>
             <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
               {securityGroups.length === 0 && (
-                <p className="text-gray-400 text-center py-2">暂无可用安全组，可点击下方按钮新建</p>
+                <p className="text-muted-foreground text-center py-2">暂无可用安全组，可点击下方按钮新建</p>
               )}
               {securityGroups.map(sg => (
                 <button key={sg.id} onClick={() => handleBindSecurityGroup(sg.id)}
-                  className="w-full flex items-center gap-3 bg-[#0f1117] hover:bg-gray-800 rounded-lg px-4 py-3 transition-colors text-left">
-                  <Shield className="w-5 h-5 text-purple-400 shrink-0" />
+                  className="w-full flex items-center gap-3 bg-background hover:bg-accent rounded-lg px-4 py-3 transition-colors text-left">
+                  <Shield className="w-5 h-5 text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{sg.name}</div>
-                    <div className="text-xs text-gray-500">{sg.rule_num || 0} 条规则 · {sg.cloud_num || 0} 个实例</div>
+                    <div className="text-xs text-muted-foreground">{sg.rule_num || 0} 条规则 · {sg.cloud_num || 0} 个实例</div>
                   </div>
                 </button>
               ))}
@@ -3524,12 +3518,12 @@ function AdvancedContent() {
                   setActionLoading(null);
                 }}
                 disabled={!!actionLoading}
-                className="px-3 py-1.5 text-xs bg-purple-600 hover:bg-purple-500 text-white rounded-lg disabled:opacity-50 transition-colors"
+                className="px-3 py-1.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50 transition-colors"
               >
                 {actionLoading === 'securityCreate' ? <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> : <Plus className="w-3.5 h-3.5 inline mr-1" />}
                 新建默认安全组
               </button>
-              <button onClick={() => setShowSecurityGroupDialog(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+              <button onClick={() => setShowSecurityGroupDialog(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
             </div>
           </div>
         </div>
@@ -3538,25 +3532,25 @@ function AdvancedContent() {
       {/* 安全组规则添加弹窗 */}
       {showSecurityRuleDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowSecurityRuleDialog(false)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-purple-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-primary" />
               添加安全组规则
             </h3>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm text-gray-400 mb-1 block">方向</label>
+                  <label className="text-sm text-muted-foreground mb-1 block">方向</label>
                   <select value={securityRuleForm.direction} onChange={e => setSecurityRuleForm(p => ({ ...p, direction: e.target.value }))}
-                    className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none">
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none">
                     <option value="in">入方向</option>
                     <option value="out">出方向</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-400 mb-1 block">协议</label>
+                  <label className="text-sm text-muted-foreground mb-1 block">协议</label>
                   <select value={securityRuleForm.protocol} onChange={e => setSecurityRuleForm(p => ({ ...p, protocol: e.target.value }))}
-                    className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none">
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none">
                     {['all', 'tcp', 'udp', 'icmp', 'ssh', 'http', 'https', 'rdp', 'mysql', 'redis'].map(p => (
                       <option key={p} value={p}>{p.toUpperCase()}</option>
                     ))}
@@ -3564,25 +3558,25 @@ function AdvancedContent() {
                 </div>
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">端口范围</label>
+                <label className="text-sm text-muted-foreground mb-1 block">端口范围</label>
                 <input type="text" value={securityRuleForm.port} onChange={e => setSecurityRuleForm(p => ({ ...p, port: e.target.value }))}
-                  placeholder="如: 22 或 80-443" className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none" />
+                  placeholder="如: 22 或 80-443" className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">授权IP</label>
+                <label className="text-sm text-muted-foreground mb-1 block">授权IP</label>
                 <input type="text" value={securityRuleForm.ip} onChange={e => setSecurityRuleForm(p => ({ ...p, ip: e.target.value }))}
-                  placeholder="如: 0.0.0.0/0 或 192.168.1.1" className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none" />
+                  placeholder="如: 0.0.0.0/0 或 192.168.1.1" className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">描述</label>
+                <label className="text-sm text-muted-foreground mb-1 block">描述</label>
                 <input type="text" value={securityRuleForm.description} onChange={e => setSecurityRuleForm(p => ({ ...p, description: e.target.value }))}
-                  placeholder="规则描述" className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none" />
+                  placeholder="规则描述" className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setShowSecurityRuleDialog(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+              <button onClick={() => setShowSecurityRuleDialog(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
               <button onClick={handleAddSecurityRule} disabled={!!actionLoading}
-                className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg disabled:opacity-50 transition-colors">添加</button>
+                className="px-4 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50 transition-colors">添加</button>
             </div>
           </div>
         </div>
@@ -3591,21 +3585,21 @@ function AdvancedContent() {
       {/* 网络切换弹窗 */}
       {showNetworkSwitchDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowNetworkSwitchDialog(false)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Wifi className="w-5 h-5 text-purple-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Wifi className="w-5 h-5 text-primary" />
               切换网络模式
             </h3>
             <div className="space-y-4">
-              <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
-                <div className="text-sm text-gray-400">当前模式</div>
+              <div className="bg-background rounded-lg p-3 border border-border">
+                <div className="text-sm text-muted-foreground">当前模式</div>
                 <div className="text-sm font-medium mt-1">
                   {cloudDetail?.network_type === 'vpc' ? 'VPC网络' : '经典网络'}
                   {cloudDetail?.vpc_name && ` (${cloudDetail.vpc_name})`}
                 </div>
               </div>
-              <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
-                <div className="text-sm text-gray-400">目标模式</div>
+              <div className="bg-background rounded-lg p-3 border border-border">
+                <div className="text-sm text-muted-foreground">目标模式</div>
                 <div className="text-sm font-medium mt-1">
                   {networkSwitchTarget === 'vpc' ? 'VPC网络' : '经典网络'}
                 </div>
@@ -3615,9 +3609,9 @@ function AdvancedContent() {
                 <div className="space-y-3">
                   {vpcNetworks.length > 0 && (
                     <div>
-                      <label className="text-sm text-gray-400 mb-1 block">选择已有VPC网络</label>
+                      <label className="text-sm text-muted-foreground mb-1 block">选择已有VPC网络</label>
                       <select value={selectedVpcId} onChange={e => { setSelectedVpcId(Number(e.target.value)); setVpcIpSegment(''); }}
-                        className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none">
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none">
                         <option value={0}>新建VPC网络</option>
                         {vpcNetworks.map((vpc: Record<string, any>) => (
                           <option key={vpc.id} value={vpc.id}>{vpc.name} ({vpc.ips})</option>
@@ -3627,24 +3621,24 @@ function AdvancedContent() {
                   )}
                   {selectedVpcId === 0 && (
                     <div>
-                      <label className="text-sm text-gray-400 mb-1 block">VPC IP段</label>
+                      <label className="text-sm text-muted-foreground mb-1 block">VPC IP段</label>
                       <input type="text" value={vpcIpSegment} onChange={e => setVpcIpSegment(e.target.value)}
                         placeholder="如: 192.168.1.0/24"
-                        className="w-full bg-[#0f1117] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 focus:outline-none" />
-                      <p className="text-xs text-gray-600 mt-1">支持 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8 的子网，掩码 /16-/28</p>
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-primary focus:outline-none" />
+                      <p className="text-xs text-muted-foreground mt-1">支持 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8 的子网，掩码 /16-/28</p>
                     </div>
                   )}
                 </div>
               )}
 
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                <p className="text-xs text-yellow-400">切换网络模式将导致实例网络中断，请确认操作。</p>
+              <div className="bg-warning/10 border border-warning/30 rounded-lg p-3">
+                <p className="text-xs text-warning">切换网络模式将导致实例网络中断，请确认操作。</p>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setShowNetworkSwitchDialog(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+              <button onClick={() => setShowNetworkSwitchDialog(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
               <button onClick={handleSwitchNetwork} disabled={!!actionLoading}
-                className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2">
+                className="px-4 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2">
                 {actionLoading === 'networkSwitch' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 确认切换
               </button>
@@ -3662,63 +3656,63 @@ function AdvancedContent() {
           )}
           {/* 展开的面板内容 */}
           {showTaskPanel && (
-            <div className="bg-[#1a1d27] border border-gray-800 rounded-xl shadow-2xl w-[90vw] max-w-md max-h-[70vh] flex flex-col overflow-hidden">
+            <div className="bg-card border border-border rounded-xl shadow-2xl w-[90vw] max-w-md max-h-[70vh] flex flex-col overflow-hidden">
               {/* 面板头部 */}
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800 shrink-0">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-border shrink-0">
                 <div className="flex items-center gap-2">
-                  <ListChecks className="w-4 h-4 text-purple-400" />
+                  <ListChecks className="w-4 h-4 text-primary" />
                   <span className="text-sm font-medium">任务与日志</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => cloudId && fetchMfyTaskAndLog(cloudId)}
                     disabled={taskLogLoading}
-                    className="p-1 text-gray-500 hover:text-white transition-colors disabled:opacity-50"
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                     title="刷新"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${taskLogLoading ? 'animate-spin' : ''}`} />
                   </button>
-                  <button onClick={() => setShowTaskPanel(false)} className="p-1 text-gray-500 hover:text-white transition-colors">
+                  <button onClick={() => setShowTaskPanel(false)} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
               {/* TAB栏 */}
-              <div className="flex border-b border-gray-800 shrink-0">
+              <div className="flex border-b border-border shrink-0">
                 <button
                   onClick={() => setTaskLogTab('tasks')}
                   className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors relative ${
-                    taskLogTab === 'tasks' ? 'text-purple-400' : 'text-gray-400 hover:text-white'
+                    taskLogTab === 'tasks' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <ListChecks className="w-3.5 h-3.5" />
                   后台任务
                   {mfyTasks.length > 0 && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                      taskLogTab === 'tasks' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-700 text-gray-400'
+                      taskLogTab === 'tasks' ? 'bg-primary/10 text-primary' : 'bg-accent text-muted-foreground'
                     }`}>
                       {mfyTasks.length}
                     </span>
                   )}
-                  {taskLogTab === 'tasks' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-purple-500 rounded-t" />}
+                  {taskLogTab === 'tasks' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-primary/10 rounded-t" />}
                 </button>
                 <button
                   onClick={() => setTaskLogTab('logs')}
                   className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors relative ${
-                    taskLogTab === 'logs' ? 'text-purple-400' : 'text-gray-400 hover:text-white'
+                    taskLogTab === 'logs' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   操作日志
                   {mfyLogs.length > 0 && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                      taskLogTab === 'logs' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-700 text-gray-400'
+                      taskLogTab === 'logs' ? 'bg-primary/10 text-primary' : 'bg-accent text-muted-foreground'
                     }`}>
                       {mfyLogs.length}
                     </span>
                   )}
-                  {taskLogTab === 'logs' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-purple-500 rounded-t" />}
+                  {taskLogTab === 'logs' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-primary/10 rounded-t" />}
                 </button>
               </div>
 
@@ -3727,29 +3721,29 @@ function AdvancedContent() {
                 {/* 后台任务TAB */}
                 {taskLogTab === 'tasks' && (
                   mfyTasks.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-gray-500 text-sm">暂无后台任务</div>
+                    <div className="px-4 py-8 text-center text-muted-foreground text-sm">暂无后台任务</div>
                   ) : (
                     mfyTasks.map(task => (
-                      <div key={task.id} className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gray-800/50 transition-colors border-b border-gray-800/50 last:border-b-0">
-                        {task.status === 1 && <Loader2 className="w-4 h-4 text-purple-400 animate-spin shrink-0" />}
-                        {task.status === 2 && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
-                        {(task.status === 3 || task.status === 4) && <XCircle className="w-4 h-4 text-red-400 shrink-0" />}
-                        {task.status === 0 && <Clock className="w-4 h-4 text-gray-400 shrink-0" />}
-                        {task.status === 5 && <AlertCircle className="w-4 h-4 text-gray-400 shrink-0" />}
+                      <div key={task.id} className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-accent transition-colors border-b border-border/50 last:border-b-0">
+                        {task.status === 1 && <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />}
+                        {task.status === 2 && <CheckCircle2 className="w-4 h-4 text-success shrink-0" />}
+                        {(task.status === 3 || task.status === 4) && <XCircle className="w-4 h-4 text-destructive shrink-0" />}
+                        {task.status === 0 && <Clock className="w-4 h-4 text-muted-foreground shrink-0" />}
+                        {task.status === 5 && <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0" />}
                         <span className="text-sm flex-1 truncate">{task.type_desc || task.type}</span>
                         <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
-                          task.status === 1 ? 'bg-purple-500/15 text-purple-400' :
-                          task.status === 2 ? 'bg-emerald-500/15 text-emerald-400' :
-                          task.status === 3 ? 'bg-red-500/15 text-red-400' :
-                          'bg-gray-700 text-gray-400'
+                          task.status === 1 ? 'bg-primary/10 text-primary' :
+                          task.status === 2 ? 'bg-success/15 text-success' :
+                          task.status === 3 ? 'bg-destructive/15 text-destructive' :
+                          'bg-accent text-muted-foreground'
                         }`}>
                           {task.status_label}
                         </span>
                         {task.progress > 0 && task.status === 1 && (
-                          <span className="text-xs text-gray-500 shrink-0">{task.progress}%</span>
+                          <span className="text-xs text-muted-foreground shrink-0">{task.progress}%</span>
                         )}
                         {task.create_time && (
-                          <span className="text-[10px] text-gray-600 shrink-0">{task.create_time}</span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">{task.create_time}</span>
                         )}
                       </div>
                     ))
@@ -3759,20 +3753,20 @@ function AdvancedContent() {
                 {/* 操作日志TAB */}
                 {taskLogTab === 'logs' && (
                   mfyLogs.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-gray-500 text-sm">暂无操作日志</div>
+                    <div className="px-4 py-8 text-center text-muted-foreground text-sm">暂无操作日志</div>
                   ) : (
                     mfyLogs.map(log => (
-                      <div key={log.id} className="flex items-start gap-2.5 px-4 py-2.5 hover:bg-gray-800/50 transition-colors border-b border-gray-800/50 last:border-b-0">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-gray-500 shrink-0 mt-0.5" />
+                      <div key={log.id} className="flex items-start gap-2.5 px-4 py-2.5 hover:bg-accent transition-colors border-b border-border/50 last:border-b-0">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-2">
                             <span className="text-sm break-all flex-1" title={log.des}>{log.des}</span>
-                            <span className="text-[10px] text-gray-600 shrink-0 mt-0.5">
+                            <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
                               {log.create_time}
                             </span>
                           </div>
                           {log.username && (
-                            <p className="text-xs text-gray-500 mt-0.5">操作人: {log.username}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">操作人: {log.username}</p>
                           )}
                         </div>
                       </div>
@@ -3789,16 +3783,16 @@ function AdvancedContent() {
               setShowTaskPanel(v => !v);
               if (!showTaskPanel && cloudId) fetchMfyTaskAndLog(cloudId);
             }}
-            className="relative flex items-center justify-center w-11 h-11 bg-[#1a1d27] border border-gray-800 rounded-full shadow-lg hover:bg-gray-700 transition-colors"
+            className="relative flex items-center justify-center w-11 h-11 bg-card border border-border rounded-full shadow-lg hover:bg-accent transition-colors"
             title="任务与日志"
           >
             {showTaskPanel ? (
-              <ChevronDown className="w-5 h-5 text-gray-300" />
+              <ChevronDown className="w-5 h-5 text-foreground" />
             ) : (
-              <ListChecks className="w-5 h-5 text-gray-300" />
+              <ListChecks className="w-5 h-5 text-foreground" />
             )}
             {mfyTasks.filter(t => t.status === 1).length > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
                 {mfyTasks.filter(t => t.status === 1).length}
               </span>
             )}
@@ -3811,7 +3805,7 @@ function AdvancedContent() {
 
 export default function AdvancedPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0f1117] flex items-center justify-center text-gray-400">加载中...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">加载中...</div>}>
       <AdvancedContent />
     </Suspense>
   );
@@ -3822,7 +3816,7 @@ export default function AdvancedPage() {
 function InfoItem({ icon: Icon, label, value }: { icon?: typeof Server; label: string; value: string }) {
   return (
     <div className="space-y-0.5">
-      <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+      <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
         {Icon && <Icon className="w-3 h-3" />}
         {label}
       </div>
@@ -3841,8 +3835,8 @@ function CopyButton({ value }: { value: string }) {
     });
   };
   return (
-    <button onClick={handleCopy} className="p-1 text-gray-500 hover:text-white transition-colors shrink-0" title="复制">
-      {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+    <button onClick={handleCopy} className="p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0" title="复制">
+      {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
 }
@@ -3850,7 +3844,7 @@ function CopyButton({ value }: { value: string }) {
 function InfoItemCopy({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-0.5">
-      <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+      <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
         {label}
       </div>
       <div className="flex items-center gap-1.5">
@@ -3865,15 +3859,15 @@ function ActionButton({ icon: Icon, label, color, loading, disabled, onClick }: 
   icon: typeof Power; label: string; color: string; loading: boolean; disabled: boolean; onClick: () => void;
 }) {
   const colorMap: Record<string, string> = {
-    emerald: 'bg-emerald-600 hover:bg-emerald-500 text-white',
-    yellow: 'bg-yellow-600 hover:bg-yellow-500 text-white',
-    blue: 'bg-blue-600 hover:bg-blue-500 text-white',
-    orange: 'bg-orange-600 hover:bg-orange-500 text-white',
-    red: 'bg-red-600 hover:bg-red-500 text-white',
-    cyan: 'bg-cyan-600 hover:bg-cyan-500 text-white',
-    purple: 'bg-purple-600 hover:bg-purple-500 text-white',
+    emerald: 'bg-success hover:bg-success/90 text-success-foreground',
+    yellow: 'bg-warning hover:bg-warning/90 text-warning-foreground',
+    blue: 'bg-info hover:bg-info/90 text-info-foreground',
+    orange: 'bg-primary hover:bg-primary/90 text-primary-foreground',
+    red: 'bg-destructive hover:bg-destructive/90 text-destructive-foreground',
+    cyan: 'bg-info hover:bg-info/90 text-info-foreground',
+    purple: 'bg-accent2 hover:bg-accent2/90 text-accent2-foreground',
   };
-  const disabledClass = 'bg-gray-700 text-gray-500 cursor-not-allowed';
+  const disabledClass = 'bg-accent text-muted-foreground cursor-not-allowed';
 
   return (
     <button onClick={onClick} disabled={disabled || loading}
@@ -3888,9 +3882,9 @@ function ActionButton({ icon: Icon, label, color, loading, disabled, onClick }: 
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
-      <div className="text-xs text-gray-500 mb-1">{label}</div>
-      <div className="text-sm font-semibold text-white truncate" title={value}>{value}</div>
+    <div className="bg-background rounded-lg p-3 border border-border">
+      <div className="text-xs text-muted-foreground mb-1">{label}</div>
+      <div className="text-sm font-semibold text-foreground truncate" title={value}>{value}</div>
     </div>
   );
 }
@@ -3936,7 +3930,7 @@ function MonitorChart({ data, type, totalMemoryGB, onDataTimeRange }: {
   const isMemoryType = type === 'memory';
 
   if (!Array.isArray(chartData) || chartData.length === 0) {
-    return <p className="text-gray-400 text-center py-8">暂无监控数据</p>;
+    return <p className="text-muted-foreground text-center py-8">暂无监控数据</p>;
   }
 
   // 提取时间序列和值
@@ -3954,7 +3948,7 @@ function MonitorChart({ data, type, totalMemoryGB, onDataTimeRange }: {
   });
 
   if (timestamps.length === 0) {
-    return <p className="text-gray-400 text-center py-8">暂无监控数据</p>;
+    return <p className="text-muted-foreground text-center py-8">暂无监控数据</p>;
   }
 
   // 回调数据时间范围 - 使用useEffect避免渲染期间setState
@@ -4014,33 +4008,33 @@ function MonitorChart({ data, type, totalMemoryGB, onDataTimeRange }: {
       {/* 内存类型特殊统计：已用+总量+使用率 */}
       {isMemoryType && (
         <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-3">
-          <div className="bg-[#0f1117] rounded-lg p-2.5 sm:p-3 border border-gray-800">
+          <div className="bg-background rounded-lg p-2.5 sm:p-3 border border-border">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-2 h-2 rounded-full bg-cyan-500" />
-              <span className="text-[10px] sm:text-xs text-gray-400">已用内存</span>
+              <div className="w-2 h-2 rounded-full bg-info" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">已用内存</span>
             </div>
-            <div className="text-sm sm:text-lg font-semibold text-white">{formatValue(stats[1]?.current || 0, 'B')}</div>
-            <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">
+            <div className="text-sm sm:text-lg font-semibold text-foreground">{formatValue(stats[1]?.current || 0, 'B')}</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
               使用率: {stats[0]?.current > 0 ? ((stats[1]?.current || 0) / stats[0].current * 100).toFixed(1) : 0}%
             </div>
           </div>
-          <div className="bg-[#0f1117] rounded-lg p-2.5 sm:p-3 border border-gray-800">
+          <div className="bg-background rounded-lg p-2.5 sm:p-3 border border-border">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-2 h-2 rounded-full bg-gray-500" />
-              <span className="text-[10px] sm:text-xs text-gray-400">总内存</span>
+              <div className="w-2 h-2 rounded-full bg-muted-foreground" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">总内存</span>
             </div>
-            <div className="text-sm sm:text-lg font-semibold text-white">{formatValue(stats[0]?.current || 0, 'B')}</div>
-            <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">
+            <div className="text-sm sm:text-lg font-semibold text-foreground">{formatValue(stats[0]?.current || 0, 'B')}</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
               {totalMemoryGB} GB
             </div>
           </div>
-          <div className="bg-[#0f1117] rounded-lg p-2.5 sm:p-3 border border-gray-800 col-span-2 sm:col-span-1">
+          <div className="bg-background rounded-lg p-2.5 sm:p-3 border border-border col-span-2 sm:col-span-1">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-2 h-2 rounded-full bg-yellow-500" />
-              <span className="text-[10px] sm:text-xs text-gray-400">峰值已用</span>
+              <div className="w-2 h-2 rounded-full bg-warning" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">峰值已用</span>
             </div>
-            <div className="text-sm sm:text-lg font-semibold text-white">{formatValue(stats[1]?.max || 0, 'B')}</div>
-            <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">
+            <div className="text-sm sm:text-lg font-semibold text-foreground">{formatValue(stats[1]?.max || 0, 'B')}</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
               峰值率: {stats[0]?.current > 0 ? ((stats[1]?.max || 0) / stats[0].current * 100).toFixed(1) : 0}%
             </div>
           </div>
@@ -4051,13 +4045,13 @@ function MonitorChart({ data, type, totalMemoryGB, onDataTimeRange }: {
       {!isMemoryType && (
         <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {stats.map((s, idx) => (
-            <div key={idx} className="bg-[#0f1117] rounded-lg p-2.5 sm:p-3 border border-gray-800">
+            <div key={idx} className="bg-background rounded-lg p-2.5 sm:p-3 border border-border">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
-                <span className="text-[10px] sm:text-xs text-gray-400">{s.label}</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground">{s.label}</span>
               </div>
-              <div className="text-sm sm:text-lg font-semibold text-white">{formatValue(s.current, s.unit)}</div>
-              <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">
+              <div className="text-sm sm:text-lg font-semibold text-foreground">{formatValue(s.current, s.unit)}</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
                 均: {formatValue(s.avg, s.unit)} | 峰: {formatValue(s.max, s.unit)}
               </div>
             </div>
@@ -4066,7 +4060,7 @@ function MonitorChart({ data, type, totalMemoryGB, onDataTimeRange }: {
       )}
 
       {/* SVG折线图 - 带hover tooltip */}
-      <div className="bg-[#0f1117] rounded-lg p-2 sm:p-4 border border-gray-800 overflow-x-auto">
+      <div className="bg-background rounded-lg p-2 sm:p-4 border border-border overflow-x-auto">
         <MonitorSvgChart
           sampledTs={sampledTs}
           sampledVals={sampledVals}
@@ -4087,8 +4081,8 @@ function MonitorChart({ data, type, totalMemoryGB, onDataTimeRange }: {
 
       {/* 原始数据折叠 */}
       <details className="text-sm">
-        <summary className="text-gray-500 cursor-pointer hover:text-gray-300">查看原始数据</summary>
-        <pre className="mt-2 bg-[#0f1117] rounded-lg p-3 text-xs text-gray-400 overflow-auto max-h-60">
+        <summary className="text-muted-foreground cursor-pointer hover:text-foreground">查看原始数据</summary>
+        <pre className="mt-2 bg-background rounded-lg p-3 text-xs text-muted-foreground overflow-auto max-h-60">
           {JSON.stringify(data, null, 2)}
         </pre>
       </details>
@@ -4339,7 +4333,7 @@ function MonitorSvgChart({
         })}
       </svg>
       {/* 缩放提示 */}
-      <div className="text-center text-xs text-gray-500 mt-1">{zoomLabel}</div>
+      <div className="text-center text-xs text-muted-foreground mt-1">{zoomLabel}</div>
     </div>
   );
 }

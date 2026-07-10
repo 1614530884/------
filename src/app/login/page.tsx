@@ -165,11 +165,11 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-background flex items-center justify-center p-4">
       {notification && (
-        <div className={`fixed top-3 right-3 sm:top-4 sm:right-4 z-50 flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg shadow-lg text-white text-xs sm:text-sm animate-in slide-in-from-top-2 max-w-[calc(100vw-24px)] ${
-          notification.type === 'success' ? 'bg-emerald-600' :
-          notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+        <div className={`fixed top-3 right-3 sm:top-4 sm:right-4 z-50 flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg shadow-lg text-primary-foreground text-xs sm:text-sm animate-in slide-in-from-top-2 max-w-[calc(100vw-24px)] ${
+          notification.type === 'success' ? 'bg-success' :
+          notification.type === 'error' ? 'bg-destructive' : 'bg-info'
         }`}>
           {notification.type === 'success' ? <CheckCircle className="w-4 h-4" /> :
            notification.type === 'error' ? <XCircle className="w-4 h-4" /> :
@@ -178,35 +178,35 @@ function LoginPageContent() {
         </div>
       )}
 
-      <Card className="w-full max-w-lg border-slate-700 bg-slate-800/80 backdrop-blur">
+      <Card className="w-full max-w-lg border-border bg-card/80 backdrop-blur">
         <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-            <Zap className="w-7 h-7 text-white" />
+          <div className="mx-auto w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-primary/20">
+            <Zap className="w-7 h-7 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold text-white">淘宝订单一键开通</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-2xl font-bold text-foreground">淘宝订单一键开通</CardTitle>
+          <CardDescription className="text-muted-foreground">
             连接财务后台，输入用户名和套餐即可一键开通
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-300 text-sm">管理员账号</Label>
+              <Label className="text-foreground text-sm">管理员账号</Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)}
-                  placeholder="请输入用户名" className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500" />
+                  placeholder="请输入用户名" className="pl-10 bg-muted border-border text-foreground placeholder:text-muted-foreground" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300 text-sm">管理员密码</Label>
+              <Label className="text-foreground text-sm">管理员密码</Label>
               <div className="relative">
-                <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input type={showPassword ? 'text' : 'password'} value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)} placeholder="请输入密码"
-                  className="pl-10 pr-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500" />
+                  className="pl-10 pr-10 bg-muted border-border text-foreground placeholder:text-muted-foreground" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -214,23 +214,23 @@ function LoginPageContent() {
 
             {captchaEnabled && (
               <div className="space-y-2">
-                <Label className="text-slate-300 text-sm">图形验证码</Label>
+                <Label className="text-foreground text-sm">图形验证码</Label>
                 <div className="flex gap-2 items-center">
                   <Input value={captchaCode} onChange={(e) => setCaptchaCode(e.target.value)}
-                    placeholder="请输入图片中的验证码" className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500" autoComplete="off" />
+                    placeholder="请输入图片中的验证码" className="bg-muted border-border text-foreground placeholder:text-muted-foreground" autoComplete="off" />
                   <div className="shrink-0 flex items-center gap-2">
                     {captchaImage ? (
                       <>
-                        <img src={captchaImage} alt="验证码" className="h-9 w-24 rounded border border-slate-600 cursor-pointer"
+                        <img src={captchaImage} alt="验证码" className="h-9 w-24 rounded border border-border cursor-pointer"
                           onClick={fetchCaptcha} title="点击刷新验证码" />
                         <Button type="button" variant="ghost" size="sm" onClick={fetchCaptcha} disabled={isCaptchaLoading}
-                          className="h-9 px-2 text-slate-400 hover:text-white">
+                          className="h-9 px-2 text-muted-foreground hover:text-foreground">
                           <RefreshCw className={`w-4 h-4 ${isCaptchaLoading ? 'animate-spin' : ''}`} />
                         </Button>
                       </>
                     ) : (
                       <Button type="button" variant="outline" size="sm" onClick={fetchCaptcha} disabled={isCaptchaLoading}
-                        className="h-9 border-slate-600 text-slate-400 hover:text-white">
+                        className="h-9 border-border text-muted-foreground hover:text-foreground">
                         {isCaptchaLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : '获取验证码'}
                       </Button>
                     )}
@@ -241,10 +241,10 @@ function LoginPageContent() {
 
             {needSecondVerify && (
               <div className="space-y-2">
-                <Label className="text-slate-300 text-sm">二次验证码（短信/邮件）</Label>
+                <Label className="text-foreground text-sm">二次验证码（短信/邮件）</Label>
                 <div className="flex gap-2 items-center">
                   <Input value={secondVerifyCode} onChange={(e) => setSecondVerifyCode(e.target.value)}
-                    placeholder="请输入收到的验证码" className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500" autoComplete="off" />
+                    placeholder="请输入收到的验证码" className="bg-muted border-border text-foreground placeholder:text-muted-foreground" autoComplete="off" />
                   <Button type="button" variant="outline" size="sm"
                     disabled={(captchaEnabled && !captchaCode) || isSendingSmsCode}
                     onClick={async () => {
@@ -271,7 +271,7 @@ function LoginPageContent() {
                       } catch { showNotification('error', '发送验证码失败'); }
                       finally { setIsSendingSmsCode(false); }
                     }}
-                    className="h-9 border-slate-600 text-slate-300 hover:text-white shrink-0">
+                    className="h-9 border-border text-foreground hover:text-foreground shrink-0">
                     {isSendingSmsCode ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />发送中...</>) : '获取验证码'}
                   </Button>
                 </div>
@@ -279,13 +279,13 @@ function LoginPageContent() {
             )}
 
             <Button type="submit" disabled={isLoggingIn}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-medium">
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
               {isLoggingIn ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />正在登录...</>) : (<><LogIn className="w-4 h-4 mr-2" />登录后台</>)}
             </Button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-slate-700">
-            <p className="text-xs text-slate-500 leading-relaxed">请使用您的财务后台管理员账号登录。点击「获取验证码」会自动获取验证码。</p>
+          <div className="mt-6 pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground leading-relaxed">请使用您的财务后台管理员账号登录。点击「获取验证码」会自动获取验证码。</p>
           </div>
         </CardContent>
       </Card>

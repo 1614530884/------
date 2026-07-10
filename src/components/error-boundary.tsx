@@ -45,14 +45,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (!this.state.hasError) return this.props.children;
     return (
       <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-        <AlertTriangle className="w-8 h-8 text-amber-400 mb-3" />
-        <div className="text-sm text-gray-300 mb-1">{this.props.fallbackTitle ?? '组件渲染出错'}</div>
-        <div className="text-xs text-gray-500 mb-4 max-w-md break-all">
+        <AlertTriangle className="w-8 h-8 text-warning mb-3" />
+        <div className="text-sm text-foreground/80 mb-1">{this.props.fallbackTitle ?? '组件渲染出错'}</div>
+        <div className="text-xs text-muted-foreground mb-4 max-w-md break-all">
           {this.state.error?.message ?? '未知错误'}
         </div>
         <button
           onClick={this.handleReset}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 rounded border border-gray-700"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-muted hover:bg-accent text-foreground rounded border border-border"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           重试

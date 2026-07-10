@@ -114,7 +114,7 @@ export default function BtInfoCard({ connectionId, refreshTrigger }: BtInfoCardP
 
   if (loading && panels.length === 0) {
     return (
-      <div className="flex items-center text-[11px] text-gray-600">
+      <div className="flex items-center text-[11px] text-muted-foreground">
         <Loader2 className="w-3 h-3 animate-spin mr-1" />
         加载中...
       </div>
@@ -123,7 +123,7 @@ export default function BtInfoCard({ connectionId, refreshTrigger }: BtInfoCardP
 
   if (panels.length === 0) {
     return (
-      <div className="text-[11px] text-gray-600">
+      <div className="text-[11px] text-muted-foreground">
         暂无宝塔信息，安装完成后将自动显示
       </div>
     );
@@ -132,16 +132,16 @@ export default function BtInfoCard({ connectionId, refreshTrigger }: BtInfoCardP
   return (
     <div className="space-y-2">
       {panels.map(panel => (
-        <div key={panel.id} className="p-2 bg-gray-800/40 rounded border border-gray-700/50 text-[11px]">
+        <div key={panel.id} className="p-2 bg-muted/40 rounded border border-border/50 text-[11px]">
           {/* 外网地址 */}
           {panel.url && (
             <div className="flex items-center gap-1 mb-1">
-              <span className="text-gray-500 shrink-0 w-12">外网</span>
-              <span className="flex-1 truncate text-emerald-400" title={panel.url}>{panel.url}</span>
-              <button onClick={() => handleCopy(panel.url!, '外网地址')} className="text-gray-500 hover:text-white" title="复制">
+              <span className="text-muted-foreground shrink-0 w-12">外网</span>
+              <span className="flex-1 truncate text-success" title={panel.url}>{panel.url}</span>
+              <button onClick={() => handleCopy(panel.url!, '外网地址')} className="text-muted-foreground hover:text-foreground" title="复制">
                 <Copy className="w-3 h-3" />
               </button>
-              <a href={panel.url} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white" title="打开">
+              <a href={panel.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground" title="打开">
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
@@ -150,9 +150,9 @@ export default function BtInfoCard({ connectionId, refreshTrigger }: BtInfoCardP
           {/* 内网地址 */}
           {panel.innerUrl && (
             <div className="flex items-center gap-1 mb-1">
-              <span className="text-gray-500 shrink-0 w-12">内网</span>
-              <span className="flex-1 truncate text-blue-400" title={panel.innerUrl}>{panel.innerUrl}</span>
-              <button onClick={() => handleCopy(panel.innerUrl!, '内网地址')} className="text-gray-500 hover:text-white" title="复制">
+              <span className="text-muted-foreground shrink-0 w-12">内网</span>
+              <span className="flex-1 truncate text-info" title={panel.innerUrl}>{panel.innerUrl}</span>
+              <button onClick={() => handleCopy(panel.innerUrl!, '内网地址')} className="text-muted-foreground hover:text-foreground" title="复制">
                 <Copy className="w-3 h-3" />
               </button>
             </div>
@@ -161,9 +161,9 @@ export default function BtInfoCard({ connectionId, refreshTrigger }: BtInfoCardP
           {/* 用户名 */}
           {panel.username && (
             <div className="flex items-center gap-1 mb-1">
-              <span className="text-gray-500 shrink-0 w-12">账号</span>
-              <span className="flex-1 truncate text-gray-300">{panel.username}</span>
-              <button onClick={() => handleCopy(panel.username!, '用户名')} className="text-gray-500 hover:text-white" title="复制">
+              <span className="text-muted-foreground shrink-0 w-12">账号</span>
+              <span className="flex-1 truncate text-foreground/80">{panel.username}</span>
+              <button onClick={() => handleCopy(panel.username!, '用户名')} className="text-muted-foreground hover:text-foreground" title="复制">
                 <Copy className="w-3 h-3" />
               </button>
             </div>
@@ -172,28 +172,28 @@ export default function BtInfoCard({ connectionId, refreshTrigger }: BtInfoCardP
           {/* 密码 */}
           {panel.password && (
             <div className="flex items-center gap-1 mb-1">
-              <span className="text-gray-500 shrink-0 w-12">密码</span>
-              <span className="flex-1 truncate text-gray-300 font-mono">
+              <span className="text-muted-foreground shrink-0 w-12">密码</span>
+              <span className="flex-1 truncate text-foreground/80 font-mono">
                 {showPassword[panel.id] ? panel.password : '••••••••'}
               </span>
-              <button onClick={() => togglePassword(panel.id)} className="text-gray-500 hover:text-white" title={showPassword[panel.id] ? '隐藏' : '显示'}>
+              <button onClick={() => togglePassword(panel.id)} className="text-muted-foreground hover:text-foreground" title={showPassword[panel.id] ? '隐藏' : '显示'}>
                 {showPassword[panel.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
               </button>
-              <button onClick={() => handleCopy(panel.password!, '密码')} className="text-gray-500 hover:text-white" title="复制">
+              <button onClick={() => handleCopy(panel.password!, '密码')} className="text-muted-foreground hover:text-foreground" title="复制">
                 <Copy className="w-3 h-3" />
               </button>
             </div>
           )}
 
           {/* 底部操作 */}
-          <div className="flex items-center justify-between pt-1 mt-1 border-t border-gray-700/50">
-            <span className="text-[10px] text-gray-600">
+          <div className="flex items-center justify-between pt-1 mt-1 border-t border-border/50">
+            <span className="text-[10px] text-muted-foreground">
               {new Date(panel.capturedAt).toLocaleString('zh-CN')}
             </span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => handleCopyAll(panel)}
-                className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-emerald-700/40 hover:bg-emerald-700/70 text-emerald-300 rounded border border-emerald-700/50"
+                className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-success/15 hover:bg-success/25 text-success/80 rounded border border-success/30"
                 title="一键复制全部信息（可直接发给客户）"
               >
                 <ClipboardList className="w-3 h-3" />
@@ -201,7 +201,7 @@ export default function BtInfoCard({ connectionId, refreshTrigger }: BtInfoCardP
               </button>
               <button
                 onClick={() => handleDelete(panel.id)}
-                className="text-gray-600 hover:text-red-400 p-0.5"
+                className="text-muted-foreground hover:text-destructive p-0.5"
                 title="删除"
               >
                 <Trash2 className="w-3 h-3" />

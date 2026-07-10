@@ -3,20 +3,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getDashboardStats } from '@/lib/services/server-tools/store';
-import { getCurrentUser } from '@/lib/services/server-tools/auth';
-import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
-import { logUnauthorizedAccess } from '@/lib/access-log';
+import { withAuth } from '@/lib/services/server-tools/api-helpers';
 
-export async function GET(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-stats');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const GET = withAuth(async (request, currentUser) => {
   // scope=all 仅管理员可用，用于查看全部用户的统计；与 connections 接口一致
   const scopeParam = request.nextUrl.searchParams.get('scope');
   const includeAll = scopeParam === 'all' && currentUser.isAdmin;
@@ -29,4 +18,4 @@ export async function GET(request: NextRequest) {
       currentUser: { username: currentUser.username, isAdmin: currentUser.isAdmin },
     },
   });
-}
+}, 'st-stats');

@@ -106,19 +106,19 @@ export default function SystemStatsBar({
   if (!connected || !stats) {
     if (variant === 'horizontal') {
       return (
-        <div className="flex items-center gap-3 px-3 py-1.5 text-[11px] text-gray-600 border-b border-gray-800 overflow-x-auto whitespace-nowrap">
+        <div className="flex items-center gap-3 px-3 py-1.5 text-[11px] text-muted-foreground border-b border-border overflow-x-auto whitespace-nowrap">
           <Activity className="w-3 h-3 shrink-0" />
           <span>{connected ? '获取资源信息中...' : '未连接'}</span>
         </div>
       );
     }
     return (
-      <div className="p-3 border-b border-gray-800">
-        <div className="flex items-center gap-1.5 text-[11px] text-gray-600 mb-2">
+      <div className="p-3 border-b border-border">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-2">
           <Activity className="w-3 h-3" />
           <span className="uppercase tracking-wider">资源监控</span>
         </div>
-        <div className="text-[11px] text-gray-600 text-center py-2">
+        <div className="text-[11px] text-muted-foreground text-center py-2">
           {connected ? '获取资源信息中...' : 'SSH 未连接'}
         </div>
       </div>
@@ -141,41 +141,41 @@ export default function SystemStatsBar({
 
   if (variant === 'horizontal') {
     return (
-      <div className="flex items-center gap-3 px-3 py-1.5 text-[11px] border-b border-gray-800 overflow-x-auto whitespace-nowrap scrollbar-thin">
+      <div className="flex items-center gap-3 px-3 py-1.5 text-[11px] border-b border-border overflow-x-auto whitespace-nowrap scrollbar-thin">
         <div className="flex items-center gap-1 shrink-0">
-          <Cpu className={`w-3 h-3 ${cpuPercent !== null && cpuPercent > 80 ? 'text-red-400' : 'text-blue-400'}`} />
-          <span className="text-gray-500">CPU</span>
-          <span className={`font-mono ${cpuPercent !== null && cpuPercent > 80 ? 'text-red-400' : 'text-gray-200'}`}>
+          <Cpu className={`w-3 h-3 ${cpuPercent !== null && cpuPercent > 80 ? 'text-destructive' : 'text-info'}`} />
+          <span className="text-muted-foreground">CPU</span>
+          <span className={`font-mono ${cpuPercent !== null && cpuPercent > 80 ? 'text-destructive' : 'text-foreground'}`}>
             {cpuPercent !== null ? `${cpuPercent.toFixed(1)}%` : 'N/A'}
           </span>
         </div>
-        <div className="w-px h-3 bg-gray-800 shrink-0" />
+        <div className="w-px h-3 bg-border shrink-0" />
         <div className="flex items-center gap-1 shrink-0">
-          <MemoryStick className={`w-3 h-3 ${memInfo.percent > 80 ? 'text-red-400' : 'text-emerald-400'}`} />
-          <span className="text-gray-500">内存</span>
-          <span className={`font-mono ${memInfo.percent > 80 ? 'text-red-400' : 'text-gray-200'}`}>
+          <MemoryStick className={`w-3 h-3 ${memInfo.percent > 80 ? 'text-destructive' : 'text-success'}`} />
+          <span className="text-muted-foreground">内存</span>
+          <span className={`font-mono ${memInfo.percent > 80 ? 'text-destructive' : 'text-foreground'}`}>
             {memInfo.used}/{memInfo.total}
           </span>
         </div>
         {realDisks.length > 0 && (
           <>
-            <div className="w-px h-3 bg-gray-800 shrink-0" />
+            <div className="w-px h-3 bg-border shrink-0" />
             <div className="flex items-center gap-1 shrink-0">
-              <HardDrive className={`w-3 h-3 ${(parseInt(realDisks[0].percent) || 0) > 80 ? 'text-red-400' : 'text-amber-400'}`} />
-              <span className="text-gray-500">磁盘</span>
-              <span className={`font-mono ${(parseInt(realDisks[0].percent) || 0) > 80 ? 'text-red-400' : 'text-gray-200'}`}>
+              <HardDrive className={`w-3 h-3 ${(parseInt(realDisks[0].percent) || 0) > 80 ? 'text-destructive' : 'text-warning'}`} />
+              <span className="text-muted-foreground">磁盘</span>
+              <span className={`font-mono ${(parseInt(realDisks[0].percent) || 0) > 80 ? 'text-destructive' : 'text-foreground'}`}>
                 {realDisks[0].used}/{realDisks[0].size}
               </span>
             </div>
           </>
         )}
-        <div className="w-px h-3 bg-gray-800 shrink-0" />
+        <div className="w-px h-3 bg-border shrink-0" />
         <div className="flex items-center gap-1 shrink-0">
-          <Wifi className="w-3 h-3 text-purple-400" />
-          <span className="text-gray-500">↓</span>
-          <span className="font-mono text-gray-200">{netRate.download}</span>
-          <span className="text-gray-500 ml-1">↑</span>
-          <span className="font-mono text-gray-200">{netRate.upload}</span>
+          <Wifi className="w-3 h-3 text-primary" />
+          <span className="text-muted-foreground">↓</span>
+          <span className="font-mono text-foreground">{netRate.download}</span>
+          <span className="text-muted-foreground ml-1">↑</span>
+          <span className="font-mono text-foreground">{netRate.upload}</span>
         </div>
       </div>
     );
@@ -183,8 +183,8 @@ export default function SystemStatsBar({
 
   // 垂直布局（侧栏）
   return (
-    <div className="p-3 border-b border-gray-800">
-      <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-3">
+    <div className="p-3 border-b border-border">
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-3">
         <Activity className="w-3 h-3" />
         <span className="uppercase tracking-wider font-semibold">资源监控</span>
       </div>
@@ -193,17 +193,17 @@ export default function SystemStatsBar({
         {/* CPU */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-1 text-[10px] text-gray-500">
-              <Cpu className={`w-3 h-3 ${cpuPercent !== null && cpuPercent > 80 ? 'text-red-400' : 'text-blue-400'}`} />
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Cpu className={`w-3 h-3 ${cpuPercent !== null && cpuPercent > 80 ? 'text-destructive' : 'text-info'}`} />
               <span>CPU</span>
             </div>
-            <span className={`font-mono text-[11px] ${cpuPercent !== null && cpuPercent > 80 ? 'text-red-400' : 'text-gray-200'}`}>
+            <span className={`font-mono text-[11px] ${cpuPercent !== null && cpuPercent > 80 ? 'text-destructive' : 'text-foreground'}`}>
               {cpuPercent !== null ? `${cpuPercent.toFixed(1)}%` : 'N/A'}
             </span>
           </div>
-          <div className="h-1 bg-gray-800 rounded overflow-hidden">
+          <div className="h-1 bg-muted rounded overflow-hidden">
             <div
-              className={`h-full transition-all ${cpuPercent !== null && cpuPercent > 80 ? 'bg-red-500' : 'bg-blue-500'}`}
+              className={`h-full transition-all ${cpuPercent !== null && cpuPercent > 80 ? 'bg-destructive' : 'bg-info'}`}
               style={{ width: `${cpuPercent ?? 0}%` }}
             />
           </div>
@@ -212,17 +212,17 @@ export default function SystemStatsBar({
         {/* 内存 */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-1 text-[10px] text-gray-500">
-              <MemoryStick className={`w-3 h-3 ${memInfo.percent > 80 ? 'text-red-400' : 'text-emerald-400'}`} />
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <MemoryStick className={`w-3 h-3 ${memInfo.percent > 80 ? 'text-destructive' : 'text-success'}`} />
               <span>内存</span>
             </div>
-            <span className={`font-mono text-[11px] ${memInfo.percent > 80 ? 'text-red-400' : 'text-gray-200'}`}>
+            <span className={`font-mono text-[11px] ${memInfo.percent > 80 ? 'text-destructive' : 'text-foreground'}`}>
               {memInfo.used}/{memInfo.total}
             </span>
           </div>
-          <div className="h-1 bg-gray-800 rounded overflow-hidden">
+          <div className="h-1 bg-muted rounded overflow-hidden">
             <div
-              className={`h-full transition-all ${memInfo.percent > 80 ? 'bg-red-500' : 'bg-emerald-500'}`}
+              className={`h-full transition-all ${memInfo.percent > 80 ? 'bg-destructive' : 'bg-success'}`}
               style={{ width: `${memInfo.percent}%` }}
             />
           </div>
@@ -231,8 +231,8 @@ export default function SystemStatsBar({
         {/* 磁盘 - 显示所有真实磁盘分区 */}
         {realDisks.length > 0 && (
           <div>
-            <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-1.5">
-              <HardDrive className="w-3 h-3 text-amber-400" />
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
+              <HardDrive className="w-3 h-3 text-warning" />
               <span>磁盘</span>
             </div>
             <div className="space-y-1.5">
@@ -242,19 +242,19 @@ export default function SystemStatsBar({
                 return (
                   <div key={`${d.filesystem}-${d.mount}`}>
                     <div className="flex items-center justify-between text-[10px] mb-0.5">
-                      <span className="text-gray-400 truncate" title={d.filesystem}>{d.mount || d.filesystem}</span>
-                      <span className={`font-mono ${high ? 'text-red-400' : 'text-gray-300'}`}>
-                        {d.used}/{d.size} <span className="text-gray-500">({pct}%)</span>
+                      <span className="text-muted-foreground truncate" title={d.filesystem}>{d.mount || d.filesystem}</span>
+                      <span className={`font-mono ${high ? 'text-destructive' : 'text-foreground/80'}`}>
+                        {d.used}/{d.size} <span className="text-muted-foreground">({pct}%)</span>
                       </span>
                     </div>
-                    <div className="h-1 bg-gray-800 rounded overflow-hidden">
+                    <div className="h-1 bg-muted rounded overflow-hidden">
                       <div
-                        className={`h-full transition-all ${high ? 'bg-red-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                        className={`h-full transition-all ${high ? 'bg-destructive' : pct > 60 ? 'bg-warning' : 'bg-success'}`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
                     {d.available && (
-                      <div className="text-[9px] text-gray-600 mt-0.5">可用 {d.available}</div>
+                      <div className="text-[9px] text-muted-foreground mt-0.5">可用 {d.available}</div>
                     )}
                   </div>
                 );
@@ -265,37 +265,37 @@ export default function SystemStatsBar({
 
         {/* 网络速率 */}
         <div>
-          <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-1">
-            <Wifi className="w-3 h-3 text-purple-400" />
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1">
+            <Wifi className="w-3 h-3 text-primary" />
             <span>网络速率</span>
           </div>
           <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-            <div className="bg-gray-800/40 rounded px-2 py-1">
-              <div className="text-gray-500">↓ 下行</div>
-              <div className="font-mono text-purple-300">{netRate.download}</div>
+            <div className="bg-muted/40 rounded px-2 py-1">
+              <div className="text-muted-foreground">↓ 下行</div>
+              <div className="font-mono text-primary">{netRate.download}</div>
             </div>
-            <div className="bg-gray-800/40 rounded px-2 py-1">
-              <div className="text-gray-500">↑ 上行</div>
-              <div className="font-mono text-cyan-300">{netRate.upload}</div>
+            <div className="bg-muted/40 rounded px-2 py-1">
+              <div className="text-muted-foreground">↑ 上行</div>
+              <div className="font-mono text-info">{netRate.upload}</div>
             </div>
           </div>
         </div>
 
         {/* 负载 + 运行时间 */}
-        <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-gray-800/50">
+        <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-border/50">
           <div className="text-[10px]">
-            <div className="text-gray-500 flex items-center gap-0.5">
-              <Activity className="w-2.5 h-2.5 text-cyan-400" />
+            <div className="text-muted-foreground flex items-center gap-0.5">
+              <Activity className="w-2.5 h-2.5 text-info" />
               <span>负载 1m</span>
             </div>
-            <div className="font-mono text-gray-200">{load1min}</div>
+            <div className="font-mono text-foreground">{load1min}</div>
           </div>
           <div className="text-[10px]">
-            <div className="text-gray-500 flex items-center gap-0.5">
-              <Clock className="w-2.5 h-2.5 text-gray-400" />
+            <div className="text-muted-foreground flex items-center gap-0.5">
+              <Clock className="w-2.5 h-2.5 text-muted-foreground" />
               <span>运行</span>
             </div>
-            <div className="font-mono text-gray-300 truncate" title={stats.uptime}>
+            <div className="font-mono text-foreground/80 truncate" title={stats.uptime}>
               {stats.uptime.replace(/up\s*,?\s*/i, '').slice(0, 20)}
             </div>
           </div>

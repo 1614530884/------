@@ -113,23 +113,23 @@ export function MonitorSheet({ open, onOpenChange, nodes, selectedNodeIds }: Mon
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg bg-[#1a1d27] border-gray-800 text-white overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-lg bg-card border-border text-foreground overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2 text-white">
-            <Shield className="w-5 h-5 text-purple-400" />
+          <SheetTitle className="flex items-center gap-2 text-foreground">
+            <Shield className="w-5 h-5 text-primary" />
             节点监控规则
           </SheetTitle>
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
           {/* 全局开关 + 状态 */}
-          <div className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
+          <div className="bg-card rounded-lg p-3 border border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-300">全局监控</span>
+                <span className="text-sm text-foreground/80">全局监控</span>
                 {/* 以 config.globalEnabled 为准，status.running 辅助判断 */}
                 {isGlobalActive ? (
-                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] border-none">
+                  <Badge className="bg-success hover:bg-success/90 text-success-foreground text-[10px] border-none">
                     {isServiceRunning ? '运行中' : '启动中'}
                   </Badge>
                 ) : (
@@ -140,11 +140,11 @@ export function MonitorSheet({ open, onOpenChange, nodes, selectedNodeIds }: Mon
                 checked={isGlobalActive}
                 onCheckedChange={handleToggleGlobal}
                 disabled={loading}
-                className="[&_[data-state=checked]]:bg-emerald-500 [&_[data-state=checked]]:border-emerald-500"
+                className="[&_[data-state=checked]]:bg-success [&_[data-state=checked]]:border-success"
               />
             </div>
             {isGlobalActive && status && (
-              <div className="mt-2 text-xs text-gray-500">
+              <div className="mt-2 text-xs text-muted-foreground">
                 检查间隔: {Math.round(status.checkIntervalMs / 1000)}秒 | 活跃规则: {status.activeRuleCount}条
               </div>
             )}
@@ -155,39 +155,39 @@ export function MonitorSheet({ open, onOpenChange, nodes, selectedNodeIds }: Mon
             <Button
               size="sm"
               onClick={() => { setEditingRule(undefined); setRuleFormOpen(true); }}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Plus className="w-4 h-4 mr-1" />添加规则
             </Button>
             <Button size="sm" onClick={handleManualCheck} disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white">
+              className="bg-info hover:bg-info/90 text-info-foreground">
               <Play className="w-4 h-4 mr-1" />手动检查
             </Button>
             <Button size="sm" onClick={() => setLogViewerOpen(true)}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white">
+              className="bg-info hover:bg-info/90 text-info-foreground">
               <FileText className="w-4 h-4 mr-1" />操作日志
             </Button>
           </div>
 
           {/* 规则列表 */}
           {config.rules.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 text-sm">暂无监控规则</div>
+            <div className="text-center py-8 text-muted-foreground text-sm">暂无监控规则</div>
           ) : (
             <div className="space-y-2">
               {config.rules.map(rule => (
-                <div key={rule.id} className="bg-[#0f1117] rounded-lg p-3 border border-gray-800">
+                <div key={rule.id} className="bg-card rounded-lg p-3 border border-border">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white truncate">{rule.name}</span>
+                        <span className="text-sm font-medium text-foreground truncate">{rule.name}</span>
                         <Badge variant={rule.enabled ? 'default' : 'secondary'} className="text-[10px] shrink-0">
                           {rule.enabled ? '启用' : '禁用'}
                         </Badge>
                       </div>
-                      <div className="mt-1 text-xs text-gray-400">
+                      <div className="mt-1 text-xs text-muted-foreground">
                         {getRuleDesc(rule)}
                       </div>
-                      <div className="mt-1 text-[10px] text-gray-500">
+                      <div className="mt-1 text-[10px] text-muted-foreground">
                         目标节点: {rule.nodeIds.length}个 | 触发次数: {rule.triggerCount || 1}次 | 间隔: {rule.interval}s | 冷却: {rule.cooldown}s
                       </div>
                     </div>
@@ -198,13 +198,13 @@ export function MonitorSheet({ open, onOpenChange, nodes, selectedNodeIds }: Mon
                       />
                       <button
                         onClick={() => { setEditingRule(rule); setRuleFormOpen(true); }}
-                        className="p-1.5 rounded hover:bg-gray-700 text-gray-400 hover:text-white"
+                        className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteRule(rule.id)}
-                        className="p-1.5 rounded hover:bg-gray-700 text-gray-400 hover:text-red-400"
+                        className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

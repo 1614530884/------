@@ -129,31 +129,31 @@ const ProductCard = React.memo(function ProductCard({
 
   return (
     <div className={`p-2.5 sm:p-3 rounded-lg border transition-colors cursor-pointer ${
-      isSelected ? 'border-orange-500/50 bg-orange-500/10' : 'border-slate-700 bg-slate-900/30 hover:border-slate-600'
+      isSelected ? 'border-accent2/50 bg-accent2/5' : 'border-border bg-card hover:border-accent2/40'
     }`} onClick={() => onToggleSelect(svcId)}>
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
         {/* 左侧：信息区域 */}
         <div className="flex-1 min-w-0">
           {/* 第一行：复选框 + 产品名 + 标签 + 价格 */}
           <div className="flex items-center gap-2">
-            <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(svcId)} onClick={(e) => e.stopPropagation()} className="accent-orange-500 w-4 h-4 shrink-0" />
+            <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(svcId)} onClick={(e) => e.stopPropagation()} className="accent-accent2 w-4 h-4 shrink-0" />
             <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
-              <span className="text-white font-medium text-sm truncate">{productName}</span>
-              {pkgLabel && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 whitespace-nowrap">{pkgLabel}</span>}
+              <span className="text-foreground font-medium text-sm truncate">{productName}</span>
+              {pkgLabel && <span className="text-xs px-1.5 py-0.5 rounded bg-info/15 text-info whitespace-nowrap">{pkgLabel}</span>}
               <span className={`text-xs px-1.5 py-0.5 rounded whitespace-nowrap ${sClass}`}>{sLabel}</span>
-              <span className={`whitespace-nowrap ${sLabel === '已删除' || sLabel === '待开通' ? 'text-orange-400/50 font-medium text-xs' : 'text-orange-400 font-bold text-sm'}`}>{amount}</span>
+              <span className={`whitespace-nowrap ${sLabel === '已删除' || sLabel === '待开通' ? 'text-primary/50 font-medium text-xs' : 'text-primary font-bold text-sm'}`}>{amount}</span>
             </div>
           </div>
           {/* 第二行：详细信息 */}
-          <div className="mt-1.5 ml-6 grid grid-cols-2 sm:flex sm:flex-wrap gap-x-2 gap-y-0.5 text-xs text-slate-400">
+          <div className="mt-1.5 ml-6 grid grid-cols-2 sm:flex sm:flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
             {hostname !== '-' && <span>主机: {hostname}</span>}
             <span className="col-span-2 sm:col-span-1 flex items-center gap-0.5">IP: {ip}{ip !== '-' && <>
-              <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); onCopy(ip); showNotification('success', '已复制IP: ' + ip); }} className="text-slate-500 hover:text-slate-300"><Copy className="w-3 h-3" /></button>
-              <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); handlePing(); }} className="text-slate-500 hover:text-emerald-400" title="Ping" disabled={pingLoading}>
+              <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); onCopy(ip); showNotification('success', '已复制IP: ' + ip); }} className="text-muted-foreground hover:text-foreground"><Copy className="w-3 h-3" /></button>
+              <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); handlePing(); }} className="text-muted-foreground hover:text-success" title="Ping" disabled={pingLoading}>
                 {pingLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3" />}
               </button>
               {pingResult && (
-                <span className={`text-[10px] font-mono ${pingResult.reachable ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`text-[10px] font-mono ${pingResult.reachable ? 'text-success' : 'text-destructive'}`}>
                   {pingResult.reachable ? `${pingResult.avgLatency}ms` : (pingResult.error || '超时')}
                 </span>
               )}
@@ -166,33 +166,33 @@ const ProductCard = React.memo(function ProductCard({
         {/* 右侧：操作按钮 */}
         {sLabel !== '已删除' && sLabel !== '待开通' && (
         <div className="flex flex-wrap gap-[1px] shrink-0 ml-6 sm:ml-0">
-            <Button variant="ghost" size="sm" className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRenew(svcId); }}><RefreshCw className="w-3 h-3 mr-0.5" />续费</Button>
-            <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onUpgrade(svc); }}><Package className="w-3 h-3 mr-0.5" />升级</Button>
-            <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onModify(svc); }}><Sliders className="w-3 h-3 mr-0.5" />改配</Button>
+            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRenew(svcId); }}><RefreshCw className="w-3 h-3 mr-0.5" />续费</Button>
+            <Button variant="ghost" size="sm" className="text-accent2 hover:bg-accent2/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onUpgrade(svc); }}><Package className="w-3 h-3 mr-0.5" />升级</Button>
+            <Button variant="ghost" size="sm" className="text-info hover:bg-info/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onModify(svc); }}><Sliders className="w-3 h-3 mr-0.5" />改配</Button>
             <a href={`/manage?hostid=${svcId}&uid=${uid}`} target="_blank" rel="noopener noreferrer" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-6 px-0.5 text-xs"><Settings2 className="w-3 h-3 mr-0.5" />管理</Button>
+              <Button variant="ghost" size="sm" className="text-info hover:bg-info/10 h-6 px-0.5 text-xs"><Settings2 className="w-3 h-3 mr-0.5" />管理</Button>
             </a>
             <a href={`/advanced?hostid=${svcId}&uid=${uid}`} target="_blank" rel="noopener noreferrer" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm" className="text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 h-6 px-0.5 text-xs"><Monitor className="w-3 h-3 mr-0.5" />实例</Button>
+              <Button variant="ghost" size="sm" className="text-accent2 hover:bg-accent2/10 h-6 px-0.5 text-xs"><Monitor className="w-3 h-3 mr-0.5" />实例</Button>
             </a>
             {isAdminUser && financeUrl && (
               <a href={`${financeUrl}/#/customer-view/product-innerpage?id=${uid}&hid=${svcId}`} target="_blank" rel="noopener noreferrer" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                <Button variant="ghost" size="sm" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-6 px-0.5 text-xs"><ExternalLink className="w-3 h-3 mr-0.5" />财务</Button>
+                <Button variant="ghost" size="sm" className="text-success hover:bg-success/10 h-6 px-0.5 text-xs"><ExternalLink className="w-3 h-3 mr-0.5" />财务</Button>
               </a>
             )}
             {isAdminUser && mfyUrl && (
-              <Button variant="ghost" size="sm" className="text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onMfyCloud(svc); }}><Cloud className="w-3 h-3 mr-0.5" />魔方云</Button>
+              <Button variant="ghost" size="sm" className="text-info hover:bg-info/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onMfyCloud(svc); }}><Cloud className="w-3 h-3 mr-0.5" />魔方云</Button>
             )}
             {ip && ip !== '-' && (
-              <Button variant="ghost" size="sm" className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRemote(svc); }}><Monitor className="w-3 h-3 mr-0.5" />远程</Button>
+              <Button variant="ghost" size="sm" className="text-warning hover:bg-warning/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRemote(svc); }}><Monitor className="w-3 h-3 mr-0.5" />远程</Button>
             )}
-            <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRefundDelete(svc); }}><Trash2 className="w-3 h-3 mr-0.5" />退款删除</Button>
+            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRefundDelete(svc); }}><Trash2 className="w-3 h-3 mr-0.5" />退款删除</Button>
         </div>
         )}
         {/* 已删除状态：仅显示回收站检查按钮 */}
         {sLabel === '已删除' && (
         <div className="flex flex-wrap gap-[1px] shrink-0 ml-6 sm:ml-0">
-            <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRecycleCheck(svc); }}><RotateCcw className="w-3 h-3 mr-0.5" />回收站检查</Button>
+            <Button variant="ghost" size="sm" className="text-info hover:bg-info/10 h-6 px-0.5 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRecycleCheck(svc); }}><RotateCcw className="w-3 h-3 mr-0.5" />回收站检查</Button>
         </div>
         )}
       </div>

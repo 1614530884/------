@@ -42,19 +42,19 @@ interface TaskLogDialogProps {
 }
 
 const STATUS_META: Record<TaskStatus, { label: string; color: string; icon: typeof Circle; spin?: boolean }> = {
-  pending: { label: '等待', color: 'text-gray-400', icon: Circle },
-  running: { label: '运行中', color: 'text-blue-400', icon: Loader2, spin: true },
-  success: { label: '成功', color: 'text-emerald-400', icon: CheckCircle2 },
-  failed: { label: '失败', color: 'text-red-400', icon: XCircle },
-  cancelled: { label: '已取消', color: 'text-amber-400', icon: PauseCircle },
-  interrupted: { label: '已中断', color: 'text-amber-400', icon: AlertTriangle },
+  pending: { label: '等待', color: 'text-muted-foreground', icon: Circle },
+  running: { label: '运行中', color: 'text-info', icon: Loader2, spin: true },
+  success: { label: '成功', color: 'text-success', icon: CheckCircle2 },
+  failed: { label: '失败', color: 'text-destructive', icon: XCircle },
+  cancelled: { label: '已取消', color: 'text-warning', icon: PauseCircle },
+  interrupted: { label: '已中断', color: 'text-warning', icon: AlertTriangle },
 };
 
 const LEVEL_COLOR: Record<LogLevel, string> = {
-  info: 'text-gray-300',
-  warn: 'text-amber-400',
-  error: 'text-red-400',
-  success: 'text-emerald-400',
+  info: 'text-foreground/80',
+  warn: 'text-warning',
+  error: 'text-destructive',
+  success: 'text-success',
 };
 
 const STORAGE_KEY = 'idc_auth';
@@ -298,20 +298,20 @@ export default function TaskLogDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#222632] border-gray-700 text-gray-100 max-w-3xl w-[95vw] h-[80vh] flex flex-col p-0 gap-0">
+      <DialogContent className="bg-card border-border text-foreground max-w-3xl w-[95vw] h-[80vh] flex flex-col p-0 gap-0">
         {/* 头部：任务标题 + 状态 */}
-        <DialogHeader className="px-4 py-3 border-b border-gray-800 shrink-0">
+        <DialogHeader className="px-4 py-3 pr-12 border-b border-border shrink-0">
           <DialogTitle className="flex items-center justify-between gap-3 text-sm">
             <div className="flex items-center gap-2 min-w-0">
               <Icon className={`w-4 h-4 ${meta.color} ${meta.spin ? 'animate-spin' : ''} shrink-0`} />
               <span className="truncate">{taskTitle || '任务日志'}</span>
               {taskType && (
-                <span className="text-xs text-gray-500 shrink-0 hidden sm:inline">({taskType})</span>
+                <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">({taskType})</span>
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {isRunning && progress !== undefined && (
-                <span className="text-xs text-blue-400 font-mono">{progress}%</span>
+                <span className="text-xs text-info font-mono">{progress}%</span>
               )}
               <span className={`text-xs ${meta.color}`}>{meta.label}</span>
             </div>
@@ -323,10 +323,10 @@ export default function TaskLogDialog({
           <div
             ref={logContainerRef}
             onScroll={handleScroll}
-            className="h-full overflow-y-auto bg-black/40 p-3 font-mono text-xs leading-relaxed"
+            className="h-full overflow-y-auto bg-muted p-3 font-mono text-xs leading-relaxed"
           >
             {logs.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-gray-600">
+              <div className="flex items-center justify-center h-full text-muted-foreground">
                 {isRunning ? (
                   <><Loader2 className="w-4 h-4 animate-spin mr-2" />等待日志输出...</>
                 ) : (
@@ -335,8 +335,8 @@ export default function TaskLogDialog({
               </div>
             ) : (
               logs.map(log => (
-                <div key={log.seq} className="flex gap-2 py-0.5 hover:bg-white/5">
-                  <span className="text-gray-600 shrink-0 select-none">
+                <div key={log.seq} className="flex gap-2 py-0.5 hover:bg-accent/50">
+                  <span className="text-muted-foreground shrink-0 select-none">
                     {log.ts ? new Date(log.ts).toLocaleTimeString('zh-CN', { hour12: false }) : ''}
                   </span>
                   <span className={`shrink-0 w-12 ${LEVEL_COLOR[log.level]}`}>
@@ -352,7 +352,7 @@ export default function TaskLogDialog({
           {showJumpToBottom && (
             <button
               onClick={jumpToBottom}
-              className="absolute bottom-2 right-2 p-1.5 bg-zinc-800/90 hover:bg-zinc-700 text-blue-400 rounded-full border border-zinc-700 shadow-lg transition-colors"
+              className="absolute bottom-2 right-2 p-1.5 bg-muted/90 hover:bg-accent text-info rounded-full border border-border shadow-lg transition-colors"
               title="跳转到最新日志"
             >
               <ArrowDown className="w-3.5 h-3.5" />
@@ -361,13 +361,13 @@ export default function TaskLogDialog({
         </div>
 
         {/* 底部操作栏 */}
-        <div className="px-4 py-2 border-t border-gray-800 shrink-0 flex items-center justify-between gap-2">
-          <span className="text-xs text-gray-500">{logs.length} 条日志</span>
+        <div className="px-4 py-2 border-t border-border shrink-0 flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">{logs.length} 条日志</span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
-            className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            className="border-border text-foreground/80 hover:bg-muted"
           >
             <X className="w-3.5 h-3.5 mr-1" />
             关闭

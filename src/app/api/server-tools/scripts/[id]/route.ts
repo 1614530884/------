@@ -7,10 +7,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { scriptStore } from '@/lib/services/server-tools/store';
-import { getCurrentUser } from '@/lib/services/server-tools/auth';
 import type { ScriptCategory, ScriptDefUpdate } from '@/lib/services/server-tools/types';
-import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
-import { logUnauthorizedAccess } from '@/lib/access-log';
+import { withAuth } from '@/lib/services/server-tools/api-helpers';
 
 const VALID_CATEGORIES: ScriptCategory[] = ['maintenance', 'install', 'inspect', 'custom'];
 
@@ -18,34 +16,16 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-script-id-get');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const GET = withAuth(async (_request, currentUser, { params }: RouteParams) => {
   const { id } = await params;
   const script = scriptStore.getById(id, currentUser);
   if (!script) {
     return NextResponse.json({ success: false, message: '脚本不存在或无权访问' }, { status: 404 });
   }
   return NextResponse.json({ success: true, data: script });
-}
+}, 'st-script-id-get');
 
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-script-id-patch');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const PATCH = withAuth(async (request, currentUser, { params }: RouteParams) => {
   const { id } = await params;
   const existing = scriptStore.getById(id, currentUser);
   if (!existing) {
@@ -84,18 +64,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: false, message: '更新失败' }, { status: 500 });
   }
   return NextResponse.json({ success: true, data: updated });
-}
+}, 'st-script-id-patch');
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-script-id-delete');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const DELETE = withAuth(async (_request, currentUser, { params }: RouteParams) => {
   const { id } = await params;
   const existing = scriptStore.getById(id, currentUser);
   if (!existing) {
@@ -111,4 +82,4 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: false, message: '删除失败' }, { status: 500 });
   }
   return NextResponse.json({ success: true });
-}
+}, 'st-script-id-delete');

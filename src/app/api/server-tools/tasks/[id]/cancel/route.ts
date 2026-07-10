@@ -8,24 +8,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { taskStore } from '@/lib/services/server-tools/store';
 import { taskRunner } from '@/lib/services/server-tools/task-runner';
-import { getCurrentUser } from '@/lib/services/server-tools/auth';
-import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
-import { logUnauthorizedAccess } from '@/lib/access-log';
+import { withAuth } from '@/lib/services/server-tools/api-helpers';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function POST(request: NextRequest, { params }: RouteParams) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-task-cancel');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const POST = withAuth(async (_request, currentUser, { params }: RouteParams) => {
   const { id } = await params;
 
   // 校验任务归属
@@ -44,4 +33,4 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: false, message: '取消失败' }, { status: 500 });
   }
   return NextResponse.json({ success: true });
-}
+}, 'st-task-cancel');

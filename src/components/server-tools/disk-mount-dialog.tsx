@@ -150,47 +150,47 @@ export default function DiskMountDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="bg-[#222632] border border-gray-700 rounded-lg w-full max-w-md mx-4 p-4"
+        className="bg-card border border-border rounded-lg w-full max-w-md mx-4 p-4"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <HardDrive className="w-4 h-4 text-blue-400" />
-            <h3 className="text-sm font-medium text-gray-200">挂载数据盘</h3>
+            <HardDrive className="w-4 h-4 text-info" />
+            <h3 className="text-sm font-medium text-foreground">挂载数据盘</h3>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* 检测结果 */}
-        <div className="mb-3 p-2 bg-gray-800/50 rounded text-xs">
+        <div className="mb-3 p-2 bg-muted/50 rounded text-xs">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               {detecting ? (
-                <div className="flex items-center gap-1.5 text-gray-400">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   正在检测磁盘...
                 </div>
               ) : detectResult ? (
                 <>
                   {detectResult.unmountedDisks.length > 0 ? (
-                    <div className="text-gray-500">
+                    <div className="text-muted-foreground">
                       检测到 {detectResult.unmountedDisks.length} 个未挂载磁盘
                       {detectResult.rootDisk && <span className="ml-1">（已排除系统盘 {detectResult.rootDisk}）</span>}
                     </div>
                   ) : (
-                    <div className="text-gray-500">未检测到未挂载磁盘，可手动输入</div>
+                    <div className="text-muted-foreground">未检测到未挂载磁盘，可手动输入</div>
                   )}
                 </>
               ) : (
-                <div className="text-gray-500">未检测</div>
+                <div className="text-muted-foreground">未检测</div>
               )}
             </div>
             {!detecting && (
               <button
                 onClick={handleRedetect}
-                className="ml-2 flex items-center gap-1 text-[11px] text-gray-400 hover:text-white border border-gray-700 rounded px-1.5 py-0.5"
+                className="ml-2 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground border border-border rounded px-1.5 py-0.5"
                 title="重新检测"
               >
                 <RefreshCw className="w-3 h-3" />
@@ -203,12 +203,12 @@ export default function DiskMountDialog({
         <div className="space-y-3">
           {/* 磁盘选择 */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1">磁盘设备</label>
+            <label className="block text-xs text-muted-foreground mb-1">磁盘设备</label>
             {detectResult?.unmountedDisks?.length ? (
               <select
                 value={disk}
                 onChange={e => setDisk(e.target.value)}
-                className="w-full bg-gray-900/60 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-input border border-border rounded px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-info"
               >
                 {detectResult.unmountedDisks.map(d => (
                   <option key={d.name} value={d.name}>
@@ -222,18 +222,18 @@ export default function DiskMountDialog({
                 value={disk}
                 onChange={e => setDisk(e.target.value)}
                 placeholder="/dev/vdb"
-                className={`w-full bg-gray-900/60 border rounded px-2 py-1.5 text-xs text-gray-200 focus:outline-none ${
-                  inputIsRootDisk ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-blue-500'
+                className={`w-full bg-input border rounded px-2 py-1.5 text-xs text-foreground focus:outline-none ${
+                  inputIsRootDisk ? 'border-destructive focus:border-destructive' : 'border-border focus:border-info'
                 }`}
               />
             )}
             {inputIsRootDisk && (
-              <div className="text-red-400 text-[10px] mt-1">
+              <div className="text-destructive text-[10px] mt-1">
                 ⚠ {disk} 是系统盘，格式化将导致系统崩溃！请改选数据盘。
               </div>
             )}
             {isManualInput && !inputIsRootDisk && detectResult?.rootDisk && (
-              <div className="text-gray-500 text-[10px] mt-1">
+              <div className="text-muted-foreground text-[10px] mt-1">
                 提示：系统盘为 {detectResult.rootDisk}，请勿填写。
               </div>
             )}
@@ -241,13 +241,13 @@ export default function DiskMountDialog({
 
           {/* 挂载点 */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1">挂载点</label>
+            <label className="block text-xs text-muted-foreground mb-1">挂载点</label>
             <input
               type="text"
               value={mountPoint}
               onChange={e => setMountPoint(e.target.value)}
               placeholder="/www"
-              className="w-full bg-gray-900/60 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-blue-500"
+              className="w-full bg-input border border-border rounded px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-info"
             />
             <div className="flex flex-wrap gap-1 mt-1.5">
               {MOUNT_PRESETS.map(p => (
@@ -256,8 +256,8 @@ export default function DiskMountDialog({
                   onClick={() => setMountPoint(p)}
                   className={`text-[11px] px-2 py-0.5 rounded border transition-colors ${
                     mountPoint === p
-                      ? 'bg-blue-900/30 border-blue-600 text-blue-300'
-                      : 'border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800/50'
+                      ? 'bg-info/10 border-info/40 text-info'
+                      : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   }`}
                 >
                   {p}
@@ -268,11 +268,11 @@ export default function DiskMountDialog({
 
           {/* 文件系统 */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1">文件系统</label>
+            <label className="block text-xs text-muted-foreground mb-1">文件系统</label>
             <select
               value={fstype}
               onChange={e => setFstype(e.target.value)}
-              className="w-full bg-gray-900/60 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-blue-500"
+              className="w-full bg-input border border-border rounded px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-info"
             >
               <option value="ext4">ext4</option>
               <option value="xfs">xfs</option>
@@ -281,7 +281,7 @@ export default function DiskMountDialog({
           </div>
 
           {/* 警告 */}
-          <div className="p-2 bg-amber-900/20 border border-amber-800/50 rounded text-[11px] text-amber-300">
+          <div className="p-2 bg-warning/10 border border-warning/30 rounded text-[11px] text-warning/80">
             ⚠ 挂载会格式化所选磁盘，磁盘上的数据将全部丢失！
           </div>
 
@@ -289,14 +289,14 @@ export default function DiskMountDialog({
           <div className="flex justify-end gap-2 pt-1">
             <button
               onClick={onClose}
-              className="px-3 py-1.5 text-xs text-gray-400 hover:text-white"
+              className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
               取消
             </button>
             <button
               onClick={handleMount}
               disabled={creating || inputIsRootDisk}
-              className="px-3 py-1.5 text-xs bg-blue-700 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center gap-1.5"
+              className="px-3 py-1.5 text-xs bg-info text-info-foreground hover:bg-info/90 disabled:opacity-50 disabled:cursor-not-allowed rounded flex items-center gap-1.5"
             >
               {creating && <Loader2 className="w-3 h-3 animate-spin" />}
               开始挂载

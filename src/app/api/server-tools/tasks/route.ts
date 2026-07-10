@@ -7,24 +7,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { taskStore } from '@/lib/services/server-tools/store';
 import { taskRunner } from '@/lib/services/server-tools/task-runner';
-import { getCurrentUser } from '@/lib/services/server-tools/auth';
 import type { ServerTaskInput, TaskType, TaskStatus } from '@/lib/services/server-tools/types';
-import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
-import { logUnauthorizedAccess } from '@/lib/access-log';
+import { withAuth } from '@/lib/services/server-tools/api-helpers';
 
 const VALID_TYPES: TaskType[] = ['mount_disk', 'install_bt', 'run_script', 'custom_cmd'];
 const VALID_STATUSES: TaskStatus[] = ['pending', 'running', 'success', 'failed', 'cancelled', 'interrupted'];
 
-export async function GET(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-tasks-get');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const GET = withAuth(async (request, currentUser) => {
   const url = new URL(request.url);
   const statusParam = url.searchParams.get('status');
   const status = statusParam && VALID_STATUSES.includes(statusParam as TaskStatus) ? statusParam as TaskStatus : undefined;
@@ -39,18 +28,9 @@ export async function GET(request: NextRequest) {
     isRunning: taskRunner.isRunning(t.id),
   }));
   return NextResponse.json({ success: true, data: annotated });
-}
+}, 'st-tasks-get');
 
-export async function POST(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-tasks-post');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const POST = withAuth(async (request, currentUser) => {
   const body = await request.json() as Partial<ServerTaskInput> & { _loginUser?: string };
   const { _loginUser, ...input } = body;
 
@@ -79,4 +59,4 @@ export async function POST(request: NextRequest) {
   taskRunner.startTask(task.id, currentUser.username);
 
   return NextResponse.json({ success: true, data: task });
-}
+}, 'st-tasks-post');

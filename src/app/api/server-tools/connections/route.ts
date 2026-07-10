@@ -6,21 +6,10 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectionStore } from '@/lib/services/server-tools/store';
-import { getCurrentUser } from '@/lib/services/server-tools/auth';
 import type { ServerConnectionInput } from '@/lib/services/server-tools/types';
-import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
-import { logUnauthorizedAccess } from '@/lib/access-log';
+import { withAuth } from '@/lib/services/server-tools/api-helpers';
 
-export async function GET(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-connections-get');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const GET = withAuth(async (request, currentUser) => {
   // scope=all 仅管理员可用，用于查看全部用户的服务器；其他值或非管理员均退化为 mine
   const scopeParam = request.nextUrl.searchParams.get('scope');
   const includeAll = scopeParam === 'all' && currentUser.isAdmin;
@@ -28,18 +17,9 @@ export async function GET(request: NextRequest) {
   // 列表接口不返回密码
   const safe = list.map(c => ({ ...c, password: undefined }));
   return NextResponse.json({ success: true, data: safe });
-}
+}, 'st-connections-get');
 
-export async function POST(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-connections-post');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const POST = withAuth(async (request, currentUser) => {
   const body = await request.json() as Partial<ServerConnectionInput> & { _loginUser?: string };
   const { _loginUser, ...input } = body;
   if (!input.name || !input.host || !input.username || !input.password) {
@@ -59,4 +39,4 @@ export async function POST(request: NextRequest) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ success: false, message: `创建失败: ${message}` }, { status: 500 });
   }
-}
+}, 'st-connections-post');

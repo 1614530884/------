@@ -7,42 +7,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { taskStore } from '@/lib/services/server-tools/store';
 import { taskRunner } from '@/lib/services/server-tools/task-runner';
-import { getCurrentUser } from '@/lib/services/server-tools/auth';
-import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
-import { logUnauthorizedAccess } from '@/lib/access-log';
+import { withAuth } from '@/lib/services/server-tools/api-helpers';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-task-id-get');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const GET = withAuth(async (_request, currentUser, { params }: RouteParams) => {
   const { id } = await params;
   const task = taskStore.getById(id, currentUser);
   if (!task) {
     return NextResponse.json({ success: false, message: '任务不存在或无权访问' }, { status: 404 });
   }
   return NextResponse.json({ success: true, data: { ...task, isRunning: taskRunner.isRunning(task.id) } });
-}
+}, 'st-task-id-get');
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-task-id-delete');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const DELETE = withAuth(async (_request, currentUser, { params }: RouteParams) => {
   const { id } = await params;
   // 不允许删除正在运行的任务
   if (taskRunner.isRunning(id)) {
@@ -53,4 +33,4 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: false, message: '任务不存在或无权删除' }, { status: 404 });
   }
   return NextResponse.json({ success: true });
-}
+}, 'st-task-id-delete');

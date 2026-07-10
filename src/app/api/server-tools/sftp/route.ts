@@ -10,21 +10,10 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { sftpClientManager } from '@/lib/services/server-tools/sftp-client';
-import { getCurrentUser } from '@/lib/services/server-tools/auth';
 import { connectionStore } from '@/lib/services/server-tools/store';
-import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
-import { logUnauthorizedAccess } from '@/lib/access-log';
+import { withAuth } from '@/lib/services/server-tools/api-helpers';
 
-export async function GET(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-sftp-get');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const GET = withAuth(async (request, currentUser) => {
   const url = new URL(request.url);
   const connectionId = url.searchParams.get('connectionId');
   const path = url.searchParams.get('path');
@@ -72,18 +61,9 @@ export async function GET(request: NextRequest) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ success: false, message }, { status: 500 });
   }
-}
+}, 'st-sftp-get');
 
-export async function POST(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-sftp-post');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const POST = withAuth(async (request, currentUser) => {
   const body = await request.json() as {
     action: 'mkdir' | 'rename';
     connectionId: string;
@@ -119,18 +99,9 @@ export async function POST(request: NextRequest) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ success: false, message }, { status: 500 });
   }
-}
+}, 'st-sftp-post');
 
-export async function DELETE(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-sftp-delete');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const DELETE = withAuth(async (request, currentUser) => {
   const url = new URL(request.url);
   const connectionId = url.searchParams.get('connectionId');
   const path = url.searchParams.get('path');
@@ -156,4 +127,4 @@ export async function DELETE(request: NextRequest) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ success: false, message }, { status: 500 });
   }
-}
+}, 'st-sftp-delete');

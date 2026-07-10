@@ -53,7 +53,7 @@ export function LogViewerDialog({ open, onOpenChange }: LogViewerDialogProps) {
   const metricLabel = (m: string) => m === 'cpu' ? 'CPU' : m === 'memory' ? '内存' : '磁盘';
   const operatorLabel = (o: string) => o === 'above' ? '高于' : o === 'below' ? '低于' : '区间';
   const actionLabel = (a: string) => a === 'enable' ? '启用' : '禁用';
-  const resultColor = (r: string) => r === 'success' ? 'text-emerald-400' : r === 'failed' ? 'text-red-400' : 'text-yellow-400';
+  const resultColor = (r: string) => r === 'success' ? 'text-success' : r === 'failed' ? 'text-destructive' : 'text-warning';
   const resultLabel = (r: string) => r === 'success' ? '成功' : r === 'failed' ? '失败' : '跳过';
 
   const formatTime = (ts: number) => {
@@ -69,12 +69,12 @@ export function LogViewerDialog({ open, onOpenChange }: LogViewerDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1a1d27] border-gray-800 text-white max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <div className="flex items-center gap-3 pr-8">
             <DialogTitle className="flex-shrink-0">操作日志</DialogTitle>
             <Button size="sm" variant="outline" onClick={handleClear}
-              className="border-gray-700 text-red-400 hover:text-red-300 text-xs flex-shrink-0">
+              className="border-border text-destructive hover:text-destructive/80 text-xs flex-shrink-0">
               <Trash2 className="w-3 h-3 mr-1" />清空
             </Button>
           </div>
@@ -83,10 +83,10 @@ export function LogViewerDialog({ open, onOpenChange }: LogViewerDialogProps) {
         <div className="flex-1 overflow-y-auto min-h-0">
           {loading ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
             </div>
           ) : logs.length === 0 ? (
-            <div className="text-center py-10 text-gray-500 text-sm">暂无日志</div>
+            <div className="text-center py-10 text-muted-foreground text-sm">暂无日志</div>
           ) : (
             <div className="space-y-1.5">
               {logs.map(log => {
@@ -94,17 +94,17 @@ export function LogViewerDialog({ open, onOpenChange }: LogViewerDialogProps) {
                 const isHigh = log.triggerSide === 'high';
                 const isSafeZone = log.operator === 'range' && !log.triggerSide && log.actionError?.includes('安全区间');
                 return (
-                  <div key={log.id} className="bg-[#0f1117] rounded-md p-2.5 text-xs border border-gray-800/60">
+                  <div key={log.id} className="bg-card rounded-md p-2.5 text-xs border border-border/60">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-400 font-mono">{formatTime(log.timestamp)}</span>
+                      <span className="text-muted-foreground font-mono">{formatTime(log.timestamp)}</span>
                       <span className={resultColor(log.actionResult)}>{resultLabel(log.actionResult)}</span>
                     </div>
-                    <div className="mt-1 text-gray-300">
-                      <span className="text-purple-400">[{log.ruleName}]</span>
+                    <div className="mt-1 text-foreground/80">
+                      <span className="text-primary">[{log.ruleName}]</span>
                       {sideLabel && (
-                        <span className={`ml-1 ${isHigh ? 'text-orange-400' : 'text-cyan-400'}`}>{sideLabel}</span>
+                        <span className={`ml-1 ${isHigh ? 'text-primary' : 'text-info'}`}>{sideLabel}</span>
                       )}
-                      {' '}节点 <span className="text-white">{log.nodeName}</span>
+                      {' '}节点 <span className="text-foreground">{log.nodeName}</span>
                       {' '}{metricLabel(log.metric)}
                       {isSafeZone ? (
                         <>{' '}安全区间({log.thresholdLow ?? 0}%~{log.threshold}%)</>
@@ -120,11 +120,11 @@ export function LogViewerDialog({ open, onOpenChange }: LogViewerDialogProps) {
                       {' '}当前{log.metricValue.toFixed(1)}%
                       {!isSafeZone && <>{' → '}{actionLabel(log.action)}</>}
                     </div>
-                    <div className="mt-0.5 text-[10px] text-gray-500">
+                    <div className="mt-0.5 text-[10px] text-muted-foreground">
                       触发: {log.consecutiveHits ?? '-'}/{log.triggerCount || 1}次
                     </div>
                     {log.actionError && !isSafeZone && (
-                      <div className="mt-0.5 text-[10px] text-red-400/80">{log.actionError}</div>
+                      <div className="mt-0.5 text-[10px] text-destructive/80">{log.actionError}</div>
                     )}
                   </div>
                 );
@@ -134,16 +134,16 @@ export function LogViewerDialog({ open, onOpenChange }: LogViewerDialogProps) {
         </div>
 
         {total > perPage && (
-          <div className="flex items-center justify-between pt-3 border-t border-gray-800 mt-2 flex-shrink-0">
-            <span className="text-xs text-gray-500">共{total}条</span>
+          <div className="flex items-center justify-between pt-3 border-t border-border mt-2 flex-shrink-0">
+            <span className="text-xs text-muted-foreground">共{total}条</span>
             <div className="flex items-center gap-1">
               <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-                className="border-gray-700 text-gray-300 h-7 w-7 p-0">
+                className="border-border text-foreground/80 h-7 w-7 p-0">
                 <ChevronLeft className="w-3 h-3" />
               </Button>
-              <span className="text-xs text-gray-400">{page}/{totalPages}</span>
+              <span className="text-xs text-muted-foreground">{page}/{totalPages}</span>
               <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-                className="border-gray-700 text-gray-300 h-7 w-7 p-0">
+                className="border-border text-foreground/80 h-7 w-7 p-0">
                 <ChevronRight className="w-3 h-3" />
               </Button>
             </div>

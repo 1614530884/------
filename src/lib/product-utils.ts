@@ -21,10 +21,10 @@ export function getStatusLabel(domainstatus: unknown): ProductStatusLabel {
 /** 根据状态标签返回样式类名 */
 export function getStatusClass(label: ProductStatusLabel): string {
   switch (label) {
-    case '运行中': return 'bg-green-500/20 text-green-400';
-    case '已暂停': return 'bg-red-500/20 text-red-400';
-    case '待开通': return 'bg-yellow-500/20 text-yellow-400';
-    default: return 'bg-slate-500/20 text-slate-400';
+    case '运行中': return 'bg-success/15 text-success';
+    case '已暂停': return 'bg-destructive/15 text-destructive';
+    case '待开通': return 'bg-warning/15 text-warning';
+    default: return 'bg-muted text-muted-foreground';
   }
 }
 

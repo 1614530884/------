@@ -239,13 +239,13 @@ export default function FileManager({ connectionId }: FileManagerProps) {
   const pathParts = path.split('/').filter(Boolean);
 
   return (
-    <div className="flex flex-col h-full bg-[#1a1d27] text-gray-200">
+    <div className="flex flex-col h-full bg-card text-foreground">
       {/* 工具栏 */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800 shrink-0">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
         <button
           onClick={() => navigateTo(parentPath(path))}
           disabled={path === '/' || loading}
-          className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
+          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
           title="上级目录"
         >
           <ArrowUp className="w-3.5 h-3.5" />
@@ -253,7 +253,7 @@ export default function FileManager({ connectionId }: FileManagerProps) {
         <button
           onClick={() => fetchList(path)}
           disabled={loading}
-          className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
+          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
           title="刷新"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -263,7 +263,7 @@ export default function FileManager({ connectionId }: FileManagerProps) {
         <div className="flex items-center gap-0.5 flex-1 min-w-0 text-xs overflow-x-auto">
           <button
             onClick={() => navigateTo('/')}
-            className="p-0.5 text-gray-400 hover:text-white shrink-0"
+            className="p-0.5 text-muted-foreground hover:text-foreground shrink-0"
           >
             <Home className="w-3.5 h-3.5" />
           </button>
@@ -271,10 +271,10 @@ export default function FileManager({ connectionId }: FileManagerProps) {
             const partPath = '/' + pathParts.slice(0, i + 1).join('/');
             return (
               <div key={partPath} className="flex items-center shrink-0">
-                <ChevronRight className="w-3 h-3 text-gray-600" />
+                <ChevronRight className="w-3 h-3 text-muted-foreground" />
                 <button
                   onClick={() => navigateTo(partPath)}
-                  className={`px-1 hover:text-white ${i === pathParts.length - 1 ? 'text-gray-200 font-medium' : 'text-gray-400'}`}
+                  className={`px-1 hover:text-foreground ${i === pathParts.length - 1 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
                 >
                   {part}
                 </button>
@@ -285,7 +285,7 @@ export default function FileManager({ connectionId }: FileManagerProps) {
 
         <button
           onClick={() => setShowMkdir(true)}
-          className="p-1 text-gray-400 hover:text-white"
+          className="p-1 text-muted-foreground hover:text-foreground"
           title="新建目录"
         >
           <FolderPlus className="w-3.5 h-3.5" />
@@ -293,7 +293,7 @@ export default function FileManager({ connectionId }: FileManagerProps) {
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
+          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
           title="上传文件"
         >
           {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
@@ -304,14 +304,14 @@ export default function FileManager({ connectionId }: FileManagerProps) {
       {/* 文件列表 */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="flex items-center justify-center py-8 text-xs text-gray-500">
+          <div className="flex items-center justify-center py-8 text-xs text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin mr-1" /> 加载中...
           </div>
         ) : entries.length === 0 ? (
-          <div className="text-center py-8 text-xs text-gray-600">空目录</div>
+          <div className="text-center py-8 text-xs text-muted-foreground">空目录</div>
         ) : (
           <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-[#222632] text-gray-500">
+            <thead className="sticky top-0 bg-muted text-muted-foreground">
               <tr>
                 <th className="text-left px-3 py-1.5 font-medium">名称</th>
                 <th className="text-right px-3 py-1.5 font-medium w-20">大小</th>
@@ -324,24 +324,24 @@ export default function FileManager({ connectionId }: FileManagerProps) {
                 <tr
                   key={entry.name}
                   onClick={() => handleEntryClick(entry)}
-                  className={`cursor-pointer border-b border-gray-800/50 hover:bg-gray-800/30 ${
-                    selectedEntry?.name === entry.name ? 'bg-emerald-900/20' : ''
+                  className={`cursor-pointer border-b border-border/50 hover:bg-muted/30 ${
+                    selectedEntry?.name === entry.name ? 'bg-success/10' : ''
                   }`}
                 >
                   <td className="px-3 py-1.5">
                     <div className="flex items-center gap-1.5 min-w-0">
                       {entry.type === 'dir' ? (
-                        <Folder className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <Folder className="w-3.5 h-3.5 text-info shrink-0" />
                       ) : (
-                        <FileIcon className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <FileIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                       )}
                       <span className="truncate">{entry.name}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-1.5 text-right text-gray-400">
+                  <td className="px-3 py-1.5 text-right text-muted-foreground">
                     {entry.type === 'dir' ? '-' : formatSize(entry.size)}
                   </td>
-                  <td className="px-3 py-1.5 text-right text-gray-500">
+                  <td className="px-3 py-1.5 text-right text-muted-foreground">
                     {formatDate(entry.modifyTime)}
                   </td>
                   <td className="px-3 py-1.5">
@@ -349,7 +349,7 @@ export default function FileManager({ connectionId }: FileManagerProps) {
                       {entry.type === 'file' && isTextFile(entry.name) && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handlePreview(entry); }}
-                          className="text-gray-500 hover:text-white"
+                          className="text-muted-foreground hover:text-foreground"
                           title="预览"
                         >
                           <Eye className="w-3 h-3" />
@@ -358,7 +358,7 @@ export default function FileManager({ connectionId }: FileManagerProps) {
                       {entry.type === 'file' && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDownload(entry); }}
-                          className="text-gray-500 hover:text-white"
+                          className="text-muted-foreground hover:text-foreground"
                           title="下载"
                         >
                           <Download className="w-3 h-3" />
@@ -366,7 +366,7 @@ export default function FileManager({ connectionId }: FileManagerProps) {
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(entry); }}
-                        className="text-gray-500 hover:text-red-400"
+                        className="text-muted-foreground hover:text-destructive"
                         title="删除"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -383,10 +383,10 @@ export default function FileManager({ connectionId }: FileManagerProps) {
       {/* 新建目录弹窗 */}
       {showMkdir && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowMkdir(false)}>
-          <div className="bg-[#222632] border border-gray-700 rounded-lg p-4 w-full max-w-xs mx-4" onClick={e => e.stopPropagation()}>
+          <div className="bg-card border border-border rounded-lg p-4 w-full max-w-xs mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm text-gray-200">新建目录</h3>
-              <button onClick={() => setShowMkdir(false)} className="text-gray-500 hover:text-white">
+              <h3 className="text-sm text-foreground">新建目录</h3>
+              <button onClick={() => setShowMkdir(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -397,11 +397,11 @@ export default function FileManager({ connectionId }: FileManagerProps) {
               placeholder="目录名"
               autoFocus
               onKeyDown={e => { if (e.key === 'Enter') handleMkdir(); }}
-              className="w-full bg-gray-900/60 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-blue-500 mb-3"
+              className="w-full bg-input border border-border rounded px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-info mb-3"
             />
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowMkdir(false)} className="px-3 py-1 text-xs text-gray-400 hover:text-white">取消</button>
-              <button onClick={handleMkdir} className="px-3 py-1 text-xs bg-blue-700 hover:bg-blue-600 text-white rounded">创建</button>
+              <button onClick={() => setShowMkdir(false)} className="px-3 py-1 text-xs text-muted-foreground hover:text-foreground">取消</button>
+              <button onClick={handleMkdir} className="px-3 py-1 text-xs bg-info hover:bg-info/90 text-info-foreground rounded">创建</button>
             </div>
           </div>
         </div>
@@ -411,22 +411,22 @@ export default function FileManager({ connectionId }: FileManagerProps) {
       {(previewContent !== null || loadingPreview) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => { setPreviewContent(null); setPreviewName(''); }}>
           <div
-            className="bg-[#222632] border border-gray-700 rounded-lg w-full max-w-3xl mx-4 max-h-[80vh] flex flex-col"
+            className="bg-card border border-border rounded-lg w-full max-w-3xl mx-4 max-h-[80vh] flex flex-col"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700">
-              <h3 className="text-sm text-gray-200 truncate">{previewName}</h3>
-              <button onClick={() => { setPreviewContent(null); setPreviewName(''); }} className="text-gray-500 hover:text-white">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+              <h3 className="text-sm text-foreground truncate">{previewName}</h3>
+              <button onClick={() => { setPreviewContent(null); setPreviewName(''); }} className="text-muted-foreground hover:text-foreground">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="flex-1 overflow-auto p-3">
               {loadingPreview ? (
-                <div className="flex items-center justify-center text-xs text-gray-500">
+                <div className="flex items-center justify-center text-xs text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin mr-1" /> 加载中...
                 </div>
               ) : (
-                <pre className="text-[11px] text-gray-300 font-mono whitespace-pre-wrap break-all">{previewContent}</pre>
+                <pre className="text-[11px] text-foreground/80 font-mono whitespace-pre-wrap break-all">{previewContent}</pre>
               )}
             </div>
           </div>

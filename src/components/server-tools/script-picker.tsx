@@ -45,10 +45,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  maintenance: 'text-blue-400 border-blue-700/50 bg-blue-900/20',
-  install: 'text-emerald-400 border-emerald-700/50 bg-emerald-900/20',
-  inspect: 'text-amber-400 border-amber-700/50 bg-amber-900/20',
-  custom: 'text-purple-400 border-purple-700/50 bg-purple-900/20',
+  maintenance: 'text-info border-info/30 bg-info/10',
+  install: 'text-success border-success/30 bg-success/10',
+  inspect: 'text-warning border-warning/30 bg-warning/10',
+  custom: 'text-primary border-primary/50 bg-primary/10',
 };
 
 interface ScriptPickerProps {
@@ -181,9 +181,9 @@ export default function ScriptPicker({ open, onOpenChange, connectionId, onTaskC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col bg-[#1a1d27] border-gray-800 text-gray-100">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-gray-100">
+          <DialogTitle className="text-foreground">
             {selected ? `运行脚本: ${selected.name}` : '选择脚本'}
           </DialogTitle>
         </DialogHeader>
@@ -191,28 +191,28 @@ export default function ScriptPicker({ open, onOpenChange, connectionId, onTaskC
         {!selected ? (
           <>
             <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="搜索脚本名称或描述..."
-                className="pl-9 bg-[#222632] border-gray-700 text-gray-100 placeholder-gray-500"
+                className="pl-9 bg-input border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
             <div className="flex-1 overflow-y-auto pr-1 space-y-4">
               {loading ? (
-                <div className="flex items-center justify-center py-12 text-gray-500">
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" /> 加载中...
                 </div>
               ) : Object.keys(grouped).length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-muted-foreground">
                   暂无可用脚本
                 </div>
               ) : (
                 Object.entries(grouped).map(([cat, list]) => (
                   <div key={cat}>
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       {CATEGORY_LABELS[cat] || cat}
                     </div>
                     <div className="space-y-1.5">
@@ -220,23 +220,23 @@ export default function ScriptPicker({ open, onOpenChange, connectionId, onTaskC
                         <button
                           key={script.id}
                           onClick={() => handleSelect(script)}
-                          className="w-full flex items-start gap-3 p-3 text-left bg-[#222632] hover:bg-[#2a2f3d] border border-gray-700 hover:border-gray-600 rounded-lg transition-colors"
+                          className="w-full flex items-start gap-3 p-3 text-left bg-muted hover:bg-accent border border-border hover:border-border rounded-lg transition-colors"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-sm font-medium text-gray-100">{script.name}</span>
+                              <span className="text-sm font-medium text-foreground">{script.name}</span>
                               {script.builtin && (
-                                <Lock className="w-3 h-3 text-gray-500" />
+                                <Lock className="w-3 h-3 text-muted-foreground" />
                               )}
                               <span className={`text-[10px] px-1.5 py-0.5 rounded border ${CATEGORY_COLORS[script.category] || ''}`}>
                                 {CATEGORY_LABELS[script.category] || script.category}
                               </span>
                             </div>
                             {script.description && (
-                              <div className="text-xs text-gray-500 line-clamp-2">{script.description}</div>
+                              <div className="text-xs text-muted-foreground line-clamp-2">{script.description}</div>
                             )}
                           </div>
-                          <Play className="w-4 h-4 text-gray-600 mt-0.5" />
+                          <Play className="w-4 h-4 text-muted-foreground mt-0.5" />
                         </button>
                       ))}
                     </div>
@@ -247,41 +247,41 @@ export default function ScriptPicker({ open, onOpenChange, connectionId, onTaskC
           </>
         ) : (
           <div className="flex-1 overflow-y-auto pr-1 space-y-4">
-            <div className="bg-[#222632] border border-gray-700 rounded-lg p-3">
+            <div className="bg-card border border-border rounded-lg p-3">
               {selected.description && (
-                <div className="text-xs text-gray-400 mb-2">{selected.description}</div>
+                <div className="text-xs text-muted-foreground mb-2">{selected.description}</div>
               )}
-              <div className="text-[11px] text-gray-500">
+              <div className="text-[11px] text-muted-foreground">
                 共 {selected.content.split('\n').length} 行 · {selected.params.length} 个参数
               </div>
             </div>
 
             {selected.params.length > 0 ? (
               <div className="space-y-3">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">脚本参数</div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">脚本参数</div>
                 {selected.params.map(p => (
                   <div key={p.name} className="space-y-1.5">
-                    <Label className="text-xs text-gray-300 flex items-center gap-1">
+                    <Label className="text-xs text-foreground/80 flex items-center gap-1">
                       {p.label}
-                      {p.required && <span className="text-red-400">*</span>}
+                      {p.required && <span className="text-destructive">*</span>}
                     </Label>
                     <Input
                       value={paramValues[p.name] ?? ''}
                       onChange={e => setParamValues(prev => ({ ...prev, [p.name]: e.target.value }))}
                       placeholder={p.placeholder}
-                      className="bg-[#222632] border-gray-700 text-gray-100 placeholder-gray-500"
+                      className="bg-input border-border text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-xs text-gray-500 text-center py-4">此脚本无需参数</div>
+              <div className="text-xs text-muted-foreground text-center py-4">此脚本无需参数</div>
             )}
 
             {/* 脚本预览 */}
             <details className="text-xs">
-              <summary className="cursor-pointer text-gray-400 hover:text-gray-300">查看脚本内容</summary>
-              <pre className="mt-2 p-3 bg-black/40 border border-gray-800 rounded text-[11px] text-gray-300 overflow-x-auto max-h-48 overflow-y-auto">
+              <summary className="cursor-pointer text-muted-foreground hover:text-foreground/80">查看脚本内容</summary>
+              <pre className="mt-2 p-3 bg-muted border border-border rounded text-[11px] text-foreground/80 overflow-x-auto max-h-48 overflow-y-auto">
 {selected.content}
               </pre>
             </details>
@@ -294,7 +294,7 @@ export default function ScriptPicker({ open, onOpenChange, connectionId, onTaskC
               <Button
                 variant="outline"
                 onClick={() => { setSelected(null); setParamValues({}); }}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-border text-foreground/80 hover:bg-muted"
                 disabled={submitting}
               >
                 返回
@@ -302,7 +302,7 @@ export default function ScriptPicker({ open, onOpenChange, connectionId, onTaskC
               <Button
                 onClick={handleRunInTerminal}
                 disabled={submitting || !onRunInTerminal}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-info hover:bg-info/90 text-info-foreground"
                 title="将脚本命令发送到 SSH 终端执行"
               >
                 <Terminal className="w-4 h-4 mr-1.5" />
@@ -311,7 +311,7 @@ export default function ScriptPicker({ open, onOpenChange, connectionId, onTaskC
               <Button
                 onClick={handleRun}
                 disabled={submitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-success hover:bg-success/90 text-success-foreground"
                 title="创建后台任务执行（输出在任务面板查看）"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Play className="w-4 h-4 mr-1.5" />}
@@ -322,7 +322,7 @@ export default function ScriptPicker({ open, onOpenChange, connectionId, onTaskC
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              className="border-border text-foreground/80 hover:bg-muted"
             >
               取消
             </Button>

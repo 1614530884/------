@@ -20,10 +20,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import MobileSidebar from '@/components/mobile-sidebar';
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter,
 } from '@/components/ui/card';
+import { PageHeader } from '@/components/layout/page-header';
 
 // ============ 数据类型 ============
 
@@ -304,19 +304,19 @@ export default function TemplatesPage() {
 
   if (authChecked && !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <Card className="bg-slate-900 border-slate-800 max-w-md w-full">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
           <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-2">
-              <FileText className="w-6 h-6 text-orange-400" />
+            <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+              <FileText className="w-6 h-6 text-primary" />
             </div>
-            <CardTitle className="text-white text-lg">需要登录</CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardTitle className="text-foreground text-lg">需要登录</CardTitle>
+            <CardDescription className="text-muted-foreground">
               请先登录后台才能使用话术管理功能
             </CardDescription>
           </CardHeader>
           <CardFooter className="justify-center">
-            <Button onClick={() => router.push('/')} className="bg-orange-500 hover:bg-orange-600 text-white">
+            <Button onClick={() => router.push('/')} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               <ArrowLeft className="w-4 h-4 mr-1" />返回首页登录
             </Button>
           </CardFooter>
@@ -328,62 +328,43 @@ export default function TemplatesPage() {
   // ============ 主渲染 ============
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <MobileSidebar currentPath="/templates" variant="subpage" />
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
-              <FileText className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-white text-base sm:text-lg truncate">话术管理</span>
-            <Badge variant="outline" className="border-slate-700 text-slate-400 bg-slate-800/50 hidden sm:inline-flex">
-              {templates.length} 个模板
-            </Badge>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openCreateDialog}
-              className="border-emerald-700 bg-emerald-950/50 text-emerald-400 hover:bg-emerald-900/50 hover:text-emerald-300 h-8 px-2 sm:px-3"
-            >
-              <Plus className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">新建模板</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/')}
-              className="border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-white h-8 px-2 sm:px-3"
-            >
-              <ArrowLeft className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">返回开通</span>
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen">
+      <PageHeader
+        title="话术模板"
+        titleIcon={FileText}
+        meta={<Badge variant="outline" className="border-border text-muted-foreground">{templates.length} 个模板</Badge>}
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openCreateDialog}
+            className="border-success/40 bg-success/15 text-success hover:bg-success/25 hover:text-success/80 h-8 px-2 sm:px-3"
+          >
+            <Plus className="w-4 h-4 sm:mr-1" />
+            <span className="hidden sm:inline">新建模板</span>
+          </Button>
+        }
+      />
 
       {/* 主体 */}
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* 加载状态 */}
         {isLoading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
-            <span className="ml-3 text-slate-400">加载中...</span>
+            <Loader2 className="w-8 h-8 text-info animate-spin" />
+            <span className="ml-3 text-muted-foreground">加载中...</span>
           </div>
         )}
 
         {/* 空状态 */}
         {!isLoading && templates.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-4">
-              <FileText className="w-8 h-8 text-slate-600" />
+            <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
+              <FileText className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-white text-lg font-medium mb-1">暂无话术模板</h3>
-            <p className="text-slate-500 text-sm mb-4">创建模板后可快速生成客户沟通话术</p>
-            <Button onClick={openCreateDialog} className="bg-blue-500 hover:bg-blue-600 text-white">
+            <h3 className="text-foreground text-lg font-medium mb-1">暂无话术模板</h3>
+            <p className="text-muted-foreground text-sm mb-4">创建模板后可快速生成客户沟通话术</p>
+            <Button onClick={openCreateDialog} className="bg-info text-info-foreground hover:bg-info/90">
               <Plus className="w-4 h-4 mr-1" />新建模板
             </Button>
           </div>
@@ -395,25 +376,25 @@ export default function TemplatesPage() {
             {templates.map(t => (
               <Card
                 key={t.id}
-                className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors py-4"
+                className="bg-card border-border hover:border-border transition-colors py-4"
               >
                 <CardHeader className="pb-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       {t.isDefault && (
-                        <Star className="w-4 h-4 text-emerald-400 shrink-0 fill-emerald-400" />
+                        <Star className="w-4 h-4 text-success shrink-0 fill-success" />
                       )}
-                      <CardTitle className="text-white text-sm truncate">{t.name}</CardTitle>
+                      <CardTitle className="text-foreground text-sm truncate">{t.name}</CardTitle>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => handleCopy(t.content, t.id)}
-                        className="text-slate-500 hover:text-blue-400"
+                        className="text-muted-foreground hover:text-info"
                       >
                         {copiedId === t.id ? (
-                          <CheckCircle className="w-4 h-4 text-emerald-400" />
+                          <CheckCircle className="w-4 h-4 text-success" />
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
@@ -422,7 +403,7 @@ export default function TemplatesPage() {
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => openEditDialog(t)}
-                        className="text-slate-500 hover:text-blue-400"
+                        className="text-muted-foreground hover:text-info"
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
@@ -430,7 +411,7 @@ export default function TemplatesPage() {
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => setDeleteTarget(t)}
-                        className="text-slate-500 hover:text-red-400"
+                        className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -438,33 +419,33 @@ export default function TemplatesPage() {
                   </div>
                   <CardDescription className="flex flex-wrap items-center gap-1.5 mt-1">
                     {t.isDefault && (
-                      <Badge className="bg-emerald-950/50 text-emerald-400 border-emerald-800 text-[10px] px-1.5 py-0">
+                      <Badge className="bg-success/15 text-success border-success/30 text-[10px] px-1.5 py-0">
                         默认
                       </Badge>
                     )}
                     {t.perServer && (
-                      <Badge className="bg-purple-950/50 text-purple-400 border-purple-800 text-[10px] px-1.5 py-0">
+                      <Badge className="bg-primary/10 text-primary border-primary text-[10px] px-1.5 py-0">
                         按台数
                       </Badge>
                     )}
                     {t.osFilters.length > 0 && (
-                      <Badge variant="outline" className="border-slate-700 text-slate-400 text-[10px] px-1.5 py-0">
+                      <Badge variant="outline" className="border-border text-muted-foreground text-[10px] px-1.5 py-0">
                         <Tag className="w-2.5 h-2.5 mr-0.5" />OS×{t.osFilters.length}
                       </Badge>
                     )}
                     {t.productIds.length > 0 && (
-                      <Badge variant="outline" className="border-slate-700 text-slate-400 text-[10px] px-1.5 py-0">
+                      <Badge variant="outline" className="border-border text-muted-foreground text-[10px] px-1.5 py-0">
                         <Hash className="w-2.5 h-2.5 mr-0.5" />产品×{t.productIds.length}
                       </Badge>
                     )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-3">
-                  <p className="text-slate-400 text-xs leading-relaxed line-clamp-4 whitespace-pre-wrap break-all">
+                  <p className="text-muted-foreground text-xs leading-relaxed line-clamp-4 whitespace-pre-wrap break-all">
                     {t.content}
                   </p>
                 </CardContent>
-                <CardFooter className="pt-0 text-[10px] text-slate-600">
+                <CardFooter className="pt-0 text-[10px] text-muted-foreground">
                   更新于 {new Date(t.updatedAt).toLocaleString('zh-CN')}
                 </CardFooter>
               </Card>
@@ -475,12 +456,12 @@ export default function TemplatesPage() {
 
       {/* ============ 新建/编辑弹窗 ============ */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               {editingTemplate.id ? '编辑模板' : '新建模板'}
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               创建话术模板，支持变量插入和匹配规则
             </DialogDescription>
           </DialogHeader>
@@ -488,31 +469,31 @@ export default function TemplatesPage() {
           <div className="space-y-4">
             {/* 模板名称 */}
             <div className="space-y-1.5">
-              <Label className="text-slate-300">模板名称</Label>
+              <Label className="text-foreground/80">模板名称</Label>
               <Input
                 value={editingTemplate.name}
                 onChange={e => setEditingTemplate(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="如：开通成功通知"
-                className="bg-slate-950/70 border-slate-700 text-white placeholder:text-slate-600"
+                className="bg-background/70 border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
             {/* 话术内容 */}
             <div className="space-y-1.5">
-              <Label className="text-slate-300">话术内容</Label>
+              <Label className="text-foreground/80">话术内容</Label>
               <Textarea
                 ref={textareaRef}
                 value={editingTemplate.content}
                 onChange={e => setEditingTemplate(prev => ({ ...prev, content: e.target.value }))}
                 placeholder="输入话术内容，可使用 {{变量名}} 插入变量..."
                 rows={8}
-                className="bg-slate-950/70 border-slate-700 text-white placeholder:text-slate-600 resize-y min-h-[120px]"
+                className="bg-background/70 border-border text-foreground placeholder:text-muted-foreground resize-y min-h-[120px]"
               />
             </div>
 
             {/* 变量快捷插入 */}
             <div className="space-y-1.5">
-              <Label className="text-slate-300">快捷插入变量</Label>
+              <Label className="text-foreground/80">快捷插入变量</Label>
               <div className="flex flex-wrap gap-1.5">
                 {VARIABLES.map(v => (
                   <Button
@@ -520,10 +501,10 @@ export default function TemplatesPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => insertVariable(v.key)}
-                    className="border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-blue-900/30 hover:text-blue-300 hover:border-blue-700 h-7 text-xs px-2"
+                    className="border-border bg-muted/50 text-foreground/80 hover:bg-info/10 hover:text-info hover:border-info/40 h-7 text-xs px-2"
                   >
                     {`{{${v.key}}}`}
-                    <span className="text-slate-500 ml-1">{v.label}</span>
+                    <span className="text-muted-foreground ml-1">{v.label}</span>
                   </Button>
                 ))}
               </div>
@@ -531,7 +512,7 @@ export default function TemplatesPage() {
 
             {/* OS匹配关键词 */}
             <div className="space-y-1.5">
-              <Label className="text-slate-300">OS匹配关键词</Label>
+              <Label className="text-foreground/80">OS匹配关键词</Label>
               <div className="flex items-center gap-2">
                 <Input
                   value={osInput}
@@ -539,7 +520,7 @@ export default function TemplatesPage() {
                   onKeyDown={handleOsInputKeyDown}
                   onBlur={addOsFilter}
                   placeholder="输入关键词后按回车添加，如 CentOS"
-                  className="bg-slate-950/70 border-slate-700 text-white placeholder:text-slate-600 flex-1"
+                  className="bg-background/70 border-border text-foreground placeholder:text-muted-foreground flex-1"
                 />
               </div>
               {editingTemplate.osFilters.length > 0 && (
@@ -547,7 +528,7 @@ export default function TemplatesPage() {
                   {editingTemplate.osFilters.map(filter => (
                     <Badge
                       key={filter}
-                      className="bg-blue-950/50 text-blue-300 border-blue-800 pr-1 cursor-pointer hover:bg-blue-900/50"
+                      className="bg-info/10 text-info border-info/30 pr-1 cursor-pointer hover:bg-info/15"
                       onClick={() => removeOsFilter(filter)}
                     >
                       {filter}
@@ -560,7 +541,7 @@ export default function TemplatesPage() {
 
             {/* 产品ID */}
             <div className="space-y-1.5">
-              <Label className="text-slate-300">关联产品ID</Label>
+              <Label className="text-foreground/80">关联产品ID</Label>
               <div className="flex items-center gap-2">
                 <Input
                   value={productIdInput}
@@ -568,7 +549,7 @@ export default function TemplatesPage() {
                   onKeyDown={handleProductIdInputKeyDown}
                   onBlur={addProductId}
                   placeholder="输入产品ID后按回车添加"
-                  className="bg-slate-950/70 border-slate-700 text-white placeholder:text-slate-600 flex-1"
+                  className="bg-background/70 border-border text-foreground placeholder:text-muted-foreground flex-1"
                 />
               </div>
               {editingTemplate.productIds.length > 0 && (
@@ -576,7 +557,7 @@ export default function TemplatesPage() {
                   {editingTemplate.productIds.map(pid => (
                     <Badge
                       key={pid}
-                      className="bg-orange-950/50 text-orange-300 border-orange-800 pr-1 cursor-pointer hover:bg-orange-900/50"
+                      className="bg-primary/20 text-primary border-primary/80 pr-1 cursor-pointer hover:bg-primary/20"
                       onClick={() => removeProductId(pid)}
                     >
                       ID: {pid}
@@ -588,10 +569,10 @@ export default function TemplatesPage() {
             </div>
 
             {/* 设为默认 */}
-            <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-background/50 p-3">
               <div>
-                <Label className="text-slate-300">设为默认模板</Label>
-                <p className="text-xs text-slate-500 mt-0.5">默认模板在自动匹配时优先使用</p>
+                <Label className="text-foreground/80">设为默认模板</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">默认模板在自动匹配时优先使用</p>
               </div>
               <Switch
                 checked={editingTemplate.isDefault}
@@ -600,10 +581,10 @@ export default function TemplatesPage() {
                 }
               />
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-background/50 p-3">
               <div>
-                <Label className="text-slate-300">按台数生成话术</Label>
-                <p className="text-xs text-slate-500 mt-0.5">开启后多台服务器时每台生成一份话术，关闭则只生成一份（取第一台信息）</p>
+                <Label className="text-foreground/80">按台数生成话术</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">开启后多台服务器时每台生成一份话术，关闭则只生成一份（取第一台信息）</p>
               </div>
               <Switch
                 checked={editingTemplate.perServer}
@@ -618,14 +599,14 @@ export default function TemplatesPage() {
             <Button
               variant="outline"
               onClick={() => setShowEditDialog(false)}
-              className="border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-white"
+              className="border-border bg-muted/50 text-foreground/80 hover:bg-accent hover:text-foreground"
             >
               取消
             </Button>
             <Button
               onClick={handleSave}
               disabled={!editingTemplate.name.trim() || !editingTemplate.content.trim() || isSaving}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
+              className="bg-info text-info-foreground hover:bg-info/90"
             >
               {isSaving && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
               保存
@@ -636,20 +617,20 @@ export default function TemplatesPage() {
 
       {/* ============ 删除确认弹窗 ============ */}
       <AlertDialog open={!!deleteTarget} onOpenChange={open => { if (!open) setDeleteTarget(null); }}>
-        <AlertDialogContent className="bg-slate-900 border-slate-800 text-white">
+        <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">确认删除</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogTitle className="text-foreground">确认删除</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               确定要删除模板「{deleteTarget?.name}」吗？此操作不可撤销。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-white">
+            <AlertDialogCancel className="border-border bg-muted/50 text-foreground/80 hover:bg-accent hover:text-foreground">
               取消
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               删除
             </AlertDialogAction>

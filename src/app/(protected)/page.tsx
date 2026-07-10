@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { loadAuth, saveAuth, logout } from '@/lib/auth-client';
+import { loadAuth, saveAuth } from '@/lib/auth-client';
 import ProductCard from '@/components/ProductCard';
 import ConfigOptionItem from '@/components/ConfigOptionItem';
-import MobileSidebar from '@/components/mobile-sidebar';
+import { PageHeader } from '@/components/layout/page-header';
 import {
   DndContext,
   closestCenter,
@@ -187,15 +187,15 @@ function SortableGroupItem({ id, name, subCount, hidden, onToggleHidden }: { id:
   const style = { transform: CSS.Transform.toString(transform), transition };
   return (
     <div ref={setNodeRef} style={style} {...attributes}
-      className={`flex items-center gap-2 p-2 rounded border cursor-grab active:cursor-grabbing ${hidden ? 'bg-slate-800/40 border-slate-700/50 opacity-60' : 'bg-slate-800 border-slate-700 hover:border-orange-500/50'}`}>
-      <GripVertical className="w-4 h-4 text-slate-500 shrink-0" {...listeners} />
-      <span className={`text-sm truncate ${hidden ? 'text-slate-500 line-through' : 'text-white'}`}>{name}</span>
-      <span className="text-xs text-slate-500 ml-auto shrink-0">{subCount}个子分组</span>
+      className={`flex items-center gap-2 p-2 rounded border cursor-grab active:cursor-grabbing ${hidden ? 'bg-muted/40 border-border/50 opacity-60' : 'bg-muted border-border hover:border-primary/50'}`}>
+      <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" {...listeners} />
+      <span className={`text-sm truncate ${hidden ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{name}</span>
+      <span className="text-xs text-muted-foreground ml-auto shrink-0">{subCount}个子分组</span>
       <button
         type="button"
         onClick={() => onToggleHidden(id)}
         title={hidden ? '显示产品' : '隐藏产品'}
-        className="shrink-0 p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-orange-400 transition-colors"
+        className="shrink-0 p-1 rounded hover:bg-accent text-muted-foreground hover:text-primary transition-colors"
       >
         {hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
       </button>
@@ -250,36 +250,36 @@ function SortablePackageCard({
       style={style}
       className={`group relative rounded-lg border px-3 py-2.5 cursor-pointer transition-all ${
         isSelected
-          ? 'border-orange-500 bg-orange-500/10 shadow-sm shadow-orange-500/20'
-          : 'border-slate-600 bg-slate-900/30 hover:border-slate-500 hover:bg-slate-700/30'
+          ? 'border-primary bg-primary/15 shadow-sm shadow-primary/20'
+          : 'border-border bg-card/50 hover:border-border hover:bg-accent/40'
       } ${isDragging ? 'shadow-lg shadow-black/30' : ''}`}
       onClick={onSelect}
     >
       <div className="flex items-center gap-2 mb-1">
         <button
           type="button"
-          className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-slate-300 shrink-0 p-0"
+          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground/80 shrink-0 p-0"
           {...attributes}
           {...listeners}
         >
           <GripVertical className="w-3.5 h-3.5" />
         </button>
-        <Star className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-orange-400' : 'text-slate-500'}`} />
-        <span className="text-white font-medium text-sm truncate">{pkg.name}</span>
+        <Star className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+        <span className="text-foreground font-medium text-sm truncate">{pkg.name}</span>
         {/* 月付/年付切换 */}
         {hasSibling && (
           <div className="flex ml-auto mr-1" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               className={`px-1.5 py-0.5 rounded-l text-[10px] font-medium transition-colors ${
-                activeCycle === 'monthly' ? 'bg-purple-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                activeCycle === 'monthly' ? 'bg-accent2 text-accent2-foreground' : 'bg-accent text-muted-foreground hover:bg-accent'
               }`}
               onClick={() => { if (activeCycle !== 'monthly') onSwitchCycle?.(pkg.id); }}
             >月付</button>
             <button
               type="button"
               className={`px-1.5 py-0.5 rounded-r text-[10px] font-medium transition-colors ${
-                activeCycle === 'annually' ? 'bg-purple-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                activeCycle === 'annually' ? 'bg-accent2 text-accent2-foreground' : 'bg-accent text-muted-foreground hover:bg-accent'
               }`}
               onClick={() => { if (activeCycle !== 'annually' && siblingPkg) onSwitchCycle?.(siblingPkg.id); }}
             >年付</button>
@@ -288,7 +288,7 @@ function SortablePackageCard({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
-          className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-500 hover:text-blue-400 transition-all shrink-0"
+          className="opacity-0 group-hover:opacity-100 p-0.5 text-muted-foreground hover:text-info transition-all shrink-0"
           title="编辑套餐"
         >
           <Pencil className="w-3 h-3" />
@@ -296,24 +296,24 @@ function SortablePackageCard({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
-          className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-500 hover:text-red-400 transition-all shrink-0"
+          className="opacity-0 group-hover:opacity-100 p-0.5 text-muted-foreground hover:text-destructive transition-all shrink-0"
           title="删除套餐"
         >
           <Trash2 className="w-3 h-3" />
         </button>
         <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-          <AlertDialogContent className="bg-slate-900 border-slate-700">
+          <AlertDialogContent className="bg-card border-border">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-red-400">确认删除套餐</AlertDialogTitle>
-              <AlertDialogDescription className="text-slate-400">
+              <AlertDialogTitle className="text-destructive">确认删除套餐</AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground">
                 确定要删除套餐「{pkg.name}」吗？此操作不可撤销。
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700">取消</AlertDialogCancel>
+              <AlertDialogCancel className="bg-muted border-border text-foreground/80 hover:bg-accent">取消</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => onDelete()}
-                className="bg-red-600 hover:bg-red-500 text-white"
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               >
                 确认删除
               </AlertDialogAction>
@@ -321,7 +321,7 @@ function SortablePackageCard({
           </AlertDialogContent>
         </AlertDialog>
       </div>
-      <div className="flex items-center gap-2 text-xs text-slate-400 ml-9">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground ml-9">
         {(() => {
           const showPkg = activeCycle === 'annually' && siblingPkg ? siblingPkg : pkg;
           const showMonthly = showPkg.billingCycle === 'monthly';
@@ -330,9 +330,9 @@ function SortablePackageCard({
             <>
               <span>{showMonthly ? '月付' : '年付'}</span>
               <span>x{showPkg.productQty}</span>
-              {showPkg.firstPrice && <span className="text-orange-400 font-medium">¥{parseFloat(showPkg.firstPrice).toFixed(2)}/{showMonthly ? '月' : '年'}</span>}
+              {showPkg.firstPrice && <span className="text-primary font-medium">¥{parseFloat(showPkg.firstPrice).toFixed(2)}/{showMonthly ? '月' : '年'}</span>}
               {otherPkg?.firstPrice && (
-                <span className="text-slate-500">{showMonthly ? '年付' : '月付'}¥{parseFloat(otherPkg.firstPrice).toFixed(2)}/{showMonthly ? '年' : '月'}</span>
+                <span className="text-muted-foreground">{showMonthly ? '年付' : '月付'}¥{parseFloat(otherPkg.firstPrice).toFixed(2)}/{showMonthly ? '年' : '月'}</span>
               )}
             </>
           );
@@ -563,20 +563,6 @@ export default function OneClickOrderPage() {
     child: Array<{ id: number; option_name: string; [key: string]: unknown }>;
   }>>([]);
   const [modifyCurrentValues, setModifyCurrentValues] = useState<Record<string, string>>({});
-  // 设置对话框
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  // 设置对话框打开时同步adminUsernames
-  useEffect(() => {
-    if (showSettingsDialog) {
-      setSettingsAdminUsernames(adminUsernames);
-    }
-  }, [showSettingsDialog, adminUsernames]);
-  const [settingsFinanceUrl, setSettingsFinanceUrl] = useState('');
-  const [settingsMfyUrl, setSettingsMfyUrl] = useState('');
-  const [settingsMfyUsername, setSettingsMfyUsername] = useState('');
-  const [settingsMfyPassword, setSettingsMfyPassword] = useState('');
-  const [settingsMfyAccounts, setSettingsMfyAccounts] = useState<MfyAccountMapping[]>([]);
-  const [settingsAdminUsernames, setSettingsAdminUsernames] = useState('');
   const [floatingUserPanelEnabled, setFloatingUserPanelEnabled] = useState(() => {
     if (typeof window === 'undefined') return true;
     return localStorage.getItem('idcsmart_floating_user_panel_enabled') !== 'false';
@@ -3697,10 +3683,6 @@ export default function OneClickOrderPage() {
     document.body.removeChild(textarea);
   }, [showNotification]);
 
-  const handleLogout = () => {
-    logout();
-  };
-
   // 渲染配置选项
   // 套餐模式下判断配置选项是否为核心选项（始终显示）
   // 核心：操作系统(option_type=5)、节点、IP分组节点优先级
@@ -3719,11 +3701,11 @@ export default function OneClickOrderPage() {
 
   // ==================== 主界面 ====================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen">
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-white text-sm animate-in slide-in-from-top-2 ${
-          notification.type === 'success' ? 'bg-emerald-600' :
-          notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm animate-in slide-in-from-top-2 ${
+          notification.type === 'success' ? 'bg-success text-success-foreground' :
+          notification.type === 'error' ? 'bg-destructive text-destructive-foreground' : 'bg-info text-info-foreground'
         }`}>
           {notification.type === 'success' ? <CheckCircle className="w-4 h-4" /> :
            notification.type === 'error' ? <XCircle className="w-4 h-4" /> :
@@ -3732,61 +3714,22 @@ export default function OneClickOrderPage() {
         </div>
       )}
 
-      {/* 顶部导航 */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <MobileSidebar
-              username={adminUsername}
-              onLogout={handleLogout}
-              onOpenSettings={() => { setSettingsFinanceUrl(financeUrl); setSettingsMfyUrl(mfyUrl); setSettingsMfyUsername(mfyUsername); setSettingsMfyPassword(mfyPassword); setSettingsMfyAccounts(mfyAccounts); setShowSettingsDialog(true); }}
-              currentPath="/"
-            />
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shrink-0">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-white text-base sm:text-lg truncate">一键开通</span>
-            <Badge variant="outline" className="border-emerald-600 text-emerald-400 bg-emerald-950/50 hidden sm:inline-flex">
+      <PageHeader
+        title="首页"
+        titleIcon={Zap}
+        actions={
+          <>
+            <Badge variant="outline" className="border-success/40 text-success bg-success/10">
               <CheckCircle className="w-3 h-3 mr-1" />已连接
             </Badge>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-            <a href="/user-instances"
-              className="hidden md:inline-flex items-center justify-center gap-1 border border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-700 hover:text-white h-8 px-2 sm:px-3 rounded-md text-xs sm:text-sm">
-              <Server className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">实例管理</span>
-            </a>
-            <a href="/nodes"
-              className="hidden md:inline-flex items-center justify-center gap-1 border border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-700 hover:text-white h-8 px-2 sm:px-3 rounded-md text-xs sm:text-sm">
-              <Monitor className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">节点管理</span>
-            </a>
-            <a href="/server-tools"
-              className="hidden md:inline-flex items-center justify-center gap-1 border border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-700 hover:text-white h-8 px-2 sm:px-3 rounded-md text-xs sm:text-sm">
-              <TerminalSquare className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">服务器工具</span>
-            </a>
             <Button variant="outline" size="sm" onClick={loadProducts} disabled={isLoadingProducts}
-              className="border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-700 hover:text-white h-8 px-2 sm:px-3">
+              className="border-border bg-muted text-foreground hover:bg-accent h-8 px-2 sm:px-3">
               {isLoadingProducts ? <Loader2 className="w-4 h-4 animate-spin sm:mr-1" /> : <RefreshCw className="w-4 h-4 sm:mr-1" />}
               <span className="hidden sm:inline">刷新产品</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => { setSettingsFinanceUrl(financeUrl); setSettingsMfyUrl(mfyUrl); setSettingsMfyUsername(mfyUsername); setSettingsMfyPassword(mfyPassword); setSettingsMfyAccounts(mfyAccounts); setShowSettingsDialog(true); }}
-              className="hidden md:inline-flex border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-700 hover:text-white h-8 px-2 sm:px-3">
-              <Settings className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">设置</span>
-            </Button>
-            <a href="/templates"
-              className="hidden md:inline-flex items-center justify-center gap-1 border border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-700 hover:text-white h-8 px-2 sm:px-3 rounded-md text-xs sm:text-sm">
-              <FileText className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">话术</span>
-            </a>
-            <span className="text-slate-400 text-xs sm:text-sm hidden md:inline">{adminUsername}</span>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-400 hover:text-white h-8 px-2 hidden md:inline-flex">退出</Button>
-          </div>
-        </div>
-      </header>
-
+          </>
+        }
+      />
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {floatingUserPanelEnabled && isDesktopFloatingPanel && showFloatingUserPanel && !floatingUserPanelClosed && (
           <div
@@ -3797,31 +3740,31 @@ export default function OneClickOrderPage() {
               <button
                 type="button"
                 onClick={() => setFloatingUserPanelMinimized(false)}
-                className="flex items-center gap-2 rounded-full border border-orange-500/40 bg-slate-900/95 px-3 py-2 text-sm text-slate-100 shadow-2xl shadow-black/30 backdrop-blur hover:border-orange-400 hover:text-orange-300 transition-colors"
+                className="flex items-center gap-2 rounded-full border border-primary/40 bg-card/95 px-3 py-2 text-sm text-foreground shadow-2xl shadow-black/30 backdrop-blur hover:border-primary hover:text-primary transition-colors"
               >
-                <Users className="w-4 h-4 text-orange-400" />
+                <Users className="w-4 h-4 text-primary" />
                 用户管理
               </button>
             ) : (
               <div
-                className={`relative overflow-hidden rounded-2xl border bg-slate-950 text-slate-100 shadow-2xl shadow-black/40 ring-1 ring-white/5 ${isResizingFloatingPanel ? 'border-orange-400/80 ring-orange-400/30' : 'border-slate-700/80'}`}
+                className={`relative overflow-hidden rounded-2xl border bg-background text-foreground shadow-2xl shadow-black/40 ring-1 ring-white/5 ${isResizingFloatingPanel ? 'border-primary/80 ring-primary/30' : 'border-border/80'}`}
                 style={{ height: Math.min(floatingUserPanelSize.height, typeof window !== 'undefined' ? window.innerHeight - 32 : floatingUserPanelSize.height) }}
               >
-                <div className="flex items-center justify-between gap-3 border-b border-slate-700/70 bg-slate-800/80 px-3 py-2.5">
+                <div className="flex items-center justify-between gap-3 border-b border-border/70 bg-muted/80 px-3 py-2.5">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/15">
-                      <Users className="w-4 h-4 text-orange-400" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
+                      <Users className="w-4 h-4 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-white">悬浮用户管理</div>
-                      <div className="text-xs text-slate-500">搜索、选择、查看用户信息</div>
+                      <div className="text-sm font-semibold text-foreground">悬浮用户管理</div>
+                      <div className="text-xs text-muted-foreground">搜索、选择、查看用户信息</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="sm" onClick={() => setFloatingUserPanelMinimized(true)} className="h-7 w-7 p-0 text-slate-400 hover:text-white">
+                    <Button variant="ghost" size="sm" onClick={() => setFloatingUserPanelMinimized(true)} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
                       <Minus className="w-3.5 h-3.5" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setFloatingUserPanelClosed(true)} className="h-7 w-7 p-0 text-slate-400 hover:text-white">
+                    <Button variant="ghost" size="sm" onClick={() => setFloatingUserPanelClosed(true)} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
                       <X className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -3831,7 +3774,7 @@ export default function OneClickOrderPage() {
                     <select
                       value={searchType}
                       onChange={(e) => setSearchType(e.target.value as typeof searchType)}
-                      className="h-9 w-20 shrink-0 rounded-md border border-slate-600 bg-slate-950/70 px-2 text-xs text-white"
+                      className="h-9 w-20 shrink-0 rounded-md border border-border bg-background/70 px-2 text-xs text-foreground"
                     >
                       <option value="auto">自动</option>
                       <option value="uid">UID</option>
@@ -3846,21 +3789,21 @@ export default function OneClickOrderPage() {
                         value={searchKeyword}
                         onChange={(e) => { setSearchKeyword(e.target.value); if (!e.target.value) setSearchResults([]); }}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearchUsers()}
-                        className="h-9 bg-slate-950/70 border-slate-600 text-white placeholder:text-slate-500 pr-8"
+                        className="h-9 bg-background/70 border-border text-foreground placeholder:text-muted-foreground pr-8"
                       />
                       {searchKeyword && (
-                        <button onClick={() => { setSearchKeyword(''); setSearchResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
+                        <button onClick={() => { setSearchKeyword(''); setSearchResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                           <X className="w-4 h-4" />
                         </button>
                       )}
                     </div>
-                    <Button onClick={handleSearchUsers} disabled={isSearching} size="sm" className="h-9 bg-orange-500 hover:bg-orange-600 px-3">
+                    <Button onClick={handleSearchUsers} disabled={isSearching} size="sm" className="h-9 bg-primary hover:bg-primary/90 px-3">
                       {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                     </Button>
                   </div>
 
                   {searchResults.length > 0 && (
-                    <div className="overflow-hidden rounded-lg border border-slate-700">
+                    <div className="overflow-hidden rounded-lg border border-border">
                       <div className="max-h-56 overflow-y-auto">
                         {searchResults.map((user) => (
                           <button key={user.id} type="button" onClick={() => {
@@ -3869,21 +3812,21 @@ export default function OneClickOrderPage() {
                             setUseCredit(parseFloat(String(user.credit || '0')) > 0);
                             fetchUserProducts(user.id);
                             if (autoClearSearch) setSearchKeyword('');
-                          }} className={`block w-full border-b border-slate-800 px-3 py-2 text-left last:border-b-0 transition-colors ${selectedUser?.id === user.id ? 'bg-orange-500/15' : 'hover:bg-slate-800/70'}`}>
+                          }} className={`block w-full border-b border-border px-3 py-2 text-left last:border-b-0 transition-colors ${selectedUser?.id === user.id ? 'bg-primary/15' : 'hover:bg-muted/70'}`}>
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex min-w-0 items-center gap-2">
-                                <Avatar key={user.qq || user.id} className="h-8 w-8 bg-slate-700 shrink-0">
+                                <Avatar key={user.qq || user.id} className="h-8 w-8 bg-accent shrink-0">
                                   {user.qq && <AvatarImage src={`https://q.qlogo.cn/headimg_dl?dst_uin=${user.qq}&spec=640&img_type=jpg`} alt={user.username} />}
                                   <AvatarFallback className="text-xs">{user.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                                 </Avatar>
                                 <div className="min-w-0">
-                                  <div className="truncate text-sm font-medium text-white">{user.username || `UID:${user.id}`}</div>
-                                  <div className="truncate text-xs text-slate-500">{user.email || user.phone || user.phonenumber || user.qq || '无联系方式'}</div>
+                                  <div className="truncate text-sm font-medium text-foreground">{user.username || `UID:${user.id}`}</div>
+                                  <div className="truncate text-xs text-muted-foreground">{user.email || user.phone || user.phonenumber || user.qq || '无联系方式'}</div>
                                 </div>
                               </div>
                               <div className="shrink-0 text-right">
-                                <div className="text-xs font-semibold text-orange-400">¥{user.credit || '0.00'}</div>
-                                <div className="text-[11px] text-slate-600">ID: {user.id}</div>
+                                <div className="text-xs font-semibold text-primary">¥{user.credit || '0.00'}</div>
+                                <div className="text-[11px] text-muted-foreground">ID: {user.id}</div>
                               </div>
                             </div>
                           </button>
@@ -3893,54 +3836,54 @@ export default function OneClickOrderPage() {
                   )}
 
                   {selectedUser ? (
-                    <div className="rounded-xl border border-orange-500/30 bg-slate-950/60 p-3">
+                    <div className="rounded-xl border border-primary/30 bg-background/60 p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 items-center gap-2">
-                          <Avatar key={selectedUser.qq || selectedUser.id} className="h-10 w-10 bg-orange-500/20 shrink-0">
+                          <Avatar key={selectedUser.qq || selectedUser.id} className="h-10 w-10 bg-primary/20 shrink-0">
                             {selectedUser.qq && <AvatarImage src={`https://q.qlogo.cn/headimg_dl?dst_uin=${selectedUser.qq}&spec=640&img_type=jpg`} alt={selectedUser.username} />}
-                            <AvatarFallback className="text-orange-400">{selectedUser.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                            <AvatarFallback className="text-primary">{selectedUser.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-bold text-white">{selectedUser.username || `UID:${selectedUser.id}`}</div>
-                            <div className="text-xs text-slate-500">UID: {selectedUser.id}</div>
+                            <div className="truncate text-sm font-bold text-foreground">{selectedUser.username || `UID:${selectedUser.id}`}</div>
+                            <div className="text-xs text-muted-foreground">UID: {selectedUser.id}</div>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => { resetCycleOnUserChange(); setSelectedUser(null); }} className="h-7 w-7 p-0 text-slate-500 hover:text-white shrink-0">
+                        <Button variant="ghost" size="sm" onClick={() => { resetCycleOnUserChange(); setSelectedUser(null); }} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground shrink-0">
                           <X className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-lg bg-slate-900/70 p-2">
-                          <div className="text-slate-500">余额</div>
-                          <div className="mt-0.5 text-base font-bold text-orange-400">¥{selectedUser.credit || '0.00'}</div>
+                        <div className="rounded-lg bg-card/70 p-2">
+                          <div className="text-muted-foreground">余额</div>
+                          <div className="mt-0.5 text-base font-bold text-primary">¥{selectedUser.credit || '0.00'}</div>
                         </div>
-                        <div className="rounded-lg bg-slate-900/70 p-2">
-                          <div className="text-slate-500">认证</div>
-                          <div className={`mt-1 font-medium ${selectedUser.person_status === '已认证' || selectedUser.company_status === '已认证' ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <div className="rounded-lg bg-card/70 p-2">
+                          <div className="text-muted-foreground">认证</div>
+                          <div className={`mt-1 font-medium ${selectedUser.person_status === '已认证' || selectedUser.company_status === '已认证' ? 'text-success' : 'text-destructive'}`}>
                             {selectedUser.person_status === '已认证' ? '个人已认证' : selectedUser.company_status === '已认证' ? '企业已认证' : '未认证'}
                           </div>
                         </div>
                       </div>
                       <div className="mt-3 space-y-1.5 text-xs">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-slate-500">手机</span>
-                          <span className="truncate text-slate-200">{selectedUser.phonenumber || selectedUser.phone || '-'}</span>
+                          <span className="text-muted-foreground">手机</span>
+                          <span className="truncate text-foreground">{selectedUser.phonenumber || selectedUser.phone || '-'}</span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-slate-500">邮箱</span>
-                          <span className="truncate text-slate-200">{selectedUser.email || '-'}</span>
+                          <span className="text-muted-foreground">邮箱</span>
+                          <span className="truncate text-foreground">{selectedUser.email || '-'}</span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-slate-500">QQ</span>
-                          <span className="truncate text-slate-200">{selectedUser.qq || '-'}</span>
+                          <span className="text-muted-foreground">QQ</span>
+                          <span className="truncate text-foreground">{selectedUser.qq || '-'}</span>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-dashed border-slate-700 bg-slate-950/40 py-6 text-center">
-                      <User className="mx-auto mb-2 h-6 w-6 text-slate-600" />
-                      <div className="text-sm text-slate-400">暂无选中用户</div>
-                      <div className="mt-1 text-xs text-slate-600">搜索后点击用户即可选择</div>
+                    <div className="rounded-xl border border-dashed border-border bg-background/40 py-6 text-center">
+                      <User className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
+                      <div className="text-sm text-muted-foreground">暂无选中用户</div>
+                      <div className="mt-1 text-xs text-muted-foreground">搜索后点击用户即可选择</div>
                     </div>
                   )}
                 </div>
@@ -3948,29 +3891,29 @@ export default function OneClickOrderPage() {
                   role="separator"
                   aria-label="拖动调整悬浮窗大小"
                   onPointerDown={handleFloatingPanelResizeStart}
-                  className="absolute bottom-0 left-0 h-6 w-6 cursor-nwse-resize rounded-tr-xl border-t border-r border-orange-400/30 bg-orange-500/10 transition-colors hover:bg-orange-500/25"
+                  className="absolute bottom-0 left-0 h-6 w-6 cursor-nwse-resize rounded-tr-xl border-t border-r border-primary/30 bg-primary/10 transition-colors hover:bg-primary/25"
                 >
-                  <div className="absolute bottom-1 left-1 h-2.5 w-2.5 border-b-2 border-l-2 border-orange-300/80" />
+                  <div className="absolute bottom-1 left-1 h-2.5 w-2.5 border-b-2 border-l-2 border-primary/80" />
                 </div>
               </div>
             )}
           </div>
         )}
         {/* 用户管理 */}
-        <Card className="border-slate-700 bg-slate-800/50">
+        <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-white text-lg flex items-center gap-2">
-              <Users className="w-5 h-5 text-orange-400" />
+            <CardTitle className="text-foreground text-lg flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
               用户管理 - 余额充值
             </CardTitle>
-            <CardDescription className="text-slate-400">搜索用户并为指定用户添加余额</CardDescription>
+            <CardDescription className="text-muted-foreground">搜索用户并为指定用户添加余额</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-2">
               <select
                 value={searchType}
                 onChange={(e) => setSearchType(e.target.value as typeof searchType)}
-                className="h-9 rounded-md border border-slate-600 bg-slate-900/50 text-sm text-white px-2 shrink-0 sm:w-auto w-full"
+                className="h-9 rounded-md border border-border bg-card/50 text-sm text-foreground px-2 shrink-0 sm:w-auto w-full"
               >
                 <option value="auto">自动</option>
                 <option value="uid">UID</option>
@@ -3984,21 +3927,21 @@ export default function OneClickOrderPage() {
                   value={searchKeyword}
                   onChange={(e) => { setSearchKeyword(e.target.value); if (!e.target.value) setSearchResults([]); }}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearchUsers()}
-                  className="bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 pr-8" />
+                  className="bg-card/50 border-border text-foreground placeholder:text-muted-foreground pr-8" />
                 {searchKeyword && (
-                  <button onClick={() => { setSearchKeyword(''); setSearchResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
+                  <button onClick={() => { setSearchKeyword(''); setSearchResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
-              <Button onClick={handleSearchUsers} disabled={isSearching} className="bg-orange-500 hover:bg-orange-600">
+              <Button onClick={handleSearchUsers} disabled={isSearching} className="bg-primary hover:bg-primary/90">
                 {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 <span className="ml-1">搜索</span>
               </Button>
             </div>
 
             {searchResults.length > 0 && (
-              <div className="border border-slate-600 rounded-lg overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden">
                 <div className="max-h-48 overflow-y-auto">
                   {searchResults.map((user) => (
                     <div key={user.id} onClick={() => { 
@@ -4008,23 +3951,23 @@ export default function OneClickOrderPage() {
                       fetchUserProducts(user.id);
                       if (autoClearSearch) setSearchKeyword('');
                     }}
-                      className={`px-4 py-3 cursor-pointer transition-colors border-b border-slate-700 last:border-b-0 ${
-                        selectedUser?.id === user.id ? 'bg-orange-500/20' : 'hover:bg-slate-700/50'
+                      className={`px-4 py-3 cursor-pointer transition-colors border-b border-border last:border-b-0 ${
+                        selectedUser?.id === user.id ? 'bg-primary/20' : 'hover:bg-accent/50'
                       }`}>
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                          <Avatar key={user.qq || user.id} className="w-8 h-8 bg-slate-600 shrink-0">
+                          <Avatar key={user.qq || user.id} className="w-8 h-8 bg-muted shrink-0">
                             {user.qq && <AvatarImage src={`https://q.qlogo.cn/headimg_dl?dst_uin=${user.qq}&spec=640&img_type=jpg`} alt={user.username} />}
                             <AvatarFallback className="text-xs">{user.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="text-white font-medium truncate">{user.username}</p>
-                            <p className="text-slate-400 text-xs truncate">{user.email || user.phone || user.phonenumber || '无联系方式'}</p>
+                            <p className="text-foreground font-medium truncate">{user.username}</p>
+                            <p className="text-muted-foreground text-xs truncate">{user.email || user.phone || user.phonenumber || '无联系方式'}</p>
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-orange-400 font-bold text-sm">¥{user.credit || '0.00'}</p>
-                          <p className="text-slate-500 text-xs">ID: {user.id}</p>
+                          <p className="text-primary font-bold text-sm">¥{user.credit || '0.00'}</p>
+                          <p className="text-muted-foreground text-xs">ID: {user.id}</p>
                         </div>
                       </div>
                     </div>
@@ -4034,61 +3977,61 @@ export default function OneClickOrderPage() {
             )}
 
             {selectedUser && (
-              <div className="bg-slate-900/50 rounded-lg p-3 sm:p-4 border border-orange-500/30">
+              <div className="bg-card/50 rounded-lg p-3 sm:p-4 border border-primary/30">
                 <div className="flex items-start justify-between mb-3 gap-2">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-hidden">
-                    <Avatar key={selectedUser.qq || selectedUser.id} className="w-10 h-10 bg-orange-500/20 shrink-0">
+                    <Avatar key={selectedUser.qq || selectedUser.id} className="w-10 h-10 bg-primary/20 shrink-0">
                       {selectedUser.qq && <AvatarImage src={`https://q.qlogo.cn/headimg_dl?dst_uin=${selectedUser.qq}&spec=640&img_type=jpg`} alt={selectedUser.username} />}
-                      <AvatarFallback className="text-orange-400">{selectedUser.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                      <AvatarFallback className="text-primary">{selectedUser.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="text-white font-bold truncate">{selectedUser.username} <span className="text-slate-500 font-normal text-xs">UID: {selectedUser.id}</span></p>
+                      <p className="text-foreground font-bold truncate">{selectedUser.username} <span className="text-muted-foreground font-normal text-xs">UID: {selectedUser.id}</span></p>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
                         {selectedUser.phonenumber && (
-                          <p className="text-slate-400 text-sm flex items-center gap-1">
-                            手机: <span className="text-slate-200">{selectedUser.phonenumber}</span>
-                            <button onClick={() => copyText(selectedUser.phonenumber!)} className="text-slate-600 hover:text-orange-400 transition-colors" title="复制手机号">
+                          <p className="text-muted-foreground text-sm flex items-center gap-1">
+                            手机: <span className="text-foreground">{selectedUser.phonenumber}</span>
+                            <button onClick={() => copyText(selectedUser.phonenumber!)} className="text-muted-foreground hover:text-primary transition-colors" title="复制手机号">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" strokeWidth="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeWidth="2"/></svg>
                             </button>
                           </p>
                         )}
                         {selectedUser.email && (
-                          <p className="text-slate-400 text-sm flex items-center gap-1">
-                            邮箱: <span className="text-slate-200">{selectedUser.email}</span>
-                            <button onClick={() => copyText(selectedUser.email!)} className="text-slate-600 hover:text-orange-400 transition-colors" title="复制邮箱">
+                          <p className="text-muted-foreground text-sm flex items-center gap-1">
+                            邮箱: <span className="text-foreground">{selectedUser.email}</span>
+                            <button onClick={() => copyText(selectedUser.email!)} className="text-muted-foreground hover:text-primary transition-colors" title="复制邮箱">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" strokeWidth="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeWidth="2"/></svg>
                             </button>
                           </p>
                         )}
                         {selectedUser.qq && (
-                          <p className="text-slate-400 text-sm flex items-center gap-1">
-                            QQ: <span className="text-slate-200">{selectedUser.qq}</span>
-                            <button onClick={() => copyText(selectedUser.qq!)} className="text-slate-600 hover:text-orange-400 transition-colors" title="复制QQ">
+                          <p className="text-muted-foreground text-sm flex items-center gap-1">
+                            QQ: <span className="text-foreground">{selectedUser.qq}</span>
+                            <button onClick={() => copyText(selectedUser.qq!)} className="text-muted-foreground hover:text-primary transition-colors" title="复制QQ">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" strokeWidth="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeWidth="2"/></svg>
                             </button>
                           </p>
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
-                        <p className="text-slate-400 text-sm">余额: <span className="text-orange-400 font-bold">¥{selectedUser.credit || '0.00'}</span></p>
-                        <p className="text-slate-400 text-sm">
+                        <p className="text-muted-foreground text-sm">余额: <span className="text-primary font-bold">¥{selectedUser.credit || '0.00'}</span></p>
+                        <p className="text-muted-foreground text-sm">
                           认证: {' '}
                           {selectedUser.person_status === '已认证' ? (
-                            <span className="text-green-400 font-medium">已认证(个人)</span>
+                            <span className="text-success font-medium">已认证(个人)</span>
                           ) : selectedUser.company_status === '已认证' ? (
-                            <span className="text-green-400 font-medium">已认证(企业)</span>
+                            <span className="text-success font-medium">已认证(企业)</span>
                           ) : (
-                            <span className="text-red-400 font-medium">未认证</span>
+                            <span className="text-destructive font-medium">未认证</span>
                           )}
                         </p>
                         {isAdminUser && financeUrl && (
                           <a href={`${financeUrl}/#/customer-view/abstract?id=${selectedUser.id}`} target="_blank" rel="noopener noreferrer"
-                            className="text-cyan-400 text-sm hover:text-cyan-300 transition-colors inline-flex items-center gap-0.5">
+                            className="text-info text-sm hover:text-info transition-colors inline-flex items-center gap-0.5">
                             <ExternalLink className="w-3 h-3" />财务
                           </a>
                         )}
                         <a href={`/user-instances?q=${encodeURIComponent(selectedUser.phonenumber || selectedUser.phone || selectedUser.email || selectedUser.username || '')}`} target="_blank" rel="noopener noreferrer"
-                          className="text-purple-400 text-sm hover:text-purple-300 transition-colors inline-flex items-center gap-0.5">
+                          className="text-primary text-sm hover:text-primary transition-colors inline-flex items-center gap-0.5">
                           <Server className="w-3 h-3" />实例
                         </a>
                       </div>
@@ -4108,17 +4051,17 @@ export default function OneClickOrderPage() {
                         fetchUserProducts(Number(selectedUser.id));
                         showNotification('success', '用户信息已刷新');
                       } catch { showNotification('error', '刷新失败'); }
-                    }} className="text-slate-400 hover:text-orange-400 h-7 w-7 p-0" title="刷新用户信息">
+                    }} className="text-muted-foreground hover:text-primary h-7 w-7 p-0" title="刷新用户信息">
                       <RefreshCw className="w-3.5 h-3.5" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => { resetCycleOnUserChange(); setSelectedUser(null); }} className="text-slate-400 hover:text-white h-7 w-7 p-0">
+                    <Button variant="ghost" size="sm" onClick={() => { resetCycleOnUserChange(); setSelectedUser(null); }} className="text-muted-foreground hover:text-foreground h-7 w-7 p-0">
                       <X className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
                 {isAdminUser && (
                 <button type="button" onClick={() => setShowRechargeArea(!showRechargeArea)}
-                  className="flex items-center gap-1 text-sm text-slate-400 hover:text-orange-400 transition-colors mt-1">
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mt-1">
                   <CreditCard className="w-3.5 h-3.5" />
                   <span>余额充值</span>
                   {showRechargeArea ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
@@ -4127,17 +4070,17 @@ export default function OneClickOrderPage() {
                 {isAdminUser && showRechargeArea && (
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <div className="flex-1">
-                    <label className="text-slate-400 text-sm mb-1 block">充值金额 (元)</label>
+                    <label className="text-muted-foreground text-sm mb-1 block">充值金额 (元)</label>
                     <Input type="number" min="0" step="0.01" placeholder="输入金额" value={addAmount}
-                      onChange={(e) => setAddAmount(e.target.value)} className="bg-slate-800 border-slate-600 text-white" />
+                      onChange={(e) => setAddAmount(e.target.value)} className="bg-muted border-border text-foreground" />
                   </div>
                   <div className="flex-1">
-                    <label className="text-slate-400 text-sm mb-1 block">备注 (可选)</label>
+                    <label className="text-muted-foreground text-sm mb-1 block">备注 (可选)</label>
                     <Input placeholder="充值备注" value={addDescription}
-                      onChange={(e) => setAddDescription(e.target.value)} className="bg-slate-800 border-slate-600 text-white" />
+                      onChange={(e) => setAddDescription(e.target.value)} className="bg-muted border-border text-foreground" />
                   </div>
                   <div className="flex items-end sm:self-end">
-                    <Button onClick={handleAddBalance} disabled={isAddingBalance} className="bg-green-600 hover:bg-green-700 whitespace-nowrap w-full sm:w-auto">
+                    <Button onClick={handleAddBalance} disabled={isAddingBalance} className="bg-success text-success-foreground hover:bg-success/90 whitespace-nowrap w-full sm:w-auto">
                       {isAddingBalance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                       <span className="ml-1">确认充值</span>
                     </Button>
@@ -4150,16 +4093,16 @@ export default function OneClickOrderPage() {
         </Card>
 
         {/* 主标签切换 */}
-        <Card className="border-slate-700 bg-slate-800/30">
+        <Card>
           <CardContent className="py-px flex justify-center">
-            <div className="flex rounded-lg overflow-hidden border border-slate-600 bg-slate-800/80">
+            <div className="flex rounded-lg overflow-hidden border border-border bg-card dark:bg-accent shadow-sm">
             <button
               type="button"
               onClick={() => setMainTab('provision')}
               className={`py-2.5 px-4 sm:px-6 text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 transition-colors justify-center ${
                 mainTab === 'provision'
-                  ? 'bg-orange-500/20 text-orange-400 border-b-2 border-orange-400'
-                  : 'bg-slate-800 text-slate-400 hover:text-slate-300'
+                  ? 'bg-primary/15 text-primary shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
               }`}
             >
               <Zap className="w-4 h-4" />
@@ -4170,8 +4113,8 @@ export default function OneClickOrderPage() {
               onClick={() => { setMainTab('renew'); if (selectedUser) fetchUserProducts(selectedUser.id); }}
               className={`py-2.5 px-4 sm:px-6 text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 transition-colors justify-center ${
                 mainTab === 'renew'
-                  ? 'bg-orange-500/20 text-orange-400 border-b-2 border-orange-400'
-                  : 'bg-slate-800 text-slate-400 hover:text-slate-300'
+                  ? 'bg-primary/15 text-primary shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
               }`}
             >
               <RefreshCw className="w-4 h-4" />
@@ -4183,21 +4126,21 @@ export default function OneClickOrderPage() {
 
         {/* 产品管理页 */}
         {mainTab === 'renew' && !selectedUser && (
-            <Card className="border-slate-700 bg-slate-800/30 border-dashed">
+            <Card className="border-dashed">
               <CardContent className="py-16 text-center">
-                <Users className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-400 mb-2">请先选择用户</h3>
-                <p className="text-sm text-slate-500">在上方搜索并选择用户后，即可查看产品管理信息</p>
+                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">请先选择用户</h3>
+                <p className="text-sm text-muted-foreground">在上方搜索并选择用户后，即可查看产品管理信息</p>
               </CardContent>
             </Card>
         )}
 
         {/* 续费确认对话框 */}
         <Dialog open={showRenewConfirm} onOpenChange={(open) => { setShowRenewConfirm(open); if (!open) { setRenewAsAnnually(new Set()); setRenewCycles(1); setDirectRenewId(null); } }}>
-          <DialogContent className="border-slate-700 bg-slate-900 text-slate-100 w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col p-4 sm:p-6">
+          <DialogContent className="border-border bg-card text-foreground w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-slate-100">确认续费</DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogTitle className="text-foreground">确认续费</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
                 以下产品将被续费，月付产品可转年付续费
               </DialogDescription>
             </DialogHeader>
@@ -4216,26 +4159,26 @@ export default function OneClickOrderPage() {
                 const displayCycle = isConvertToAnnually ? '年付' : (CYCLE_MAP[cycle] || cycle);
                 const totalAmount = parseFloat(String(displayAmount).replace(/[^\d.]/g, '') || '0') * renewCycles;
                 return (
-                  <div key={hostId} className={`rounded-lg border px-2.5 py-2 sm:px-3 sm:py-2 transition-colors ${isConvertToAnnually ? 'border-amber-500/40 bg-amber-500/5' : 'border-slate-700 bg-slate-800/50'}`}>
+                  <div key={hostId} className={`rounded-lg border px-2.5 py-2 sm:px-3 sm:py-2 transition-colors ${isConvertToAnnually ? 'border-warning/40 bg-warning/5' : 'border-border bg-muted/50'}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-slate-200 truncate">{productName}</div>
-                        <div className="text-xs text-slate-400 truncate">{domain && <span className="mr-1">{domain}</span>}ID: {hostId}</div>
+                        <div className="text-sm font-medium text-foreground truncate">{productName}</div>
+                        <div className="text-xs text-muted-foreground truncate">{domain && <span className="mr-1">{domain}</span>}ID: {hostId}</div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className={`text-sm font-semibold ${isConvertToAnnually ? 'text-amber-400' : 'text-orange-400'}`}>
+                        <div className={`text-sm font-semibold ${isConvertToAnnually ? 'text-warning' : 'text-primary'}`}>
                           {renewCycles > 1 ? (
-                            <><span className="text-xs sm:text-sm">¥{totalAmount.toFixed(2)}</span> <span className="text-[10px] sm:text-xs font-normal text-slate-500">(¥{parseFloat(String(displayAmount).replace(/[^\d.]/g, '') || '0').toFixed(2)}×{renewCycles})</span></>
+                            <><span className="text-xs sm:text-sm">¥{totalAmount.toFixed(2)}</span> <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">(¥{parseFloat(String(displayAmount).replace(/[^\d.]/g, '') || '0').toFixed(2)}×{renewCycles})</span></>
                           ) : (
                             <>¥{parseFloat(String(displayAmount).replace(/[^\d.]/g, '') || '0').toFixed(2)}</>
                           )}
                         </div>
-                        <div className="text-xs text-slate-400">{displayCycle}{renewCycles > 1 ? ` ×${renewCycles}` : ''}</div>
+                        <div className="text-xs text-muted-foreground">{displayCycle}{renewCycles > 1 ? ` ×${renewCycles}` : ''}</div>
                       </div>
                     </div>
                     {/* 月付产品显示转年付选项 */}
                     {isMonthly && annuallyPkg && (
-                      <div className="mt-1.5 pt-1.5 border-t border-slate-700/50">
+                      <div className="mt-1.5 pt-1.5 border-t border-border/50">
                         <button
                           type="button"
                           onClick={() => {
@@ -4245,13 +4188,13 @@ export default function OneClickOrderPage() {
                               return next;
                             });
                           }}
-                          className={`flex items-center gap-1.5 text-xs transition-colors ${isConvertToAnnually ? 'text-amber-400' : 'text-slate-400 hover:text-amber-400'}`}
+                          className={`flex items-center gap-1.5 text-xs transition-colors ${isConvertToAnnually ? 'text-warning' : 'text-muted-foreground hover:text-warning'}`}
                         >
-                          <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${isConvertToAnnually ? 'border-amber-400 bg-amber-400' : 'border-slate-500'}`}>
-                            {isConvertToAnnually && <CheckCircle className="w-2.5 h-2.5 text-slate-900" />}
+                          <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${isConvertToAnnually ? 'border-warning bg-warning' : 'border-border'}`}>
+                            {isConvertToAnnually && <CheckCircle className="w-2.5 h-2.5 text-primary-foreground" />}
                           </span>
                           <span className="truncate">转年付 ¥{parseFloat(String(annuallyPkg.renewPrice).replace(/[^\d.]/g, '') || '0').toFixed(2)}/年</span>
-                          <span className="text-slate-500 line-through ml-0.5 shrink-0">¥{parseFloat(String(amount).replace(/[^\d.]/g, '') || '0').toFixed(2)}/月</span>
+                          <span className="text-muted-foreground line-through ml-0.5 shrink-0">¥{parseFloat(String(amount).replace(/[^\d.]/g, '') || '0').toFixed(2)}/月</span>
                         </button>
                       </div>
                     )}
@@ -4260,13 +4203,13 @@ export default function OneClickOrderPage() {
               })}
             </div>
             {/* 续费周期数选择 */}
-            <div className="flex items-center justify-between border-t border-slate-700 pt-3 gap-2">
-              <span className="text-slate-300 text-sm shrink-0">续费周期数</span>
+            <div className="flex items-center justify-between border-t border-border pt-3 gap-2">
+              <span className="text-foreground/80 text-sm shrink-0">续费周期数</span>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => setRenewCycles(prev => Math.max(1, prev - 1))}
-                  className="w-7 h-7 rounded border border-slate-600 bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center justify-center transition-colors text-base"
+                  className="w-7 h-7 rounded border border-border bg-muted text-foreground/80 hover:bg-accent flex items-center justify-center transition-colors text-base"
                 >−</button>
                 <input
                   type="number"
@@ -4283,20 +4226,20 @@ export default function OneClickOrderPage() {
                     if (isNaN(v) || v < 1) setRenewCycles(1);
                     else if (v > 36) setRenewCycles(36);
                   }}
-                  className="w-11 h-7 rounded border border-slate-600 bg-slate-800 text-white font-semibold text-base text-center outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-11 h-7 rounded border border-border bg-muted text-foreground font-semibold text-base text-center outline-none focus:border-info [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button
                   type="button"
                   onClick={() => setRenewCycles(prev => Math.min(36, prev + 1))}
-                  className="w-7 h-7 rounded border border-slate-600 bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center justify-center transition-colors text-base"
+                  className="w-7 h-7 rounded border border-border bg-muted text-foreground/80 hover:bg-accent flex items-center justify-center transition-colors text-base"
                 >+</button>
-                <span className="text-slate-500 text-xs">个周期</span>
+                <span className="text-muted-foreground text-xs">个周期</span>
               </div>
             </div>
-            <div className="border-t border-slate-700 pt-3 mt-0">
+            <div className="border-t border-border pt-3 mt-0">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-400 text-sm">共 {renewTargetIds.size} 项，总计</span>
-                <span className={`text-lg sm:text-xl font-bold ${renewAsAnnually.size > 0 ? 'text-amber-400' : 'text-orange-400'}`}>
+                <span className="text-muted-foreground text-sm">共 {renewTargetIds.size} 项，总计</span>
+                <span className={`text-lg sm:text-xl font-bold ${renewAsAnnually.size > 0 ? 'text-warning' : 'text-primary'}`}>
                   ¥{Array.from(renewTargetIds).reduce((sum, hostId) => {
                     const product = userProducts.find((p: Record<string, unknown>) => p.id === hostId);
                     if (!product) return sum;
@@ -4310,14 +4253,14 @@ export default function OneClickOrderPage() {
                 </span>
               </div>
               {renewAsAnnually.size > 0 && (
-                <div className="text-xs text-amber-400/70 mt-1">
+                <div className="text-xs text-warning/70 mt-1">
                   其中 {renewAsAnnually.size} 项将转年付续费
                 </div>
               )}
             </div>
             <DialogFooter className="gap-2 pt-1">
-              <Button variant="outline" onClick={() => setShowRenewConfirm(false)} className="border-slate-600 text-slate-300 h-9">取消</Button>
-              <Button onClick={() => { const c = renewCycles; setShowRenewConfirm(false); handleRenewSelected(c); }} className={`${renewAsAnnually.size > 0 ? 'bg-amber-500 hover:bg-amber-600' : 'bg-orange-500 hover:bg-orange-600'} h-9`}>
+              <Button variant="outline" onClick={() => setShowRenewConfirm(false)} className="border-border text-foreground/80 h-9">取消</Button>
+              <Button onClick={() => { const c = renewCycles; setShowRenewConfirm(false); handleRenewSelected(c); }} className={`${renewAsAnnually.size > 0 ? 'bg-warning text-warning-foreground hover:bg-warning/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'} h-9`}>
                 <RefreshCw className="w-4 h-4 mr-1" />
                 确认续费{renewCycles > 1 ? ` ×${renewCycles}` : ''}
               </Button>
@@ -4327,24 +4270,24 @@ export default function OneClickOrderPage() {
 
         {/* 升级套餐对话框 */}
         <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
-          <DialogContent className="border-slate-700 bg-slate-900 text-slate-100 max-w-lg">
+          <DialogContent className="border-border bg-card text-foreground max-w-lg">
             <DialogHeader>
-              <DialogTitle className="text-slate-100 flex items-center gap-2">
-                <Package className="w-5 h-5 text-purple-400" />
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <Package className="w-5 h-5 text-primary" />
                 升级套餐
               </DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogDescription className="text-muted-foreground">
                 {upgradeProduct ? `${String(upgradeProduct.productname || upgradeProduct.product_name || '')} (ID: ${upgradeProduct.id})` : ''}
               </DialogDescription>
             </DialogHeader>
 
             {upgradeLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-purple-400 mr-2" />
-                <span className="text-slate-400">加载套餐信息...</span>
+                <Loader2 className="w-6 h-6 animate-spin text-primary mr-2" />
+                <span className="text-muted-foreground">加载套餐信息...</span>
               </div>
             ) : upgradePackages.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-sm">
+              <div className="text-center py-8 text-muted-foreground text-sm">
                 暂无可升级套餐，请先在开通页面配置套餐
               </div>
             ) : (
@@ -4354,10 +4297,10 @@ export default function OneClickOrderPage() {
                   const currentPkg = upgradePackages.find(p => p.id === currentPackageId);
                   if (!currentPkg) return null;
                   return (
-                    <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
-                      <div className="text-xs text-blue-400 mb-1">当前套餐</div>
-                      <div className="text-sm text-white font-medium">{currentPkg.name}</div>
-                      <div className="text-xs text-slate-400 mt-1">续费 ¥{parseFloat(String(currentPkg.renewPrice || '0')).toFixed(2)}/{currentPkg.billingCycle === 'annually' ? '年' : '月'}</div>
+                    <div className="rounded-lg border border-info/30 bg-info/10 p-3">
+                      <div className="text-xs text-info mb-1">当前套餐</div>
+                      <div className="text-sm text-foreground font-medium">{currentPkg.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">续费 ¥{parseFloat(String(currentPkg.renewPrice || '0')).toFixed(2)}/{currentPkg.billingCycle === 'annually' ? '年' : '月'}</div>
                     </div>
                   );
                 })()}
@@ -4370,11 +4313,11 @@ export default function OneClickOrderPage() {
                   return (
                     <div className="flex gap-2">
                       <button
-                        className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${upgradeBillingCycle === 'monthly' ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                        className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${upgradeBillingCycle === 'monthly' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground hover:bg-accent'}`}
                         onClick={() => { setUpgradeBillingCycle('monthly'); setTargetPackageId(null); }}
                       >月付</button>
                       <button
-                        className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${upgradeBillingCycle === 'annually' ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                        className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${upgradeBillingCycle === 'annually' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground hover:bg-accent'}`}
                         onClick={() => { setUpgradeBillingCycle('annually'); setTargetPackageId(null); }}
                       >年付</button>
                     </div>
@@ -4383,7 +4326,7 @@ export default function OneClickOrderPage() {
 
                 {/* 可升级套餐列表（按当前选中周期筛选） */}
                 <div className="space-y-2">
-                  <div className="text-xs text-slate-400">选择目标套餐：</div>
+                  <div className="text-xs text-muted-foreground">选择目标套餐：</div>
                   {(() => {
                     const currentPkg = currentPackageId ? upgradePackages.find(p => p.id === currentPackageId) : null;
                     const currentPrice = currentPkg
@@ -4399,7 +4342,7 @@ export default function OneClickOrderPage() {
                     });
 
                     if (filteredPkgs.length === 0) {
-                      return <div className="text-xs text-slate-500 text-center py-4">当前周期下暂无可升级套餐</div>;
+                      return <div className="text-xs text-muted-foreground text-center py-4">当前周期下暂无可升级套餐</div>;
                     }
 
                     return filteredPkgs.map(pkg => {
@@ -4444,18 +4387,18 @@ export default function OneClickOrderPage() {
                           key={pkg.id}
                           className={`rounded-lg border p-3 cursor-pointer transition-colors ${
                             isSelected
-                              ? 'border-purple-500/50 bg-purple-500/10'
-                              : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                              ? 'border-primary/50 bg-primary/15'
+                              : 'border-border bg-muted/50 hover:border-border'
                           }`}
                           onClick={() => setTargetPackageId(pkg.id)}
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <div className="text-sm font-medium text-white">{pkg.name}</div>
+                              <div className="text-sm font-medium text-foreground">{pkg.name}</div>
                               <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs text-slate-400">续费 ¥{targetPrice.toFixed(2)}/{pkg.billingCycle === 'annually' ? '年' : '月'}</span>
+                                <span className="text-xs text-muted-foreground">续费 ¥{targetPrice.toFixed(2)}/{pkg.billingCycle === 'annually' ? '年' : '月'}</span>
                                 {priceDiff > 0 && (
-                                  <span className="text-xs text-orange-400">+¥{priceDiff.toFixed(2)}/{pkg.billingCycle === 'annually' ? '年' : '月'}</span>
+                                  <span className="text-xs text-primary">+¥{priceDiff.toFixed(2)}/{pkg.billingCycle === 'annually' ? '年' : '月'}</span>
                                 )}
                               </div>
                               {/* 配置差异预览 */}
@@ -4479,49 +4422,49 @@ export default function OneClickOrderPage() {
                                     }
                                     return diffs.map((d, i) => (
                                       <div key={i} className="text-xs flex items-center gap-1">
-                                        <span className="text-slate-500">{d.name}:</span>
-                                        <span className="text-slate-400">{d.from}</span>
-                                        <span className="text-slate-500">→</span>
-                                        <span className="text-purple-400">{d.to}</span>
+                                        <span className="text-muted-foreground">{d.name}:</span>
+                                        <span className="text-muted-foreground">{d.from}</span>
+                                        <span className="text-muted-foreground">→</span>
+                                        <span className="text-primary">{d.to}</span>
                                       </div>
                                     ));
                                   })()}
                                   {priceDiff > 0 && (
-                                    <div className="mt-2 rounded-md border border-orange-500/20 bg-orange-500/5 p-2 space-y-1.5">
-                                      <div className="text-xs font-medium text-orange-300">差价明细</div>
+                                    <div className="mt-2 rounded-md border border-primary/20 bg-primary/5 p-2 space-y-1.5">
+                                      <div className="text-xs font-medium text-primary">差价明细</div>
                                       <div className="flex justify-between gap-3 text-xs">
-                                        <span className="text-slate-400">当前套餐价格</span>
-                                        <span className="text-slate-200">¥{currentPrice.toFixed(2)}/{currentPkg?.billingCycle === 'annually' ? '年' : '月'}</span>
+                                        <span className="text-muted-foreground">当前套餐价格</span>
+                                        <span className="text-foreground">¥{currentPrice.toFixed(2)}/{currentPkg?.billingCycle === 'annually' ? '年' : '月'}</span>
                                       </div>
                                       <div className="flex justify-between gap-3 text-xs">
-                                        <span className="text-slate-400">目标套餐价格</span>
-                                        <span className="text-slate-200">¥{targetPrice.toFixed(2)}/{pkg.billingCycle === 'annually' ? '年' : '月'}</span>
+                                        <span className="text-muted-foreground">目标套餐价格</span>
+                                        <span className="text-foreground">¥{targetPrice.toFixed(2)}/{pkg.billingCycle === 'annually' ? '年' : '月'}</span>
                                       </div>
                                       <div className="flex justify-between gap-3 text-xs">
-                                        <span className="text-slate-400">周期价格差额</span>
-                                        <span className="text-orange-300">+¥{priceDiff.toFixed(2)}/{pkg.billingCycle === 'annually' ? '年' : '月'}</span>
+                                        <span className="text-muted-foreground">周期价格差额</span>
+                                        <span className="text-primary">+¥{priceDiff.toFixed(2)}/{pkg.billingCycle === 'annually' ? '年' : '月'}</span>
                                       </div>
-                                      <div className="border-t border-slate-700/70 pt-1.5 space-y-1">
-                                        <div className="text-xs font-medium text-slate-300">费用组成</div>
+                                      <div className="border-t border-border/70 pt-1.5 space-y-1">
+                                        <div className="text-xs font-medium text-foreground/80">费用组成</div>
                                         <div className="flex justify-between gap-3 text-xs">
-                                          <span className="text-slate-400">基础套餐费用差异</span>
-                                          <span className="text-orange-300">+¥{priceDiff.toFixed(2)}/{pkg.billingCycle === 'annually' ? '年' : '月'}</span>
+                                          <span className="text-muted-foreground">基础套餐费用差异</span>
+                                          <span className="text-primary">+¥{priceDiff.toFixed(2)}/{pkg.billingCycle === 'annually' ? '年' : '月'}</span>
                                         </div>
                                       </div>
                                       {upgradeCost > 0 && (
-                                        <div className="border-t border-slate-700/70 pt-1.5 space-y-1">
+                                        <div className="border-t border-border/70 pt-1.5 space-y-1">
                                           <div className="flex justify-between gap-3 text-xs">
-                                            <span className="text-slate-400">剩余天数</span>
-                                            <span className="text-slate-200">{remainingDays} 天</span>
+                                            <span className="text-muted-foreground">剩余天数</span>
+                                            <span className="text-foreground">{remainingDays} 天</span>
                                           </div>
                                           <div className="flex justify-between gap-3 text-xs">
-                                            <span className="text-slate-400">{billingcycle === 'monthly' ? '当前月天数' : '周期总天数'}</span>
-                                            <span className="text-slate-200">{totalDays} 天</span>
+                                            <span className="text-muted-foreground">{billingcycle === 'monthly' ? '当前月天数' : '周期总天数'}</span>
+                                            <span className="text-foreground">{totalDays} 天</span>
                                           </div>
-                                          <div className="mt-1 rounded-lg border border-orange-400/40 bg-gradient-to-r from-orange-500/20 via-amber-500/10 to-transparent px-3 py-2 shadow-[0_0_18px_rgba(251,146,60,0.12)]">
+                                          <div className="mt-1 rounded-lg border border-primary/40 bg-gradient-to-r from-primary/20 via-amber-500/10 to-transparent px-3 py-2 shadow-[0_0_18px_rgba(251,146,60,0.12)]">
                                             <div className="flex items-center justify-between gap-3">
-                                              <span className="text-xs font-medium text-orange-200">最终应付升级差价</span>
-                                              <span className="text-xl font-bold tracking-tight text-orange-300">¥{upgradeCost.toFixed(2)}</span>
+                                              <span className="text-xs font-medium text-primary">最终应付升级差价</span>
+                                              <span className="text-xl font-bold tracking-tight text-primary">¥{upgradeCost.toFixed(2)}</span>
                                             </div>
                                           </div>
                                         </div>
@@ -4532,9 +4475,9 @@ export default function OneClickOrderPage() {
                               )}
                             </div>
                             <div className={`w-4 h-4 rounded-full border-2 ${
-                              isSelected ? 'border-purple-500 bg-purple-500' : 'border-slate-600'
+                              isSelected ? 'border-primary bg-primary/10' : 'border-border'
                             }`}>
-                              {isSelected && <div className="w-full h-full rounded-full bg-white scale-50" />}
+                              {isSelected && <div className="w-full h-full rounded-full bg-card scale-50" />}
                             </div>
                           </div>
                         </div>
@@ -4546,11 +4489,11 @@ export default function OneClickOrderPage() {
             )}
 
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setUpgradeDialogOpen(false)} className="border-slate-600 text-slate-300">取消</Button>
+              <Button variant="outline" onClick={() => setUpgradeDialogOpen(false)} className="border-border text-foreground/80">取消</Button>
               <Button
                 onClick={submitUpgrade}
                 disabled={!targetPackageId || upgradeSubmitting}
-                className="bg-purple-500 hover:bg-purple-600 disabled:opacity-50"
+                className="bg-primary/10 hover:bg-primary/20 text-primary disabled:opacity-50"
               >
                 {upgradeSubmitting ? (
                   <><Loader2 className="w-4 h-4 animate-spin mr-1" />升级中...</>
@@ -4564,29 +4507,29 @@ export default function OneClickOrderPage() {
 
         {/* 套餐修改对话框 */}
         <Dialog open={modifyDialogOpen} onOpenChange={setModifyDialogOpen}>
-          <DialogContent className="border-slate-700 bg-slate-900 text-slate-100 max-h-[80vh] overflow-y-auto">
+          <DialogContent className="border-border bg-card text-foreground max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-slate-100 flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-cyan-400" />
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-info" />
                 修改套餐配置
               </DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogDescription className="text-muted-foreground">
                 修改产品「{String(modifyProduct?.product_name || modifyProduct?.name || '')}」的配置项
               </DialogDescription>
             </DialogHeader>
 
             {modifyLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
-                <span className="ml-2 text-slate-400">加载配置中...</span>
+                <Loader2 className="w-6 h-6 animate-spin text-info" />
+                <span className="ml-2 text-muted-foreground">加载配置中...</span>
               </div>
             ) : modifyConfigOptions.length > 0 ? (
               <div className="space-y-4 py-2">
                 {modifyConfigOptions.map(opt => (
                   <div key={opt.id} className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">
+                    <label className="text-sm font-medium text-foreground/80">
                       {opt.option_name}
-                      {[7, 9, 11, 14, 15].includes(opt.option_type) && opt.unit && <span className="text-slate-500 ml-1">({opt.unit})</span>}
+                      {[7, 9, 11, 14, 15].includes(opt.option_type) && opt.unit && <span className="text-muted-foreground ml-1">({opt.unit})</span>}
                     </label>
                     {opt.option_type === 3 ? (
                       <div className="flex items-center gap-3">
@@ -4599,16 +4542,16 @@ export default function OneClickOrderPage() {
                             setModifySelectedValues(prev => ({ ...prev, [String(opt.id)]: cur === '1' ? '0' : '1' }));
                           }}
                           className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                            modifySelectedValues[String(opt.id)] === '1' ? 'bg-orange-500' : 'bg-slate-600'
+                            modifySelectedValues[String(opt.id)] === '1' ? 'bg-primary' : 'bg-muted'
                           }`}
                         >
-                          <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                          <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-card shadow transition duration-200 ${
                             modifySelectedValues[String(opt.id)] === '1' ? 'translate-x-5' : 'translate-x-0'
                           }`} />
                         </button>
-                        <span className="text-slate-400 text-xs">{modifySelectedValues[String(opt.id)] === '1' ? '是' : '否'}</span>
+                        <span className="text-muted-foreground text-xs">{modifySelectedValues[String(opt.id)] === '1' ? '是' : '否'}</span>
                         {modifyCurrentValues[String(opt.id)] !== undefined && (
-                          <span className="text-cyan-400/70 text-xs ml-1">
+                          <span className="text-info/70 text-xs ml-1">
                             当前: {modifyCurrentValues[String(opt.id)] === '1' ? '是' : '否'}
                           </span>
                         )}
@@ -4637,14 +4580,14 @@ export default function OneClickOrderPage() {
                             const val = Math.max(min, Math.min(max, Number(e.target.value) || min));
                             setModifySelectedQtyValues(prev => ({ ...prev, [String(opt.id)]: val }));
                           }}
-                          className="w-24 px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:border-cyan-500 focus:outline-none"
+                          className="w-24 px-3 py-1.5 rounded-md bg-muted border border-border text-foreground text-sm focus:border-primary focus:outline-none"
                         />
-                        <span className="text-slate-400 text-xs">{opt.unit || ''}</span>
-                        <span className="text-slate-600 text-xs">
+                        <span className="text-muted-foreground text-xs">{opt.unit || ''}</span>
+                        <span className="text-muted-foreground text-xs">
                           ({opt.qty_minimum}-{opt.qty_maximum}{opt.unit || ''})
                         </span>
                         {modifyCurrentQtyValues[String(opt.id)] !== undefined && (
-                          <span className="text-cyan-400/70 text-xs ml-1">
+                          <span className="text-info/70 text-xs ml-1">
                             当前: {String(modifyCurrentQtyValues[String(opt.id)])}{opt.unit || ''}
                           </span>
                         )}
@@ -4664,10 +4607,10 @@ export default function OneClickOrderPage() {
                               type="button"
                               className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
                                 isSelected && !isCurrent
-                                  ? 'border-amber-500 bg-amber-500/20 text-amber-300'
+                                  ? 'border-warning bg-warning/15 text-warning'
                                   : isCurrent
-                                    ? 'border-cyan-500 bg-cyan-500/20 text-cyan-300'
-                                    : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-500'
+                                    ? 'border-info bg-info/15 text-info'
+                                    : 'border-border bg-muted/50 text-muted-foreground hover:border-border'
                               }`}
                               onClick={() => {
                                 setModifySelectedValues(prev => ({
@@ -4677,7 +4620,7 @@ export default function OneClickOrderPage() {
                               }}
                             >
                               {subLabel}
-                              {isCurrent && <span className="ml-1 text-cyan-400/70">(当前)</span>}
+                              {isCurrent && <span className="ml-1 text-info/70">(当前)</span>}
                             </button>
                           );
                         })}
@@ -4687,23 +4630,23 @@ export default function OneClickOrderPage() {
                 ))}
 
                 {/* 价格修改 */}
-                <div className="mt-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-                  <div className="flex items-center justify-center gap-4 px-6 py-2.5 bg-slate-800/50 rounded-lg">
+                <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border">
+                  <div className="flex items-center justify-center gap-4 px-6 py-2.5 bg-muted/50 rounded-lg">
                     <div className="flex-1">
-                      <label className="text-xs text-slate-500 mb-1 block">续费价格</label>
-                      <div className="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-400 text-sm">
+                      <label className="text-xs text-muted-foreground mb-1 block">续费价格</label>
+                      <div className="px-3 py-1.5 rounded-md bg-muted border border-border text-muted-foreground text-sm">
                         ¥{modifyCurrentAmount}
                       </div>
                     </div>
-                    <span className="text-slate-600 mt-4">→</span>
+                    <span className="text-muted-foreground mt-4">→</span>
                     <div className="flex-1">
-                      <label className="text-xs text-slate-500 mb-1 block">新价格（不修改则保持原价）</label>
+                      <label className="text-xs text-muted-foreground mb-1 block">新价格（不修改则保持原价）</label>
                       <input
                         type="number"
                         step="0.01"
                         value={modifyNewAmount}
                         onChange={e => setModifyNewAmount(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-md bg-slate-800 border border-slate-600 text-sm focus:outline-none focus:border-cyan-500 text-slate-200"
+                        className="w-full px-3 py-1.5 rounded-md bg-muted border border-border text-sm focus:outline-none focus:border-primary text-foreground"
                         placeholder={modifyCurrentAmount}
                       />
                     </div>
@@ -4736,14 +4679,14 @@ export default function OneClickOrderPage() {
                   }
                   if (changes.length === 0) return null;
                   return (
-                    <div className="mt-3 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
-                      <p className="text-xs text-cyan-400 font-medium mb-2">变更摘要</p>
+                    <div className="mt-3 p-3 rounded-lg bg-info/10 border border-info/20">
+                      <p className="text-xs text-info font-medium mb-2">变更摘要</p>
                       {changes.map((c, i) => (
                         <div key={i} className="text-xs flex items-center gap-1">
-                          <span className="text-slate-500">{c.name}:</span>
-                          <span className="text-slate-400">{c.from}</span>
-                          <span className="text-slate-500">→</span>
-                          <span className="text-cyan-300">{c.to}</span>
+                          <span className="text-muted-foreground">{c.name}:</span>
+                          <span className="text-muted-foreground">{c.from}</span>
+                          <span className="text-muted-foreground">→</span>
+                          <span className="text-info">{c.to}</span>
                         </div>
                       ))}
                     </div>
@@ -4751,11 +4694,11 @@ export default function OneClickOrderPage() {
                 })()}
               </div>
             ) : (
-              <div className="text-center py-8 text-slate-500">无可用配置项</div>
+              <div className="text-center py-8 text-muted-foreground">无可用配置项</div>
             )}
 
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setModifyDialogOpen(false)} className="border-slate-600 text-slate-300">取消</Button>
+              <Button variant="outline" onClick={() => setModifyDialogOpen(false)} className="border-border text-foreground/80">取消</Button>
               <Button
                 onClick={submitModify}
                 disabled={modifySubmitting || (() => {
@@ -4774,7 +4717,7 @@ export default function OneClickOrderPage() {
                   const hasPriceChange = modifyNewAmount && !isNaN(_np2) && Math.abs(_np2 - _cp2) >= 0.01;
                   return !(hasConfigChange || hasPriceChange);
                 })()}
-                className="bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50"
+                className="bg-info text-info-foreground hover:bg-info/90 disabled:opacity-50"
               >
                 {modifySubmitting ? (
                   <><Loader2 className="w-4 h-4 animate-spin mr-1" />修改中...</>
@@ -4786,287 +4729,75 @@ export default function OneClickOrderPage() {
           </DialogContent>
         </Dialog>
 
-        {/* 设置对话框 */}
-        <Dialog open={showSettingsDialog} onOpenChange={(open) => {
-          setShowSettingsDialog(open);
-          if (open) { setSettingsFinanceUrl(financeUrl); setSettingsMfyUrl(mfyUrl); setSettingsMfyUsername(mfyUsername); setSettingsMfyPassword(mfyPassword); setSettingsMfyAccounts(mfyAccounts); setSettingsAdminUsernames(adminUsernames); }
-        }}>
-          <DialogContent className="border-slate-700 bg-slate-900 text-slate-100 max-w-lg max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2"><Settings className="w-5 h-5" />系统设置</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              {isAdminUser && (
-              <div>
-                <label className="text-sm text-slate-400 mb-1 block">财务后台地址</label>
-                <input
-                  type="text"
-                  value={settingsFinanceUrl}
-                  onChange={e => setSettingsFinanceUrl(e.target.value)}
-                  placeholder="https://your-idc-admin-url"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 focus:border-cyan-500 focus:outline-none"
-                />
-                <p className="text-xs text-slate-500 mt-1">跳转路径: /#/customer-view/product-innerpage?id=&amp;hid=</p>
-              </div>
-              )}
-              {isAdminUser && (
-              <div>
-                <label className="text-sm text-slate-400 mb-1 block">魔方云地址</label>
-                <input
-                  type="text"
-                  value={settingsMfyUrl}
-                  onChange={e => setSettingsMfyUrl(e.target.value)}
-                  placeholder="https://your-mfy-url"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 focus:border-cyan-500 focus:outline-none"
-                />
-                <p className="text-xs text-slate-500 mt-1">跳转路径: /#/cloudsHome?id=</p>
-              </div>
-              )}
-              {isAdminUser && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-slate-400 mb-1 block">魔方云账号</label>
-                  <input
-                    type="text"
-                    value={settingsMfyUsername}
-                    onChange={e => setSettingsMfyUsername(e.target.value)}
-                    placeholder="admin"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 focus:border-cyan-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-slate-400 mb-1 block">魔方云密码</label>
-                  <input
-                    type="password"
-                    value={settingsMfyPassword}
-                    onChange={e => setSettingsMfyPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 focus:border-cyan-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-slate-400 mb-1 block">魔方云账号映射</label>
-                  <p className="text-xs text-slate-500 mb-2">为不同登录用户配置专属魔方云账号，未匹配时使用上方默认账号</p>
-                  <div className="space-y-2">
-                    {settingsMfyAccounts.map((account, idx) => (
-                      <div key={idx} className="flex flex-wrap gap-2 items-end p-2 bg-slate-800/50 rounded border border-slate-700">
-                        <div className="flex-1 min-w-[100px]">
-                          <label className="text-xs text-slate-500 mb-0.5 block">登录用户名</label>
-                          <input
-                            type="text"
-                            value={account.loginUser}
-                            onChange={e => {
-                              const next = [...settingsMfyAccounts];
-                              next[idx] = { ...next[idx], loginUser: e.target.value };
-                              setSettingsMfyAccounts(next);
-                            }}
-                            placeholder="用户名"
-                            className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-xs text-slate-100 focus:border-cyan-500 focus:outline-none"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-[120px]">
-                          <label className="text-xs text-slate-500 mb-0.5 block">魔方云地址</label>
-                          <input
-                            type="text"
-                            value={account.mfyUrl}
-                            onChange={e => {
-                              const next = [...settingsMfyAccounts];
-                              next[idx] = { ...next[idx], mfyUrl: e.target.value };
-                              setSettingsMfyAccounts(next);
-                            }}
-                            placeholder="https://mfy..."
-                            className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-xs text-slate-100 focus:border-cyan-500 focus:outline-none"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-[80px]">
-                          <label className="text-xs text-slate-500 mb-0.5 block">账号</label>
-                          <input
-                            type="text"
-                            value={account.mfyUsername}
-                            onChange={e => {
-                              const next = [...settingsMfyAccounts];
-                              next[idx] = { ...next[idx], mfyUsername: e.target.value };
-                              setSettingsMfyAccounts(next);
-                            }}
-                            placeholder="账号"
-                            className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-xs text-slate-100 focus:border-cyan-500 focus:outline-none"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-[80px]">
-                          <label className="text-xs text-slate-500 mb-0.5 block">密码</label>
-                          <input
-                            type="password"
-                            value={account.mfyPassword}
-                            onChange={e => {
-                              const next = [...settingsMfyAccounts];
-                              next[idx] = { ...next[idx], mfyPassword: e.target.value };
-                              setSettingsMfyAccounts(next);
-                            }}
-                            placeholder="••••••"
-                            className="w-full px-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-xs text-slate-100 focus:border-cyan-500 focus:outline-none"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setSettingsMfyAccounts(settingsMfyAccounts.filter((_, i) => i !== idx))}
-                          className="px-2 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-colors shrink-0"
-                        >删除</button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setSettingsMfyAccounts([...settingsMfyAccounts, { loginUser: '', mfyUrl: '', mfyUsername: '', mfyPassword: '' }])}
-                      className="w-full py-1.5 text-xs text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20 rounded border border-dashed border-slate-600 hover:border-cyan-500 transition-colors"
-                    >+ 添加映射</button>
-                  </div>
-                </div>
-              </div>
-              )}
-              {isAdminUser && (
-              <div>
-                <label className="text-sm text-slate-400 mb-1 block">管理权限用户名</label>
-                <input
-                  type="text"
-                  value={settingsAdminUsernames}
-                  onChange={e => setSettingsAdminUsernames(e.target.value)}
-                  placeholder="如: admin,lengling,user3"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-100 focus:border-cyan-500 focus:outline-none"
-                />
-                <p className="text-xs text-slate-500 mt-1">多个用户名用英文逗号分隔，列表中的用户可见财务/魔方云相关功能，为空则所有人不可见</p>
-              </div>
-              )}
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm text-slate-300">右侧悬浮用户管理</label>
-                  <p className="text-xs text-slate-500">页面下滑时显示用户搜索、选择和信息查看窗口</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFloatingUserPanelEnabled(prev => {
-                    const next = !prev;
-                    localStorage.setItem('idcsmart_floating_user_panel_enabled', String(next));
-                    return next;
-                  })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${floatingUserPanelEnabled ? 'bg-cyan-500' : 'bg-slate-600'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${floatingUserPanelEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm text-slate-300">搜索后清空输入框</label>
-                  <p className="text-xs text-slate-500">选中用户后自动清空搜索关键词</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAutoClearSearch(prev => {
-                    const next = !prev;
-                    localStorage.setItem('idcsmart_auto_clear_search', String(next));
-                    return next;
-                  })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoClearSearch ? 'bg-cyan-500' : 'bg-slate-600'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autoClearSearch ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-              </div>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setShowSettingsDialog(false)} className="border-slate-600 text-slate-300">取消</Button>
-              <Button
-                onClick={async () => {
-                  try {
-                    await fetch('/api/config', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ financeUrl: settingsFinanceUrl, mfyUrl: settingsMfyUrl, mfyUsername: settingsMfyUsername, mfyPassword: settingsMfyPassword, mfyAccounts: settingsMfyAccounts, adminUsernames: settingsAdminUsernames, productSortOrder, hiddenProductIds }),
-                    });
-                  } catch {}
-                  localStorage.setItem('idcsmart_finance_url', settingsFinanceUrl);
-                  localStorage.setItem('idcsmart_mfy_url', settingsMfyUrl);
-                  setFinanceUrl(settingsFinanceUrl);
-                  setMfyUrl(settingsMfyUrl);
-                  setMfyUsername(settingsMfyUsername);
-                  setMfyPassword(settingsMfyPassword);
-                  setMfyAccounts(settingsMfyAccounts);
-                  setAdminUsernames(settingsAdminUsernames);
-                  setShowSettingsDialog(false);
-                  showNotification('success', '设置已保存');
-                }}
-                className="bg-cyan-500 hover:bg-cyan-600"
-              >保存</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
         {/* 批量导入套餐对话框 */}
         <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-          <DialogContent className="border-slate-700 bg-slate-900 text-slate-100 sm:!max-w-7xl !max-w-7xl w-[98vw] max-h-[85vh] overflow-y-auto p-6">
+          <DialogContent className="border-border bg-card text-foreground sm:!max-w-7xl !max-w-7xl w-[98vw] max-h-[85vh] overflow-y-auto p-6">
             <DialogHeader>
-              <DialogTitle className="text-slate-100 flex items-center gap-2 text-lg">
-                <Plus className="w-5 h-5 text-emerald-400" />
+              <DialogTitle className="text-foreground flex items-center gap-2 text-lg">
+                <Plus className="w-5 h-5 text-success" />
                 批量导入套餐
               </DialogTitle>
-              <DialogDescription className="text-slate-400 text-sm">
+              <DialogDescription className="text-muted-foreground text-sm">
                 填写套餐配置信息，系统会自动匹配当前产品的配置项并保存（每个套餐自动生成月付+年付两条）
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-3">
               <table className="w-full text-sm" style={{ tableLayout: 'auto' }}>
                 <thead>
-                  <tr className="border-b border-slate-600">
-                    <th className="text-left py-3 px-3 text-slate-300 font-semibold text-sm">名称</th>
-                    <th className="text-left py-3 px-3 text-slate-300 font-semibold text-sm">CPU<span className="text-slate-500 font-normal ml-1">(核)</span></th>
-                    <th className="text-left py-3 px-3 text-slate-300 font-semibold text-sm">内存<span className="text-slate-500 font-normal ml-1">(G)</span></th>
-                    <th className="text-left py-3 px-3 text-slate-300 font-semibold text-sm">数据盘</th>
-                    <th className="text-left py-3 px-3 text-slate-300 font-semibold text-sm">带宽<span className="text-slate-500 font-normal ml-1">(M)</span></th>
-                    <th className="text-left py-3 px-3 text-slate-300 font-semibold text-sm">月付价<span className="text-slate-500 font-normal ml-1">(元)</span></th>
-                    <th className="text-left py-3 px-3 text-slate-300 font-semibold text-sm">年付价<span className="text-slate-500 font-normal ml-1">(元)</span></th>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-3 text-foreground/80 font-semibold text-sm">名称</th>
+                    <th className="text-left py-3 px-3 text-foreground/80 font-semibold text-sm">CPU<span className="text-muted-foreground font-normal ml-1">(核)</span></th>
+                    <th className="text-left py-3 px-3 text-foreground/80 font-semibold text-sm">内存<span className="text-muted-foreground font-normal ml-1">(G)</span></th>
+                    <th className="text-left py-3 px-3 text-foreground/80 font-semibold text-sm">数据盘</th>
+                    <th className="text-left py-3 px-3 text-foreground/80 font-semibold text-sm">带宽<span className="text-muted-foreground font-normal ml-1">(M)</span></th>
+                    <th className="text-left py-3 px-3 text-foreground/80 font-semibold text-sm">月付价<span className="text-muted-foreground font-normal ml-1">(元)</span></th>
+                    <th className="text-left py-3 px-3 text-foreground/80 font-semibold text-sm">年付价<span className="text-muted-foreground font-normal ml-1">(元)</span></th>
                     <th className="py-3 px-2 w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {importRows.map((row, idx) => (
-                    <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+                    <tr key={idx} className="border-b border-border/50 hover:bg-muted/30">
                       <td className="py-2 px-3">
                         <Input value={row.name} onChange={(e) => updateImportRow(idx, 'name', e.target.value)}
-                          className="bg-slate-800/50 border-slate-600 text-white h-9 text-sm w-full min-w-[80px]" />
+                          className="bg-muted/50 border-border text-foreground h-9 text-sm w-full min-w-[80px]" />
                       </td>
                       <td className="py-2 px-3">
                         <div className="flex items-center gap-1">
                           <Input type="number" min="1" value={row.cpu} onChange={(e) => updateImportRow(idx, 'cpu', e.target.value)} placeholder="2"
-                            className="bg-slate-800/50 border-slate-600 text-white h-9 text-sm w-full min-w-[50px]" />
-                          <span className="text-slate-400 text-sm shrink-0">核</span>
+                            className="bg-muted/50 border-border text-foreground h-9 text-sm w-full min-w-[50px]" />
+                          <span className="text-muted-foreground text-sm shrink-0">核</span>
                         </div>
                       </td>
                       <td className="py-2 px-3">
                         <div className="flex items-center gap-1">
                           <Input type="number" min="1" value={row.ram} onChange={(e) => updateImportRow(idx, 'ram', e.target.value)} placeholder="2"
-                            className="bg-slate-800/50 border-slate-600 text-white h-9 text-sm w-full min-w-[50px]" />
-                          <span className="text-slate-400 text-sm shrink-0">G</span>
+                            className="bg-muted/50 border-border text-foreground h-9 text-sm w-full min-w-[50px]" />
+                          <span className="text-muted-foreground text-sm shrink-0">G</span>
                         </div>
                       </td>
                       <td className="py-2 px-3">
                           <Input type="number" min="0" value={row.disk} onChange={(e) => updateImportRow(idx, 'disk', e.target.value)} placeholder="30"
-                            className="bg-slate-800/50 border-slate-600 text-white h-9 text-sm w-full min-w-[50px]" />
+                            className="bg-muted/50 border-border text-foreground h-9 text-sm w-full min-w-[50px]" />
                       </td>
                       <td className="py-2 px-3">
                         <div className="flex items-center gap-1">
                           <Input type="number" min="1" value={row.bandwidth} onChange={(e) => updateImportRow(idx, 'bandwidth', e.target.value)} placeholder="30"
-                            className="bg-slate-800/50 border-slate-600 text-white h-9 text-sm w-full min-w-[50px]" />
-                          <span className="text-slate-400 text-sm shrink-0">M</span>
+                            className="bg-muted/50 border-border text-foreground h-9 text-sm w-full min-w-[50px]" />
+                          <span className="text-muted-foreground text-sm shrink-0">M</span>
                         </div>
                       </td>
                       <td className="py-2 px-3">
                         <Input type="number" min="0" value={row.monthlyPrice} onChange={(e) => updateImportRow(idx, 'monthlyPrice', e.target.value)} placeholder="19"
-                          className="bg-slate-800/50 border-slate-600 text-white h-9 text-sm w-full min-w-[70px]" />
+                          className="bg-muted/50 border-border text-foreground h-9 text-sm w-full min-w-[70px]" />
                       </td>
                       <td className="py-2 px-3">
                         <Input type="number" min="0" value={row.annuallyPrice} onChange={(e) => updateImportRow(idx, 'annuallyPrice', e.target.value)} placeholder="190"
-                          className="bg-slate-800/50 border-slate-600 text-white h-9 text-sm w-full min-w-[70px]" />
+                          className="bg-muted/50 border-border text-foreground h-9 text-sm w-full min-w-[70px]" />
                       </td>
                       <td className="py-2 px-2 text-center">
                         <button type="button" onClick={() => removeImportRow(idx)}
-                          className="text-slate-500 hover:text-red-400 transition-colors p-1">
+                          className="text-muted-foreground hover:text-destructive transition-colors p-1">
                           <X className="w-4 h-4" />
                         </button>
                       </td>
@@ -5076,19 +4807,19 @@ export default function OneClickOrderPage() {
               </table>
               <div className="flex items-center gap-4 pt-1">
                 <Button type="button" variant="outline" size="sm" onClick={addImportRow}
-                  className="border-dashed border-slate-600 text-slate-400 hover:text-white h-8 text-sm">
+                  className="border-dashed border-border text-muted-foreground hover:text-foreground h-8 text-sm">
                   <Plus className="w-3.5 h-3.5 mr-1.5" /> 添加一行
                 </Button>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted-foreground">
                   只需输入数字，系统会自动匹配产品配置项
                 </span>
               </div>
             </div>
             <DialogFooter className="mt-6 gap-3">
               <Button type="button" variant="ghost" onClick={() => setShowImportDialog(false)}
-                className="text-slate-400 hover:text-white">取消</Button>
+                className="text-muted-foreground hover:text-foreground">取消</Button>
               <Button type="button" onClick={handleBatchImport} disabled={importingPackages}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6">
+                className="bg-success hover:bg-success/90 text-success-foreground px-6">
                 {importingPackages ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 导入 {importRows.filter(r => r.monthlyPrice || r.annuallyPrice).length} 个套餐 × 2周期
               </Button>
@@ -5098,10 +4829,10 @@ export default function OneClickOrderPage() {
 
         {/* 产品排序对话框 */}
         <Dialog open={showGroupSortDialog} onOpenChange={setShowGroupSortDialog}>
-          <DialogContent className="border-slate-700 bg-slate-900 text-slate-100 sm:max-w-md">
+          <DialogContent className="border-border bg-card text-foreground sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-orange-400">产品排序与显示</DialogTitle>
-              <DialogDescription className="text-slate-400 text-xs">拖拽调整产品在下拉框中的显示顺序，点击眼睛图标隐藏/显示产品</DialogDescription>
+              <DialogTitle className="text-primary">产品排序与显示</DialogTitle>
+              <DialogDescription className="text-muted-foreground text-xs">拖拽调整产品在下拉框中的显示顺序，点击眼睛图标隐藏/显示产品</DialogDescription>
             </DialogHeader>
             <DndContext
               sensors={dragSensors}
@@ -5142,7 +4873,7 @@ export default function OneClickOrderPage() {
             </DndContext>
             <DialogFooter className="gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setShowGroupSortDialog(false)}
-                className="border-slate-600 text-slate-400">
+                className="border-border text-muted-foreground">
                 取消
               </Button>
               <Button type="button" size="sm" onClick={async () => {
@@ -5153,7 +4884,7 @@ export default function OneClickOrderPage() {
                 });
                 setShowGroupSortDialog(false);
                 showNotification('success', '产品排序与显示已保存');
-              }} className="bg-orange-500 hover:bg-orange-600 text-white">
+              }} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 保存
               </Button>
             </DialogFooter>
@@ -5162,36 +4893,36 @@ export default function OneClickOrderPage() {
 
         {/* 编辑套餐对话框 */}
         <Dialog open={showEditPackageDialog} onOpenChange={(open) => { setShowEditPackageDialog(open); if (!open) setEditingPackage(null); }}>
-          <DialogContent className="border-slate-700 bg-slate-900 text-slate-100 sm:max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="border-border bg-card text-foreground sm:max-w-4xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-slate-100 flex items-center gap-2">
-                <Pencil className="w-5 h-5 text-blue-400" />
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-info" />
                 编辑套餐
               </DialogTitle>
-              <DialogDescription className="text-slate-400">修改套餐配置信息</DialogDescription>
+              <DialogDescription className="text-muted-foreground">修改套餐配置信息</DialogDescription>
             </DialogHeader>
             {editingPackage && (
               <div className="space-y-4">
                 {/* 基本信息 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-slate-300 text-xs mb-1 block">套餐名称</Label>
+                    <Label className="text-foreground/80 text-xs mb-1 block">套餐名称</Label>
                     <Input
                       value={editingPackage.name}
                       onChange={(e) => setEditingPackage({ ...editingPackage, name: e.target.value })}
-                      className="bg-slate-700/50 border-slate-600 text-white text-sm h-9"
+                      className="bg-muted border-border text-foreground text-sm h-9"
                     />
                   </div>
                   <div>
-                    <Label className="text-slate-300 text-xs mb-1 block">产品名称</Label>
+                    <Label className="text-foreground/80 text-xs mb-1 block">产品名称</Label>
                     <Input
                       value={editingPackage.productName}
                       onChange={(e) => setEditingPackage({ ...editingPackage, productName: e.target.value })}
-                      className="bg-slate-700/50 border-slate-600 text-white text-sm h-9"
+                      className="bg-muted border-border text-foreground text-sm h-9"
                     />
                   </div>
                   <div>
-                    <Label className="text-slate-300 text-xs mb-1 block">计费周期</Label>
+                    <Label className="text-foreground/80 text-xs mb-1 block">计费周期</Label>
                     <Select
                       value={editingPackage.billingCycle}
                       onValueChange={(val) => setEditingPackage({
@@ -5200,49 +4931,49 @@ export default function OneClickOrderPage() {
                         billingCycleLabel: val === 'monthly' ? '月付' : val === 'annually' ? '年付' : val,
                       })}
                     >
-                      <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white text-sm h-9">
+                      <SelectTrigger className="bg-muted border-border text-foreground text-sm h-9">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
-                        <SelectItem value="monthly" className="text-white focus:bg-slate-700">月付</SelectItem>
-                        <SelectItem value="annually" className="text-white focus:bg-slate-700">年付</SelectItem>
+                      <SelectContent className="bg-popover border-border">
+                        <SelectItem value="monthly" className="text-foreground focus:bg-accent">月付</SelectItem>
+                        <SelectItem value="annually" className="text-foreground focus:bg-accent">年付</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-slate-300 text-xs mb-1 block">数量</Label>
+                    <Label className="text-foreground/80 text-xs mb-1 block">数量</Label>
                     <Input
                       type="number"
                       min={1}
                       value={editingPackage.productQty}
                       onChange={(e) => setEditingPackage({ ...editingPackage, productQty: parseInt(e.target.value) || 1 })}
-                      className="bg-slate-700/50 border-slate-600 text-white text-sm h-9"
+                      className="bg-muted border-border text-foreground text-sm h-9"
                     />
                   </div>
                   <div>
-                    <Label className="text-slate-300 text-xs mb-1 block">首次价格</Label>
+                    <Label className="text-foreground/80 text-xs mb-1 block">首次价格</Label>
                     <Input
                       value={editingPackage.firstPrice}
                       onChange={(e) => setEditingPackage({ ...editingPackage, firstPrice: e.target.value })}
-                      className="bg-slate-700/50 border-slate-600 text-white text-sm h-9"
+                      className="bg-muted border-border text-foreground text-sm h-9"
                       placeholder="0.00"
                     />
                   </div>
                   <div>
-                    <Label className="text-slate-300 text-xs mb-1 block">续费价格</Label>
+                    <Label className="text-foreground/80 text-xs mb-1 block">续费价格</Label>
                     <Input
                       value={editingPackage.renewPrice}
                       onChange={(e) => setEditingPackage({ ...editingPackage, renewPrice: e.target.value })}
-                      className="bg-slate-700/50 border-slate-600 text-white text-sm h-9"
+                      className="bg-muted border-border text-foreground text-sm h-9"
                       placeholder="0.00"
                     />
                   </div>
                   <div>
-                    <Label className="text-slate-300 text-xs mb-1 block">支付网关</Label>
+                    <Label className="text-foreground/80 text-xs mb-1 block">支付网关</Label>
                     <Input
                       value={editingPackage.gateway}
                       onChange={(e) => setEditingPackage({ ...editingPackage, gateway: e.target.value })}
-                      className="bg-slate-700/50 border-slate-600 text-white text-sm h-9"
+                      className="bg-muted border-border text-foreground text-sm h-9"
                     />
                   </div>
                   <div className="flex items-end gap-4">
@@ -5251,31 +4982,31 @@ export default function OneClickOrderPage() {
                         type="checkbox"
                         checked={editingPackage.useCredit}
                         onChange={(e) => setEditingPackage({ ...editingPackage, useCredit: e.target.checked })}
-                        className="rounded border-slate-600 bg-slate-700"
+                        className="rounded border-border bg-accent"
                       />
-                      <span className="text-slate-300 text-xs">使用余额</span>
+                      <span className="text-foreground/80 text-xs">使用余额</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={editingPackage.autoRecharge}
                         onChange={(e) => setEditingPackage({ ...editingPackage, autoRecharge: e.target.checked })}
-                        className="rounded border-slate-600 bg-slate-700"
+                        className="rounded border-border bg-accent"
                       />
-                      <span className="text-slate-300 text-xs">自动充余额</span>
+                      <span className="text-foreground/80 text-xs">自动充余额</span>
                     </label>
                   </div>
                 </div>
                 {/* 配置项 */}
                 <div>
-                  <Label className="text-slate-300 text-xs mb-2 block">配置项</Label>
+                  <Label className="text-foreground/80 text-xs mb-2 block">配置项</Label>
                   {isLoadingEditConfig ? (
-                    <div className="flex items-center gap-2 text-slate-400 text-xs py-3">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs py-3">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       加载配置选项中...
                     </div>
                   ) : (
-                  <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 max-h-60 overflow-y-auto">
+                  <div className="bg-muted/50 rounded-lg border border-border p-3 max-h-60 overflow-y-auto">
                     <div className="space-y-2">
                       {(() => {
                         // 收集所有 os_cat_ 对应的 optId，这些纯数字 key 不单独渲染
@@ -5320,7 +5051,7 @@ export default function OneClickOrderPage() {
                         const configOpt = editConfigOptions.find(o => o.id === optId);
                         return (
                           <div key={key} className="flex items-center gap-2">
-                            <span className="text-slate-400 text-xs w-28 shrink-0 truncate" title={optName}>{optName}</span>
+                            <span className="text-muted-foreground text-xs w-28 shrink-0 truncate" title={optName}>{optName}</span>
                             {key.startsWith('os_cat_') && configOpt && configOpt.option_type === 5 && typeof configOpt.child === 'object' && !Array.isArray(configOpt.child) ? (
                               <div className="flex flex-col sm:flex-row gap-1.5 flex-1">
                                 {/* 一级：系统分类 */}
@@ -5336,12 +5067,12 @@ export default function OneClickOrderPage() {
                                     setEditingPackage({ ...editingPackage!, configValues: newConfig });
                                   }}
                                 >
-                                  <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white text-xs h-7 flex-1">
+                                  <SelectTrigger className="bg-muted border-border text-foreground text-xs h-7 flex-1">
                                     <SelectValue placeholder="选择系统" />
                                   </SelectTrigger>
-                                  <SelectContent className="bg-slate-800 border-slate-700 max-h-48">
+                                  <SelectContent className="bg-popover border-border max-h-48">
                                     {Object.entries(configOpt.child as Record<string, { system?: string; child: Array<{ id: number }> }>).map(([catKey, cat]) => (
-                                      <SelectItem key={catKey} value={catKey} className="text-white text-xs">
+                                      <SelectItem key={catKey} value={catKey} className="text-foreground text-xs">
                                         {cat.system || catKey}
                                       </SelectItem>
                                     ))}
@@ -5361,12 +5092,12 @@ export default function OneClickOrderPage() {
                                       }}
                                       disabled={!displayValue || versions.length === 0}
                                     >
-                                      <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white text-xs h-7 flex-1">
+                                      <SelectTrigger className="bg-muted border-border text-foreground text-xs h-7 flex-1">
                                         <SelectValue placeholder={displayValue ? '选择版本' : '先选系统'} />
                                       </SelectTrigger>
-                                      <SelectContent className="bg-slate-800 border-slate-700 max-h-48">
+                                      <SelectContent className="bg-popover border-border max-h-48">
                                         {versions.map((item) => (
-                                          <SelectItem key={item.id} value={String(item.id)} className="text-white text-xs">
+                                          <SelectItem key={item.id} value={String(item.id)} className="text-foreground text-xs">
                                             {item.version || String(item.id)}
                                           </SelectItem>
                                         ))}
@@ -5382,7 +5113,7 @@ export default function OneClickOrderPage() {
                                   const newConfig = { ...editingPackage!.configValues, [key]: e.target.value };
                                   setEditingPackage({ ...editingPackage!, configValues: newConfig });
                                 }}
-                                className="bg-slate-700/50 border-slate-600 text-white text-xs h-7 flex-1"
+                                className="bg-muted border-border text-foreground text-xs h-7 flex-1"
                                 placeholder="如: debian, centos, ubuntu"
                               />
                             ) : key.startsWith('qty_') ? (
@@ -5393,7 +5124,7 @@ export default function OneClickOrderPage() {
                                   const newConfig = { ...editingPackage!.configValues, [key]: e.target.value };
                                   setEditingPackage({ ...editingPackage!, configValues: newConfig });
                                 }}
-                                className="bg-slate-700/50 border-slate-600 text-white text-xs h-7 flex-1"
+                                className="bg-muted border-border text-foreground text-xs h-7 flex-1"
                                 placeholder="数量"
                               />
                             ) : configOpt && Array.isArray(configOpt.child) && (configOpt.child as ConfigSubItem[]).length > 0 ? (
@@ -5404,12 +5135,12 @@ export default function OneClickOrderPage() {
                                   setEditingPackage({ ...editingPackage!, configValues: newConfig });
                                 }}
                               >
-                                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white text-xs h-7 flex-1">
+                                <SelectTrigger className="bg-muted border-border text-foreground text-xs h-7 flex-1">
                                   <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-slate-800 border-slate-700 max-h-48">
+                                <SelectContent className="bg-popover border-border max-h-48">
                                   {(configOpt.child as ConfigSubItem[]).map(sub => (
-                                    <SelectItem key={sub.id} value={String(sub.id)} className="text-white text-xs">
+                                    <SelectItem key={sub.id} value={String(sub.id)} className="text-foreground text-xs">
                                       {sub.option_name || sub.option_name_first || String(sub.id)}
                                     </SelectItem>
                                   ))}
@@ -5422,14 +5153,14 @@ export default function OneClickOrderPage() {
                                   const newConfig = { ...editingPackage.configValues, [key]: e.target.value };
                                   setEditingPackage({ ...editingPackage, configValues: newConfig });
                                 }}
-                                className="bg-slate-700/50 border-slate-600 text-white text-xs h-7 flex-1"
+                                className="bg-muted border-border text-foreground text-xs h-7 flex-1"
                               />
                             )}
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="text-red-400 hover:text-red-300 h-7 w-7 p-0 shrink-0"
+                              className="text-destructive hover:text-destructive/80 h-7 w-7 p-0 shrink-0"
                               onClick={() => {
                                 const newConfig = { ...editingPackage.configValues };
                                 delete newConfig[key];
@@ -5442,26 +5173,26 @@ export default function OneClickOrderPage() {
                         );
                       })}
                       {Object.keys(editingPackage.configValues).length === 0 && (
-                        <p className="text-slate-500 text-xs text-center py-2">无配置项</p>
+                        <p className="text-muted-foreground text-xs text-center py-2">无配置项</p>
                       )}
                     </div>
                     {/* 添加新配置项 */}
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-700">
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
                       <Input
                         placeholder="Key"
-                        className="bg-slate-700/50 border-slate-600 text-white text-xs h-7 w-32 font-mono"
+                        className="bg-muted border-border text-foreground text-xs h-7 w-32 font-mono"
                         id="new-config-key"
                       />
                       <Input
                         placeholder="Value"
-                        className="bg-slate-700/50 border-slate-600 text-white text-xs h-7 flex-1 font-mono"
+                        className="bg-muted border-border text-foreground text-xs h-7 flex-1 font-mono"
                         id="new-config-value"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="text-green-400 hover:text-green-300 h-7 px-2 shrink-0"
+                        className="text-success hover:text-success/80 h-7 px-2 shrink-0"
                         onClick={() => {
                           const keyInput = document.getElementById('new-config-key') as HTMLInputElement;
                           const valInput = document.getElementById('new-config-value') as HTMLInputElement;
@@ -5483,15 +5214,15 @@ export default function OneClickOrderPage() {
                 </div>
                 {/* 自定义字段 */}
                 <div>
-                  <Label className="text-slate-300 text-xs mb-2 block">自定义字段 (customFieldValues)</Label>
-                  <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 max-h-40 overflow-y-auto">
+                  <Label className="text-foreground/80 text-xs mb-2 block">自定义字段 (customFieldValues)</Label>
+                  <div className="bg-muted/50 rounded-lg border border-border p-3 max-h-40 overflow-y-auto">
                     <div className="space-y-2">
                       {Object.entries(editingPackage.customFieldValues).map(([key, value]) => (
                         <div key={key} className="flex items-center gap-2">
                           <Input
                             value={key}
                             readOnly
-                            className="bg-slate-700/50 border-slate-600 text-slate-400 text-xs h-7 w-32 font-mono"
+                            className="bg-muted border-border text-muted-foreground text-xs h-7 w-32 font-mono"
                           />
                           <Input
                             value={value}
@@ -5499,13 +5230,13 @@ export default function OneClickOrderPage() {
                               const newFields = { ...editingPackage.customFieldValues, [key]: e.target.value };
                               setEditingPackage({ ...editingPackage, customFieldValues: newFields });
                             }}
-                            className="bg-slate-700/50 border-slate-600 text-white text-xs h-7 flex-1 font-mono"
+                            className="bg-muted border-border text-foreground text-xs h-7 flex-1 font-mono"
                           />
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="text-red-400 hover:text-red-300 h-7 w-7 p-0 shrink-0"
+                            className="text-destructive hover:text-destructive/80 h-7 w-7 p-0 shrink-0"
                             onClick={() => {
                               const newFields = { ...editingPackage.customFieldValues };
                               delete newFields[key];
@@ -5522,36 +5253,36 @@ export default function OneClickOrderPage() {
               </div>
             )}
             <DialogFooter className="gap-2 shrink-0">
-              <Button variant="outline" onClick={() => { setShowEditPackageDialog(false); setEditingPackage(null); }} className="border-slate-600 text-slate-300">取消</Button>
-              <Button onClick={saveEditPackage} className="bg-blue-500 hover:bg-blue-600">
+              <Button variant="outline" onClick={() => { setShowEditPackageDialog(false); setEditingPackage(null); }} className="border-border text-foreground/80">取消</Button>
+              <Button onClick={saveEditPackage} className="bg-info text-info-foreground hover:bg-info/90">
                 <Pencil className="w-4 h-4 mr-1" />保存修改
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
         <Dialog open={showCertifiConfirm} onOpenChange={setShowCertifiConfirm}>
-          <DialogContent className="border-slate-700 bg-slate-900 text-slate-100">
+          <DialogContent className="border-border bg-card text-foreground">
             <DialogHeader>
-              <DialogTitle className="text-slate-100 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-warning" />
                 用户未实名认证
               </DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogDescription className="text-muted-foreground">
                 当前用户实名认证状态异常，请确认是否继续开通
               </DialogDescription>
             </DialogHeader>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+            <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-amber-400 font-medium">认证状态：</span>
-                <span className="text-amber-300 font-bold">{certifiInfo?.msg || '未认证'}</span>
+                <span className="text-warning font-medium">认证状态：</span>
+                <span className="text-warning font-bold">{certifiInfo?.msg || '未认证'}</span>
               </div>
-              <div className="text-sm text-slate-400">
-                用户 <span className="text-slate-200 font-medium">{selectedUser?.username}</span>（ID: {selectedUser?.id}）尚未完成实名认证，继续开通可能存在风险。
+              <div className="text-sm text-muted-foreground">
+                用户 <span className="text-foreground font-medium">{selectedUser?.username}</span>（ID: {selectedUser?.id}）尚未完成实名认证，继续开通可能存在风险。
               </div>
             </div>
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setShowCertifiConfirm(false)} className="border-slate-600 text-slate-300">取消</Button>
-              <Button onClick={() => { setShowCertifiConfirm(false); executeProvision(); }} className="bg-amber-500 hover:bg-amber-600">
+              <Button variant="outline" onClick={() => setShowCertifiConfirm(false)} className="border-border text-foreground/80">取消</Button>
+              <Button onClick={() => { setShowCertifiConfirm(false); executeProvision(); }} className="bg-warning text-warning-foreground hover:bg-warning/90">
                 我已确认，继续开通
               </Button>
             </DialogFooter>
@@ -5559,48 +5290,48 @@ export default function OneClickOrderPage() {
         </Dialog>
 
         <Dialog open={showCreateConfirm} onOpenChange={setShowCreateConfirm}>
-          <DialogContent className="border-slate-700 bg-slate-900 text-slate-100 sm:!max-w-md max-h-[85vh] flex flex-col p-0">
+          <DialogContent className="border-border bg-card text-foreground sm:!max-w-md max-h-[85vh] flex flex-col p-0">
             <DialogHeader className="px-4 pt-4 pb-1.5 shrink-0">
-              <DialogTitle className="text-slate-100 flex items-center gap-2 text-base">
-                <Zap className="w-4 h-4 text-orange-400" />
+              <DialogTitle className="text-foreground flex items-center gap-2 text-base">
+                <Zap className="w-4 h-4 text-primary" />
                 确认开通服务器
               </DialogTitle>
-              <DialogDescription className="text-slate-400 text-xs">
+              <DialogDescription className="text-muted-foreground text-xs">
                 请确认以下开通信息，避免误操作
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2 overflow-y-auto flex-1 px-4 pb-2 min-h-0">
-              <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-2.5 space-y-1.5">
-                <div className="text-xs font-medium text-slate-200">基本信息</div>
+              <div className="rounded-lg border border-border bg-background/60 p-2.5 space-y-1.5">
+                <div className="text-xs font-medium text-foreground">基本信息</div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                   <div className="flex justify-between gap-1 col-span-2">
-                    <span className="text-slate-400">产品名称</span>
-                    <span className="text-slate-100 font-semibold truncate ml-1">{selectedProductDetail?.name || savedPackages.find(p => p.productId === selectedProductId)?.productName || ''}</span>
+                    <span className="text-muted-foreground">产品名称</span>
+                    <span className="text-foreground font-semibold truncate ml-1">{selectedProductDetail?.name || savedPackages.find(p => p.productId === selectedProductId)?.productName || ''}</span>
                   </div>
                   {selectedPackageId && (() => {
                     const pkg = savedPackages.find(p => p.id === selectedPackageId);
                     return pkg ? (
                       <div className="flex justify-between gap-1 col-span-2">
-                        <span className="text-slate-400">套餐名称</span>
-                        <span className="text-orange-300 font-semibold truncate ml-1">{pkg.name}</span>
+                        <span className="text-muted-foreground">套餐名称</span>
+                        <span className="text-primary font-semibold truncate ml-1">{pkg.name}</span>
                       </div>
                     ) : null;
                   })()}
                   <div className="flex justify-between gap-1">
-                    <span className="text-slate-400">套餐类型</span>
-                    <span className="text-slate-100">{productCycles.find(c => c.value === selectedBillingCycle)?.label || selectedBillingCycle}</span>
+                    <span className="text-muted-foreground">套餐类型</span>
+                    <span className="text-foreground">{productCycles.find(c => c.value === selectedBillingCycle)?.label || selectedBillingCycle}</span>
                   </div>
                   <div className="flex justify-between gap-1">
-                    <span className="text-slate-400">开通数量</span>
-                    <span className="text-slate-100">{productQty} 台</span>
+                    <span className="text-muted-foreground">开通数量</span>
+                    <span className="text-foreground">{productQty} 台</span>
                   </div>
                   <div className="flex justify-between gap-1">
-                    <span className="text-slate-400">开通价格</span>
-                    <span className="text-orange-400 font-bold">¥{firstPrice || '0'}</span>
+                    <span className="text-muted-foreground">开通价格</span>
+                    <span className="text-primary font-bold">¥{firstPrice || '0'}</span>
                   </div>
                   <div className="flex justify-between gap-1">
-                    <span className="text-slate-400">续费价格</span>
-                    <span className="text-orange-300 font-semibold">¥{renewPrice || '0'}</span>
+                    <span className="text-muted-foreground">续费价格</span>
+                    <span className="text-primary font-semibold">¥{renewPrice || '0'}</span>
                   </div>
                 </div>
               </div>
@@ -5625,8 +5356,8 @@ export default function OneClickOrderPage() {
                     if (!osDisplay) return null;
                     return (
                       <div key={opt.id} className="flex justify-between gap-1">
-                        <span className="text-slate-400">{opt.option_name}</span>
-                        <span className={highlight ? 'text-orange-300 font-semibold' : 'text-slate-100'}>{osDisplay}</span>
+                        <span className="text-muted-foreground">{opt.option_name}</span>
+                        <span className={highlight ? 'text-primary font-semibold' : 'text-foreground'}>{osDisplay}</span>
                       </div>
                     );
                   }
@@ -5648,20 +5379,20 @@ export default function OneClickOrderPage() {
                   if (!displayValue) return null;
                   return (
                     <div key={opt.id} className="flex justify-between gap-1">
-                      <span className="text-slate-400">{opt.option_name}</span>
-                      <span className={highlight ? 'text-orange-300 font-semibold' : 'text-slate-100'}>{displayValue}</span>
+                      <span className="text-muted-foreground">{opt.option_name}</span>
+                      <span className={highlight ? 'text-primary font-semibold' : 'text-foreground'}>{displayValue}</span>
                     </div>
                   );
                 };
                 const hasContent = selectedNodeName || visibleOpts.length > 0 || osOpts.length > 0;
                 return hasContent ? (
-                  <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-2.5 space-y-1.5">
-                    <div className="text-xs font-medium text-slate-200">服务器参数</div>
+                  <div className="rounded-lg border border-border bg-background/60 p-2.5 space-y-1.5">
+                    <div className="text-xs font-medium text-foreground">服务器参数</div>
                     <div className="grid grid-cols-1 gap-y-1 text-xs">
                       {selectedNodeName && (
                         <div className="flex justify-between gap-1">
-                          <span className="text-slate-400">节点</span>
-                          <span className="text-orange-300 font-semibold">{selectedNodeName}</span>
+                          <span className="text-muted-foreground">节点</span>
+                          <span className="text-primary font-semibold">{selectedNodeName}</span>
                         </div>
                       )}
                       {visibleOpts.map(opt => renderOpt(opt, false))}
@@ -5671,26 +5402,26 @@ export default function OneClickOrderPage() {
                 ) : null;
               })()}
               {selectedUser && (
-                <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-2.5 space-y-1 text-xs">
-                  <div className="text-xs font-medium text-slate-200">开通用户</div>
+                <div className="rounded-lg border border-border bg-background/60 p-2.5 space-y-1 text-xs">
+                  <div className="text-xs font-medium text-foreground">开通用户</div>
                   <div className="flex justify-between gap-1">
-                    <span className="text-slate-400">用户名</span>
-                    <span className="text-slate-100">{selectedUser.username || '-'}</span>
+                    <span className="text-muted-foreground">用户名</span>
+                    <span className="text-foreground">{selectedUser.username || '-'}</span>
                   </div>
                   <div className="flex justify-between gap-1">
-                    <span className="text-slate-400">UID</span>
-                    <span className="text-slate-100">{selectedUser.id}</span>
+                    <span className="text-muted-foreground">UID</span>
+                    <span className="text-foreground">{selectedUser.id}</span>
                   </div>
                   <div className="flex justify-between gap-1">
-                    <span className="text-slate-400">当前余额</span>
-                    <span className="text-orange-400 font-bold">¥{selectedUser.credit || '0.00'}</span>
+                    <span className="text-muted-foreground">当前余额</span>
+                    <span className="text-primary font-bold">¥{selectedUser.credit || '0.00'}</span>
                   </div>
                 </div>
               )}
             </div>
-            <DialogFooter className="gap-2 px-4 pb-4 pt-2 shrink-0 border-t border-slate-700/50">
-              <Button variant="outline" onClick={() => setShowCreateConfirm(false)} className="border-slate-600 text-slate-300">取消</Button>
-              <Button onClick={confirmAndCreate} className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700">
+            <DialogFooter className="gap-2 px-4 pb-4 pt-2 shrink-0 border-t border-border/50">
+              <Button variant="outline" onClick={() => setShowCreateConfirm(false)} className="border-border text-foreground/80">取消</Button>
+              <Button onClick={confirmAndCreate} className="bg-primary hover:bg-primary/90">
                 <Zap className="w-4 h-4 mr-1" />确认开通
               </Button>
             </DialogFooter>
@@ -5701,13 +5432,13 @@ export default function OneClickOrderPage() {
         <Dialog open={showQuickUserSearch} onOpenChange={(open) => {
           if (!open) { setShowQuickUserSearch(false); setPendingProvision(false); setQuickSearchResults([]); }
         }}>
-          <DialogContent className="sm:!max-w-md bg-slate-900 border-slate-700 text-slate-100" showCloseButton={false}>
+          <DialogContent className="sm:!max-w-md bg-card border-border text-foreground" showCloseButton={false}>
             <DialogHeader>
-              <DialogTitle className="text-slate-100 flex items-center gap-2">
-                <Users className="w-5 h-5 text-orange-400" />
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
                 请先选择用户
               </DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogDescription className="text-muted-foreground">
                 开通产品前需要先选择一个用户，搜索并选中后自动继续开通
               </DialogDescription>
             </DialogHeader>
@@ -5716,7 +5447,7 @@ export default function OneClickOrderPage() {
                 <select
                   value={quickSearchType}
                   onChange={(e) => setQuickSearchType(e.target.value as typeof quickSearchType)}
-                  className="h-9 rounded-md border border-slate-600 bg-slate-800 text-sm text-white px-2 shrink-0"
+                  className="h-9 rounded-md border border-border bg-muted text-sm text-foreground px-2 shrink-0"
                 >
                   <option value="auto">自动</option>
                   <option value="uid">UID</option>
@@ -5731,33 +5462,33 @@ export default function OneClickOrderPage() {
                     value={quickSearchKeyword}
                     onChange={(e) => { setQuickSearchKeyword(e.target.value); if (!e.target.value) setQuickSearchResults([]); }}
                     onKeyDown={(e) => e.key === 'Enter' && handleQuickSearchUsers()}
-                    className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500 pr-8"
+                    className="bg-muted border-border text-foreground placeholder:text-muted-foreground pr-8"
                     autoFocus
                   />
                   {quickSearchKeyword && (
-                    <button onClick={() => { setQuickSearchKeyword(''); setQuickSearchResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                    <button onClick={() => { setQuickSearchKeyword(''); setQuickSearchResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
-                <Button onClick={handleQuickSearchUsers} disabled={quickIsSearching} className="bg-orange-500 hover:bg-orange-600 shrink-0">
+                <Button onClick={handleQuickSearchUsers} disabled={quickIsSearching} className="bg-primary hover:bg-primary/90 shrink-0">
                   {quickIsSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 </Button>
               </div>
               {quickSearchResults.length > 0 && (
-                <div className="border border-slate-600 rounded-lg overflow-hidden max-h-56 overflow-y-auto">
+                <div className="border border-border rounded-lg overflow-hidden max-h-56 overflow-y-auto">
                   {quickSearchResults.map((user) => (
                     <div key={user.id} onClick={() => handleQuickSelectUser(user)}
-                      className="px-3 py-2.5 cursor-pointer transition-colors border-b border-slate-700 last:border-b-0 hover:bg-orange-500/20">
+                      className="px-3 py-2.5 cursor-pointer transition-colors border-b border-border last:border-b-0 hover:bg-primary/90/20">
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-white font-medium text-sm truncate">{user.username}</p>
-                          <p className="text-slate-400 text-xs truncate">{user.email || user.phone || user.phonenumber || '无联系方式'}</p>
+                          <p className="text-foreground font-medium text-sm truncate">{user.username}</p>
+                          <p className="text-muted-foreground text-xs truncate">{user.email || user.phone || user.phonenumber || '无联系方式'}</p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-slate-300 text-xs">ID: {user.id}</p>
-                          <p className="text-emerald-400 text-xs">余额: ¥{user.credit || '0'}</p>
-                          <p className={`text-xs mt-0.5 ${user.person_status === '已认证' ? 'text-emerald-400' : user.company_status === '已认证' ? 'text-blue-400' : 'text-red-400'}`}>
+                          <p className="text-foreground/80 text-xs">ID: {user.id}</p>
+                          <p className="text-success text-xs">余额: ¥{user.credit || '0'}</p>
+                          <p className={`text-xs mt-0.5 ${user.person_status === '已认证' ? 'text-success' : user.company_status === '已认证' ? 'text-info' : 'text-destructive'}`}>
                             {user.person_status === '已认证' ? '✓ 个人已认证' : user.company_status === '已认证' ? '✓ 企业已认证' : '✗ 未认证'}
                           </p>
                         </div>
@@ -5769,20 +5500,20 @@ export default function OneClickOrderPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => { setShowQuickUserSearch(false); setPendingProvision(false); setQuickSearchResults([]); }}
-                className="border-slate-600 text-slate-300 hover:text-white">取消</Button>
+                className="border-border text-foreground/80 hover:text-foreground">取消</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* 退款删除确认对话框 */}
         <Dialog open={showRefundConfirm} onOpenChange={(open: boolean) => { if (!isRefundDeleting) { setShowRefundConfirm(open); if (!open) setRefundSteps([]); } }}>
-          <DialogContent className="border-slate-700 bg-slate-900 text-slate-100 max-w-lg w-[95vw] max-h-[85vh] flex flex-col">
+          <DialogContent className="border-border bg-card text-foreground max-w-lg w-[95vw] max-h-[85vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle className="text-slate-100 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-500" />
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
                 退款并终止服务器
               </DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogDescription className="text-muted-foreground">
                 将执行退款、终止云服务器、删除账单操作，此操作不可撤销
               </DialogDescription>
             </DialogHeader>
@@ -5790,12 +5521,12 @@ export default function OneClickOrderPage() {
             {refundTarget && (
               <div className="space-y-3">
                 {/* 产品信息 */}
-                <div className="rounded-lg border border-slate-600 bg-slate-800/50 px-4 py-3">
+                <div className="rounded-lg border border-border bg-muted/50 px-4 py-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-white font-medium">{String(refundTarget.productname || refundTarget.product_name || '未知产品')}</span>
-                    <span className="text-orange-400 font-bold text-sm">{String(refundTarget.amount || '0')}</span>
+                    <span className="text-foreground font-medium">{String(refundTarget.productname || refundTarget.product_name || '未知产品')}</span>
+                    <span className="text-primary font-bold text-sm">{String(refundTarget.amount || '0')}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                     {String(refundTarget.domain || '') !== '' && <span>主机: {String(refundTarget.domain)}</span>}
                     <span>IP: {String(refundTarget.dedicatedip || '-')}</span>
                     <span>ID: {String(refundTarget.id)}</span>
@@ -5804,54 +5535,54 @@ export default function OneClickOrderPage() {
 
                 {/* 退款计算 */}
                 {isLoadingRefund ? (
-                  <div className="flex items-center justify-center py-4 text-slate-400">
+                  <div className="flex items-center justify-center py-4 text-muted-foreground">
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />计算退款中...
                   </div>
                 ) : refundInfo && (refundInfo as Record<string, unknown>).calculated ? (
-                  <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-3 space-y-2">
-                    <div className="text-blue-400 font-medium text-sm mb-1">退款计算</div>
+                  <div className="rounded-lg border border-info/30 bg-info/5 px-4 py-3 space-y-2">
+                    <div className="text-info font-medium text-sm mb-1">退款计算</div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="text-slate-400">续费金额</div>
-                      <div className="text-slate-200">¥{Number((refundInfo as Record<string, unknown>).periodAmount).toFixed(2)}</div>
-                      <div className="text-slate-400">当前周期</div>
-                      <div className="text-slate-200">{String((refundInfo as Record<string, unknown>).periodType)}</div>
-                      <div className="text-slate-400">订购日期</div>
-                      <div className="text-slate-200">{String((refundInfo as Record<string, unknown>).orderDate)}</div>
-                      <div className="text-slate-400">到期时间</div>
-                      <div className="text-slate-200">{String((refundInfo as Record<string, unknown>).expireDate)}</div>
-                      <div className="text-slate-400">剩余天数</div>
-                      <div className="text-slate-200">{String((refundInfo as Record<string, unknown>).remainingDays)} 天</div>
-                      <div className="text-slate-400">日均价格</div>
-                      <div className="text-slate-200">¥{Number((refundInfo as Record<string, unknown>).dailyRate).toFixed(2)}</div>
+                      <div className="text-muted-foreground">续费金额</div>
+                      <div className="text-foreground">¥{Number((refundInfo as Record<string, unknown>).periodAmount).toFixed(2)}</div>
+                      <div className="text-muted-foreground">当前周期</div>
+                      <div className="text-foreground">{String((refundInfo as Record<string, unknown>).periodType)}</div>
+                      <div className="text-muted-foreground">订购日期</div>
+                      <div className="text-foreground">{String((refundInfo as Record<string, unknown>).orderDate)}</div>
+                      <div className="text-muted-foreground">到期时间</div>
+                      <div className="text-foreground">{String((refundInfo as Record<string, unknown>).expireDate)}</div>
+                      <div className="text-muted-foreground">剩余天数</div>
+                      <div className="text-foreground">{String((refundInfo as Record<string, unknown>).remainingDays)} 天</div>
+                      <div className="text-muted-foreground">日均价格</div>
+                      <div className="text-foreground">¥{Number((refundInfo as Record<string, unknown>).dailyRate).toFixed(2)}</div>
                     </div>
-                    <div className="border-t border-blue-500/20 pt-2 mt-2 flex items-center justify-between">
-                      <span className="text-blue-300 font-medium">退款金额</span>
-                      <span className="text-blue-400 font-bold text-lg">¥{Number((refundInfo as Record<string, unknown>).refundAmount).toFixed(2)}</span>
+                    <div className="border-t border-info/20 pt-2 mt-2 flex items-center justify-between">
+                      <span className="text-info font-medium">退款金额</span>
+                      <span className="text-info font-bold text-lg">¥{Number((refundInfo as Record<string, unknown>).refundAmount).toFixed(2)}</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-slate-600 bg-slate-800/30 px-4 py-3 text-sm text-slate-400">
+                  <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                     无法计算退款金额（可能已过期或缺少价格信息）
                   </div>
                 )}
 
                 {/* 退款方式选择 */}
                 {refundSteps.length === 0 && (
-                  <div className="rounded-lg border border-slate-600 bg-slate-800/50 px-4 py-3 space-y-2">
-                    <div className="text-white font-medium text-sm mb-2">退款方式</div>
+                  <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 space-y-2">
+                    <div className="text-foreground font-medium text-sm mb-2">退款方式</div>
                     <div className="flex gap-3">
-                      <label className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${refundMode === 'credit' ? 'border-blue-500 bg-blue-500/10' : 'border-slate-600 bg-slate-800/30 hover:border-slate-500'}`}>
+                      <label className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${refundMode === 'credit' ? 'border-info bg-info/10' : 'border-border bg-muted/30 hover:border-border'}`}>
                         <input type="radio" name="refundMode" value="credit" checked={refundMode === 'credit'} onChange={() => setRefundMode('credit')} className="accent-blue-500" />
                         <div>
-                          <div className="text-sm text-slate-200 font-medium">退余额</div>
-                          <div className="text-xs text-slate-400">将退款金额充入用户余额</div>
+                          <div className="text-sm text-foreground font-medium">退余额</div>
+                          <div className="text-xs text-muted-foreground">将退款金额充入用户余额</div>
                         </div>
                       </label>
-                      <label className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${refundMode === 'record' ? 'border-amber-500 bg-amber-500/10' : 'border-slate-600 bg-slate-800/30 hover:border-slate-500'}`}>
+                      <label className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${refundMode === 'record' ? 'border-warning bg-warning/10' : 'border-border bg-muted/30 hover:border-border'}`}>
                         <input type="radio" name="refundMode" value="record" checked={refundMode === 'record'} onChange={() => setRefundMode('record')} className="accent-amber-500" />
                         <div>
-                          <div className="text-sm text-slate-200 font-medium">仅记录</div>
-                          <div className="text-xs text-slate-400">不实际退款，仅记录</div>
+                          <div className="text-sm text-foreground font-medium">仅记录</div>
+                          <div className="text-xs text-muted-foreground">不实际退款，仅记录</div>
                         </div>
                       </label>
                     </div>
@@ -5860,16 +5591,16 @@ export default function OneClickOrderPage() {
 
                 {/* 执行进度 */}
                 {refundSteps.length > 0 && (
-                  <div className="rounded-lg border border-slate-600 bg-slate-800/50 px-4 py-3 space-y-2">
-                    <div className="text-white font-medium text-sm mb-1">执行进度</div>
+                  <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 space-y-2">
+                    <div className="text-foreground font-medium text-sm mb-1">执行进度</div>
                     {refundSteps.map(step => (
                       <div key={step.id} className="flex items-center gap-2 text-sm">
-                        {step.status === 'done' && <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />}
-                        {step.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />}
-                        {step.status === 'error' && <XCircle className="w-4 h-4 text-red-400 shrink-0" />}
-                        {step.status === 'pending' && <div className="w-4 h-4 rounded-full border border-slate-600 shrink-0" />}
-                        <span className={step.status === 'done' ? 'text-green-400' : step.status === 'error' ? 'text-red-400' : 'text-slate-300'}>{step.label}</span>
-                        {step.detail && <span className="text-slate-400 text-xs ml-1">- {step.detail}</span>}
+                        {step.status === 'done' && <CheckCircle className="w-4 h-4 text-success shrink-0" />}
+                        {step.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-info shrink-0" />}
+                        {step.status === 'error' && <XCircle className="w-4 h-4 text-destructive shrink-0" />}
+                        {step.status === 'pending' && <div className="w-4 h-4 rounded-full border border-border shrink-0" />}
+                        <span className={step.status === 'done' ? 'text-success' : step.status === 'error' ? 'text-destructive' : 'text-foreground/80'}>{step.label}</span>
+                        {step.detail && <span className="text-muted-foreground text-xs ml-1">- {step.detail}</span>}
                       </div>
                     ))}
                   </div>
@@ -5877,20 +5608,20 @@ export default function OneClickOrderPage() {
 
                 {/* 警告 */}
                 {refundSteps.length === 0 && (
-                  <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3">
-                    <div className="text-sm text-red-300">
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+                    <div className="text-sm text-destructive">
                       此操作将：1) {refundMode === 'credit' ? '退款至余额' : '仅记录退款'} → 2) 终止云服务器 → 3) 删除关联账单
                     </div>
-                    <div className="text-xs text-red-400/70 mt-1">请确认无误后点击执行，此操作不可撤销！</div>
+                    <div className="text-xs text-destructive/70 mt-1">请确认无误后点击执行，此操作不可撤销！</div>
                   </div>
                 )}
               </div>
             )}
             </div>
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => { setShowRefundConfirm(false); setRefundSteps([]); }} disabled={isRefundDeleting} className="border-slate-600 text-slate-300">关闭</Button>
+              <Button variant="outline" onClick={() => { setShowRefundConfirm(false); setRefundSteps([]); }} disabled={isRefundDeleting} className="border-border text-foreground/80">关闭</Button>
               {refundSteps.length === 0 && (
-                <Button onClick={executeRefundDelete} disabled={isLoadingRefund || isRefundDeleting} className="bg-red-500 hover:bg-red-600">
+                <Button onClick={executeRefundDelete} disabled={isLoadingRefund || isRefundDeleting} className="bg-destructive hover:bg-destructive">
                   {isLoadingRefund ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                   确认执行
                 </Button>
@@ -5901,25 +5632,25 @@ export default function OneClickOrderPage() {
 
         {/* 批量删除确认弹窗 */}
         <Dialog open={showBatchDeleteConfirm} onOpenChange={(open) => { if (!open) { if (!isBatchDeleting) setShowBatchDeleteConfirm(false); } }}>
-          <DialogContent className="border-slate-700 bg-slate-900 w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col p-4 sm:p-6">
+          <DialogContent className="border-border bg-card w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-red-400 text-base">确认删除产品</DialogTitle>
+              <DialogTitle className="text-destructive text-base">确认删除产品</DialogTitle>
             </DialogHeader>
             <div className="space-y-3 min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {batchDeleteSteps.length === 0 ? (
                 <>
-                  <div className="text-sm text-slate-300">
-                    确定要删除选中的 <span className="text-red-400 font-bold">{selectedRenewIds.size}</span> 个产品吗？
+                  <div className="text-sm text-foreground/80">
+                    确定要删除选中的 <span className="text-destructive font-bold">{selectedRenewIds.size}</span> 个产品吗？
                   </div>
-                  <div className="text-sm text-red-300">
+                  <div className="text-sm text-destructive">
                     此操作将：终止云服务器 → 删除关联账单，此操作不可撤销！
                   </div>
                   <div className="max-h-32 overflow-y-auto space-y-1">
                     {filteredProducts.filter((p: Record<string, unknown>) => selectedRenewIds.has(p.id as number)).map((p: Record<string, unknown>) => (
-                      <div key={p.id as number} className="text-xs text-slate-400 flex items-center gap-1">
-                        <span className="text-red-400">•</span>
+                      <div key={p.id as number} className="text-xs text-muted-foreground flex items-center gap-1">
+                        <span className="text-destructive">•</span>
                         <span className="truncate">{String(p.productname || p.product_name || '未知产品')}</span>
-                        <span className="text-slate-500 shrink-0">(ID:{String(p.id)})</span>
+                        <span className="text-muted-foreground shrink-0">(ID:{String(p.id)})</span>
                       </div>
                     ))}
                   </div>
@@ -5928,24 +5659,24 @@ export default function OneClickOrderPage() {
                 <div className="space-y-2 max-h-[40vh] sm:max-h-60 overflow-y-auto">
                   {batchDeleteSteps.map((step) => (
                     <div key={step.id} className="flex items-start gap-2 text-sm">
-                      {step.status === 'processing' && <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0 mt-0.5" />}
-                      {step.status === 'completed' && <CheckCircle className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />}
-                      {step.status === 'failed' && <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />}
-                      <span className={`min-w-0 ${step.status === 'failed' ? 'text-red-300' : step.status === 'completed' ? 'text-green-300' : 'text-slate-300'}`}>
+                      {step.status === 'processing' && <Loader2 className="w-4 h-4 animate-spin text-info shrink-0 mt-0.5" />}
+                      {step.status === 'completed' && <CheckCircle className="w-4 h-4 text-success shrink-0 mt-0.5" />}
+                      {step.status === 'failed' && <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />}
+                      <span className={`min-w-0 ${step.status === 'failed' ? 'text-destructive' : step.status === 'completed' ? 'text-success' : 'text-foreground/80'}`}>
                         {step.name}
                       </span>
-                      {step.message && <span className="text-xs text-slate-500 shrink-0">({step.message})</span>}
+                      {step.message && <span className="text-xs text-muted-foreground shrink-0">({step.message})</span>}
                     </div>
                   ))}
                 </div>
               )}
             </div>
             <DialogFooter className="gap-2 pt-1">
-              <Button variant="outline" onClick={() => { setShowBatchDeleteConfirm(false); setBatchDeleteSteps([]); }} disabled={isBatchDeleting} className="border-slate-600 text-slate-300 h-9">
+              <Button variant="outline" onClick={() => { setShowBatchDeleteConfirm(false); setBatchDeleteSteps([]); }} disabled={isBatchDeleting} className="border-border text-foreground/80 h-9">
                 {batchDeleteSteps.length > 0 ? '关闭' : '取消'}
               </Button>
               {batchDeleteSteps.length === 0 && (
-                <Button onClick={handleBatchDelete} disabled={isBatchDeleting} className="bg-red-500 hover:bg-red-600 h-9">
+                <Button onClick={handleBatchDelete} disabled={isBatchDeleting} className="bg-destructive hover:bg-destructive h-9">
                   {isBatchDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                   确认删除
                 </Button>
@@ -5956,13 +5687,13 @@ export default function OneClickOrderPage() {
 
         {/* 批量导出弹窗 */}
         <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
-          <DialogContent className="border-slate-700 bg-slate-900 w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[85vh] flex flex-col p-4 sm:p-6">
+          <DialogContent className="border-border bg-card w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[85vh] flex flex-col p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-emerald-400 flex items-center gap-2">
+              <DialogTitle className="text-success flex items-center gap-2">
                 <Download className="w-5 h-5" />
                 导出服务器信息
               </DialogTitle>
-              <DialogDescription className="text-slate-400 text-xs">
+              <DialogDescription className="text-muted-foreground text-xs">
                 已选择 {selectedRenewIds.size} 个产品，每行格式：IP  用户名  密码
               </DialogDescription>
             </DialogHeader>
@@ -5970,20 +5701,20 @@ export default function OneClickOrderPage() {
               {/* 导出文本 */}
               <div className="relative flex-1 min-h-0">
                 {isExporting ? (
-                  <div className="flex items-center justify-center h-48 sm:h-56 text-slate-400">
+                  <div className="flex items-center justify-center h-48 sm:h-56 text-muted-foreground">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />正在获取服务器信息...
                   </div>
                 ) : (
                   <textarea
                     readOnly
                     value={exportText}
-                    className="w-full h-48 sm:h-56 bg-slate-800/80 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 font-mono resize-none focus:outline-none focus:border-emerald-500/50"
+                    className="w-full h-48 sm:h-56 bg-muted/80 border border-border rounded-lg p-3 text-sm text-foreground font-mono resize-none focus:outline-none focus:border-success/50"
                   />
                 )}
               </div>
             </div>
             <DialogFooter className="gap-2 pt-1">
-              <Button variant="outline" onClick={() => setShowExportDialog(false)} className="border-slate-600 text-slate-300 h-9">
+              <Button variant="outline" onClick={() => setShowExportDialog(false)} className="border-border text-foreground/80 h-9">
                 关闭
               </Button>
               <Button
@@ -5994,7 +5725,7 @@ export default function OneClickOrderPage() {
                   }
                 }}
                 disabled={isExporting || !exportText}
-                className="bg-emerald-500 hover:bg-emerald-600 h-9"
+                className="bg-success hover:bg-success h-9"
               >
                 <Copy className="w-4 h-4 mr-1" />
                 一键复制
@@ -6005,13 +5736,13 @@ export default function OneClickOrderPage() {
 
         {/* 远程连接确认弹窗 */}
         <Dialog open={remoteConnectInfo !== null} onOpenChange={(open) => { if (!open && !remoteConnecting) setRemoteConnectInfo(null); }}>
-          <DialogContent className="border-slate-700 bg-slate-900 w-[calc(100vw-1.5rem)] sm:max-w-md p-4 sm:p-6">
+          <DialogContent className="border-border bg-card w-[calc(100vw-1.5rem)] sm:max-w-md p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-emerald-400 flex items-center gap-2">
+              <DialogTitle className="text-success flex items-center gap-2">
                 <TerminalSquare className="w-5 h-5" />
                 远程连接确认
               </DialogTitle>
-              <DialogDescription className="text-slate-400 text-xs">
+              <DialogDescription className="text-muted-foreground text-xs">
                 {remoteConnectInfo?.productName ? `产品：${remoteConnectInfo.productName} — ` : ''}确认以下服务器信息后建立 SSH 连接
               </DialogDescription>
             </DialogHeader>
@@ -6024,20 +5755,20 @@ export default function OneClickOrderPage() {
                 ] as const).map(field => {
                   const copied = remoteCopiedField === field.key;
                   return (
-                    <div key={field.key} className="flex items-center gap-2 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2">
+                    <div key={field.key} className="flex items-center gap-2 bg-muted/60 border border-border rounded-lg px-3 py-2">
                       <div className="min-w-0 flex-1">
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{field.label}</div>
-                        <div className="text-sm text-slate-200 truncate font-mono">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{field.label}</div>
+                        <div className="text-sm text-foreground truncate font-mono">
                           {field.value || '-'}
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => copyRemoteField(field.key, field.value)}
-                        className="shrink-0 p-1.5 rounded text-slate-400 hover:text-emerald-400 hover:bg-slate-700/50 transition-colors"
+                        className="shrink-0 p-1.5 rounded text-muted-foreground hover:text-success hover:bg-accent/50 transition-colors"
                         title="复制"
                       >
-                        {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                        {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
                       </button>
                     </div>
                   );
@@ -6049,7 +5780,7 @@ export default function OneClickOrderPage() {
                 variant="outline"
                 size="sm"
                 onClick={copyAllRemoteInfo}
-                className={`w-full h-8 ${remoteCopiedAll ? 'border-emerald-600 text-emerald-400' : 'border-slate-600 text-slate-300'}`}
+                className={`w-full h-8 ${remoteCopiedAll ? 'border-success text-success' : 'border-border text-foreground/80'}`}
               >
                 {remoteCopiedAll ? <Check className="w-3.5 h-3.5 mr-1" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
                 {remoteCopiedAll ? '已复制全部信息' : '一键复制全部信息'}
@@ -6060,14 +5791,14 @@ export default function OneClickOrderPage() {
                 variant="outline"
                 onClick={() => setRemoteConnectInfo(null)}
                 disabled={remoteConnecting}
-                className="border-slate-600 text-slate-300 h-9"
+                className="border-border text-foreground/80 h-9"
               >
                 取消
               </Button>
               <Button
                 onClick={confirmRemoteConnect}
                 disabled={remoteConnecting}
-                className="bg-emerald-500 hover:bg-emerald-600 h-9"
+                className="bg-success hover:bg-success h-9"
               >
                 {remoteConnecting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <ExternalLink className="w-4 h-4 mr-1" />}
                 确认连接
@@ -6077,33 +5808,33 @@ export default function OneClickOrderPage() {
         </Dialog>
 
         {mainTab === 'renew' && selectedUser && (
-          <Card className="border-slate-700 bg-slate-800/50">
+          <Card>
             <CardContent className="py-4">
               <div className="space-y-3 mb-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Server className="w-5 h-5 text-orange-400" />
-                    <h3 className="text-white font-bold text-base sm:text-lg">用户产品管理</h3>
+                    <Server className="w-5 h-5 text-accent2" />
+                    <h3 className="text-foreground font-bold text-base sm:text-lg">用户产品管理</h3>
                     {isLoadingUserProducts ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                     ) : (
-                      <span className="text-slate-400 text-sm">({filteredProducts.length} 个产品)</span>
+                      <span className="text-muted-foreground text-sm">({filteredProducts.length} 个产品)</span>
                     )}
                   </div>
                   {/* 搜索框 */}
                   <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                     <input
                       type="text"
                       value={productSearch}
                       onChange={e => setProductSearch(e.target.value)}
                       placeholder="搜索主机名 / IP地址"
-                      className="w-full pl-8 pr-7 py-1.5 bg-zinc-800/80 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors"
+                      className="w-full pl-8 pr-7 py-1.5 bg-muted/80 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
                     />
                     {productSearch && (
                       <button
                         onClick={() => setProductSearch('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80 transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -6123,8 +5854,8 @@ export default function OneClickOrderPage() {
                       }}
                       className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                         productStatusFilters.includes(status)
-                          ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50'
-                          : 'bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:text-zinc-300'
+                          ? 'bg-primary/20 text-primary border border-primary/50'
+                          : 'bg-muted/50 text-muted-foreground border border-border/50 hover:text-foreground/80'
                       }`}
                     >
                       {status}
@@ -6133,7 +5864,7 @@ export default function OneClickOrderPage() {
                   {productStatusFilters.length > 0 && (
                     <button
                       onClick={() => setProductStatusFilters([])}
-                      className="px-2 py-1 rounded-full text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                      className="px-2 py-1 rounded-full text-xs text-muted-foreground hover:text-foreground/80 transition-colors"
                     >
                       清除
                     </button>
@@ -6144,7 +5875,7 @@ export default function OneClickOrderPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-700 hover:text-white h-7 text-xs"
+                      className="border-border bg-muted/50 text-foreground/80 hover:bg-accent hover:text-foreground h-7 text-xs"
                       onClick={() => {
                         if (selectedRenewIds.size === filteredProducts.length) {
                           setSelectedRenewIds(new Set());
@@ -6158,37 +5889,37 @@ export default function OneClickOrderPage() {
                   )}
                   {selectedRenewIds.size > 0 && (
                     <>
-                      <span className="text-orange-400 text-xs">已选{selectedRenewIds.size}项</span>
-                      <Button size="sm" onClick={() => setShowRenewConfirm(true)} disabled={isRenewing} className="bg-orange-500 hover:bg-orange-600 h-7 text-xs px-2">
+                      <span className="text-primary text-xs">已选{selectedRenewIds.size}项</span>
+                      <Button size="sm" onClick={() => setShowRenewConfirm(true)} disabled={isRenewing} className="bg-primary hover:bg-primary/90 h-7 text-xs px-2">
                         <RefreshCw className="w-3 h-3 sm:mr-1" />
                         <span className="hidden sm:inline ml-0.5">批量续费</span>
                       </Button>
-                      <Button size="sm" onClick={() => setShowExportDialog(true)} className="bg-emerald-500 hover:bg-emerald-600 h-7 text-xs px-2">
+                      <Button size="sm" onClick={() => setShowExportDialog(true)} className="bg-success hover:bg-success h-7 text-xs px-2">
                         <Download className="w-3 h-3 sm:mr-1" />
                         <span className="hidden sm:inline ml-0.5">导出信息</span>
                       </Button>
-                      <Button size="sm" onClick={() => setShowBatchDeleteConfirm(true)} disabled={isBatchDeleting} className="bg-red-500 hover:bg-red-600 h-7 text-xs px-2">
+                      <Button size="sm" onClick={() => setShowBatchDeleteConfirm(true)} disabled={isBatchDeleting} className="bg-destructive hover:bg-destructive h-7 text-xs px-2">
                         <Trash2 className="w-3 h-3 sm:mr-1" />
                         <span className="hidden sm:inline ml-0.5">批量删除</span>
                       </Button>
                     </>
                   )}
-                  <Button variant="outline" size="sm" onClick={() => fetchUserProducts(selectedUser.id)} className="border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-700 hover:text-white h-7 text-xs px-2">
+                  <Button variant="outline" size="sm" onClick={() => fetchUserProducts(selectedUser.id)} className="border-border bg-muted/50 text-foreground/80 hover:bg-accent hover:text-foreground h-7 text-xs px-2">
                     <RefreshCw className="w-3 h-3 mr-1" />刷新
                   </Button>
                 </div>
               </div>
               <div className="space-y-2">
                 {isLoadingUserProducts ? (
-                  <div className="flex items-center justify-center py-8 text-slate-400">
+                  <div className="flex items-center justify-center py-8 text-muted-foreground">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />加载产品中...
                   </div>
                 ) : userProducts.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-sm">该用户暂无活跃产品</div>
+                  <div className="text-center py-8 text-muted-foreground text-sm">该用户暂无活跃产品</div>
                 ) : filteredProducts.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-sm">
+                  <div className="text-center py-8 text-muted-foreground text-sm">
                     {productSearch.trim()
-                      ? <><p>未找到包含「{productSearch.trim()}」的产品</p><p className="text-xs text-slate-500 mt-1">尝试搜索主机名或IP地址的部分字符</p></>
+                      ? <><p>未找到包含「{productSearch.trim()}」的产品</p><p className="text-xs text-muted-foreground mt-1">尝试搜索主机名或IP地址的部分字符</p></>
                       : '没有符合条件的产品'}
                   </div>
                 ) : filteredProducts.map((svc: Record<string, unknown>) => (
@@ -6222,19 +5953,19 @@ export default function OneClickOrderPage() {
                   setProgress(0);
                 }
               }}>
-                <DialogContent className="sm:!max-w-lg bg-slate-900 border-slate-700 p-4 sm:p-5 w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col" showCloseButton={false}>
+                <DialogContent className="sm:!max-w-lg bg-card border-border p-4 sm:p-5 w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col" showCloseButton={false}>
                   <DialogTitle className="flex items-center justify-between mb-3">
-                    <span className="text-white text-base font-semibold">续费进度</span>
-                    <span className="text-sm text-slate-400">{processingSteps.length > 0 ? Math.round(processingSteps.filter(s => s.status === 'completed').length / processingSteps.length * 100) : 0}%</span>
+                    <span className="text-foreground text-base font-semibold">续费进度</span>
+                    <span className="text-sm text-muted-foreground">{processingSteps.length > 0 ? Math.round(processingSteps.filter(s => s.status === 'completed').length / processingSteps.length * 100) : 0}%</span>
                   </DialogTitle>
                   <div className="overflow-y-auto overscroll-contain -mx-1 px-1 flex-1 min-h-0">
                     {processingSteps.map((step, index) => (
                       <div key={step.id} className="flex items-start gap-2 mb-2">
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                          step.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                          step.status === 'processing' ? 'bg-orange-500/20 text-orange-400' :
-                          step.status === 'failed' ? 'bg-red-500/20 text-red-400' :
-                          'bg-slate-700 text-slate-500'
+                          step.status === 'completed' ? 'bg-success/20 text-success' :
+                          step.status === 'processing' ? 'bg-primary/20 text-primary' :
+                          step.status === 'failed' ? 'bg-destructive/20 text-destructive' :
+                          'bg-accent text-muted-foreground'
                         }`}>
                           {step.status === 'completed' ? <CheckCircle className="w-3 h-3" /> :
                            step.status === 'processing' ? <Loader2 className="w-3 h-3 animate-spin" /> :
@@ -6244,12 +5975,12 @@ export default function OneClickOrderPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <span className={`text-sm ${
-                            step.status === 'completed' ? 'text-emerald-400' :
-                            step.status === 'processing' ? 'text-orange-400' :
-                            step.status === 'failed' ? 'text-red-400' : 'text-slate-500'
+                            step.status === 'completed' ? 'text-success' :
+                            step.status === 'processing' ? 'text-primary' :
+                            step.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'
                           }`}>{step.name}</span>
                           {step.message && (
-                            <span className="text-xs text-slate-500 block truncate">{step.message}</span>
+                            <span className="text-xs text-muted-foreground block truncate">{step.message}</span>
                           )}
                         </div>
                       </div>
@@ -6264,13 +5995,13 @@ export default function OneClickOrderPage() {
                   setRecycleCheckState(prev => ({ ...prev, open: false }));
                 }
               }}>
-                <DialogContent className="sm:!max-w-lg bg-slate-900 border-slate-700 p-4 sm:p-5 w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col">
+                <DialogContent className="sm:!max-w-lg bg-card border-border p-4 sm:p-5 w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-white text-base font-semibold">
-                      <RotateCcw className="w-4 h-4 text-cyan-400" />
+                    <DialogTitle className="flex items-center gap-2 text-foreground text-base font-semibold">
+                      <RotateCcw className="w-4 h-4 text-info" />
                       回收站检查
                     </DialogTitle>
-                    <DialogDescription className="text-slate-400 text-xs">
+                    <DialogDescription className="text-muted-foreground text-xs">
                       {recycleCheckState.svc ? (() => {
                         const svc = recycleCheckState.svc;
                         const productName = String(svc.productname || svc.product_name || svc.name || '-');
@@ -6280,9 +6011,9 @@ export default function OneClickOrderPage() {
                         const amount = parseFloat(String(svc.amount || svc.firstpaymentamount || '0').replace(/[^\d.]/g, '')) || 0;
                         return (
                           <span className="flex flex-wrap gap-x-3 gap-y-0.5">
-                            <span>产品名: <span className="text-slate-200">{productName}</span></span>
-                            <span>套餐周期: <span className="text-slate-200">{cycleText}</span></span>
-                            <span>续费价格: <span className="text-orange-400">¥{amount.toFixed(2)}</span></span>
+                            <span>产品名: <span className="text-foreground">{productName}</span></span>
+                            <span>套餐周期: <span className="text-foreground">{cycleText}</span></span>
+                            <span>续费价格: <span className="text-primary">¥{amount.toFixed(2)}</span></span>
                           </span>
                         );
                       })() : ''}
@@ -6290,18 +6021,18 @@ export default function OneClickOrderPage() {
                   </DialogHeader>
                   {recycleCheckState.loading ? (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
-                      <span className="ml-2 text-slate-400 text-sm">正在查询回收站...</span>
+                      <Loader2 className="w-6 h-6 text-info animate-spin" />
+                      <span className="ml-2 text-muted-foreground text-sm">正在查询回收站...</span>
                     </div>
                   ) : recycleCheckState.matches.length === 0 ? (
                     <div className="py-6 text-center">
-                      <AlertCircle className="w-10 h-10 mx-auto mb-2 text-yellow-500" />
-                      <p className="text-slate-300 text-sm">回收站未找到该主机</p>
-                      <p className="text-slate-500 text-xs mt-1">可能实例已被彻底删除，无法恢复</p>
+                      <AlertCircle className="w-10 h-10 mx-auto mb-2 text-warning" />
+                      <p className="text-foreground/80 text-sm">回收站未找到该主机</p>
+                      <p className="text-muted-foreground text-xs mt-1">可能实例已被彻底删除，无法恢复</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <p className="text-sm text-slate-400">找到 {recycleCheckState.matches.length} 个匹配实例，请选择要恢复的实例：</p>
+                      <p className="text-sm text-muted-foreground">找到 {recycleCheckState.matches.length} 个匹配实例，请选择要恢复的实例：</p>
                       <div className="space-y-2 max-h-[50vh] overflow-y-auto">
                         {recycleCheckState.matches.map((c) => {
                           const instId = Number(c.id);
@@ -6313,36 +6044,36 @@ export default function OneClickOrderPage() {
                               key={instId}
                               onClick={() => setRecycleCheckState(prev => ({ ...prev, selectedInstanceId: instId }))}
                               className={`w-full text-left p-3 rounded-lg border transition-colors cursor-pointer select-text ${
-                                isSelected ? 'border-cyan-500 bg-cyan-500/10' : 'border-slate-700 bg-slate-800/40 hover:border-slate-500'
+                                isSelected ? 'border-info bg-info/10' : 'border-border bg-muted/40 hover:border-border'
                               }`}>
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-white text-sm font-medium flex items-center gap-1 min-w-0">
+                                <span className="text-foreground text-sm font-medium flex items-center gap-1 min-w-0">
                                   <span className="truncate">{hostname}</span>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); copyInstField(hostname, `hostname-${instId}`); }}
-                                    className="p-0.5 text-slate-500 hover:text-cyan-400 transition-colors shrink-0"
+                                    className="p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0"
                                     title="复制主机名"
                                   >
-                                    {recycleCheckState.copiedInstField === `hostname-${instId}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                    {recycleCheckState.copiedInstField === `hostname-${instId}` ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
                                   </button>
                                 </span>
-                                <span className="text-xs text-slate-500 shrink-0">ID: {instId}</span>
+                                <span className="text-xs text-muted-foreground shrink-0">ID: {instId}</span>
                               </div>
-                              <div className="grid grid-cols-2 gap-1 text-xs text-slate-400">
-                                <span className="flex items-center gap-0.5">IP: <span className="text-slate-200">{mainip}</span>
+                              <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-0.5">IP: <span className="text-foreground">{mainip}</span>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); copyInstField(mainip, `ip-${instId}`); }}
-                                    className="p-0.5 text-slate-500 hover:text-cyan-400 transition-colors"
+                                    className="p-0.5 text-muted-foreground hover:text-info transition-colors"
                                     title="复制IP"
                                   >
-                                    {recycleCheckState.copiedInstField === `ip-${instId}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                    {recycleCheckState.copiedInstField === `ip-${instId}` ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
                                   </button>
                                 </span>
-                                <span>状态: <span className="text-slate-200">{formatCloudStatus(String(c.status || '-'))}</span></span>
-                                {String(c.node_name || '') !== '' && <span>节点: <span className="text-slate-200">{String(c.node_name)}</span></span>}
-                                {c.cpu != null && <span>CPU: <span className="text-slate-200">{String(c.cpu)}</span></span>}
-                                {c.memory != null && <span>内存: <span className="text-slate-200">{String(c.memory)}</span></span>}
-                                {String(c.recycle_time || '') !== '' && <span>回收时间: <span className="text-slate-200">{String(c.recycle_time)}</span></span>}
+                                <span>状态: <span className="text-foreground">{formatCloudStatus(String(c.status || '-'))}</span></span>
+                                {String(c.node_name || '') !== '' && <span>节点: <span className="text-foreground">{String(c.node_name)}</span></span>}
+                                {c.cpu != null && <span>CPU: <span className="text-foreground">{String(c.cpu)}</span></span>}
+                                {c.memory != null && <span>内存: <span className="text-foreground">{String(c.memory)}</span></span>}
+                                {String(c.recycle_time || '') !== '' && <span>回收时间: <span className="text-foreground">{String(c.recycle_time)}</span></span>}
                               </div>
                             </div>
                           );
@@ -6353,7 +6084,7 @@ export default function OneClickOrderPage() {
                   {!recycleCheckState.loading && (
                     <DialogFooter className="gap-2 mt-3">
                       <Button type="button" variant="outline" size="sm" onClick={() => setRecycleCheckState(prev => ({ ...prev, open: false }))}
-                        className="border-slate-600 text-slate-400">
+                        className="border-border text-muted-foreground">
                         取消
                       </Button>
                       <Button
@@ -6365,7 +6096,7 @@ export default function OneClickOrderPage() {
                             doRestoreAndRenew(recycleCheckState.svc, recycleCheckState.selectedInstanceId);
                           }
                         }}
-                        className="bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-50">
+                        className="bg-info hover:bg-info/90 text-info-foreground disabled:opacity-50">
                         <RotateCcw className="w-4 h-4 mr-1" />恢复并续费
                       </Button>
                     </DialogFooter>
@@ -6375,13 +6106,13 @@ export default function OneClickOrderPage() {
 
               {/* 回收站恢复进度弹窗 */}
               <Dialog open={isRecycleProcessing} onOpenChange={() => { /* 处理中不可关闭 */ }}>
-                <DialogContent className="sm:!max-w-lg bg-slate-900 border-slate-700 p-4 sm:p-5 w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col" showCloseButton={false}>
+                <DialogContent className="sm:!max-w-lg bg-card border-border p-4 sm:p-5 w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col" showCloseButton={false}>
                   <DialogTitle className="flex items-center justify-between mb-3">
-                    <span className="text-white text-base font-semibold flex items-center gap-2">
-                      <RotateCcw className="w-4 h-4 text-cyan-400" />
+                    <span className="text-foreground text-base font-semibold flex items-center gap-2">
+                      <RotateCcw className="w-4 h-4 text-info" />
                       恢复与续费进度
                     </span>
-                    <span className="text-sm text-slate-400">
+                    <span className="text-sm text-muted-foreground">
                       {recycleSteps.length > 0 ? Math.round(recycleSteps.filter(s => s.status === 'completed').length / recycleSteps.length * 100) : 0}%
                     </span>
                   </DialogTitle>
@@ -6389,10 +6120,10 @@ export default function OneClickOrderPage() {
                     {recycleSteps.map((step, index) => (
                       <div key={step.id} className="flex items-start gap-2 mb-2">
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                          step.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                          step.status === 'processing' ? 'bg-orange-500/20 text-orange-400' :
-                          step.status === 'failed' ? 'bg-red-500/20 text-red-400' :
-                          'bg-slate-700 text-slate-500'
+                          step.status === 'completed' ? 'bg-success/20 text-success' :
+                          step.status === 'processing' ? 'bg-primary/20 text-primary' :
+                          step.status === 'failed' ? 'bg-destructive/20 text-destructive' :
+                          'bg-accent text-muted-foreground'
                         }`}>
                           {step.status === 'completed' ? <CheckCircle className="w-3 h-3" /> :
                            step.status === 'processing' ? <Loader2 className="w-3 h-3 animate-spin" /> :
@@ -6402,12 +6133,12 @@ export default function OneClickOrderPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <span className={`text-sm ${
-                            step.status === 'completed' ? 'text-emerald-400' :
-                            step.status === 'processing' ? 'text-orange-400' :
-                            step.status === 'failed' ? 'text-red-400' : 'text-slate-500'
+                            step.status === 'completed' ? 'text-success' :
+                            step.status === 'processing' ? 'text-primary' :
+                            step.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'
                           }`}>{step.name}</span>
                           {step.message && (
-                            <span className="text-xs text-slate-500 block truncate">{step.message}</span>
+                            <span className="text-xs text-muted-foreground block truncate">{step.message}</span>
                           )}
                         </div>
                       </div>
@@ -6415,7 +6146,7 @@ export default function OneClickOrderPage() {
                   </div>
                   {!isRecycleProcessing && recycleSteps.length > 0 && (
                     <div className="mt-3 flex justify-end">
-                      <Button size="sm" onClick={() => setRecycleSteps([])} className="bg-slate-700 hover:bg-slate-600 text-white">
+                      <Button size="sm" onClick={() => setRecycleSteps([])} className="bg-accent hover:bg-accent text-foreground">
                         关闭
                       </Button>
                     </div>
@@ -6430,19 +6161,19 @@ export default function OneClickOrderPage() {
         {mainTab === 'provision' && (
         <>
         {/* 产品选择区域 - 全宽 */}
-        <Card className="border-slate-700 bg-slate-800/50">
+        <Card>
           <CardContent className="py-4">
             <div className="flex flex-col gap-4">
               {/* 模式切换 + 右侧操作区 */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="inline-flex rounded-lg overflow-hidden border border-slate-600 w-fit mx-auto">
+                <div className="inline-flex rounded-lg overflow-hidden border border-border w-fit mx-auto bg-card dark:bg-accent shadow-sm">
                   <button
                     type="button"
                     onClick={() => setConfigMode('package')}
                     className={`py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-colors ${
                       configMode === 'package'
-                        ? 'bg-orange-500/20 text-orange-400 border-b-2 border-orange-400'
-                        : 'bg-slate-800 text-slate-400 hover:text-slate-300'
+                        ? 'bg-primary/15 text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
                     }`}
                   >
                     <Star className="w-3.5 h-3.5" />
@@ -6453,8 +6184,8 @@ export default function OneClickOrderPage() {
                     onClick={() => setConfigMode('custom')}
                     className={`py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-colors ${
                       configMode === 'custom'
-                        ? 'bg-orange-500/20 text-orange-400 border-b-2 border-orange-400'
-                        : 'bg-slate-800 text-slate-400 hover:text-slate-300'
+                        ? 'bg-primary/15 text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
                     }`}
                   >
                     <Settings className="w-3.5 h-3.5" />
@@ -6469,15 +6200,15 @@ export default function OneClickOrderPage() {
               {configMode === 'package' && (
                 <div className="space-y-3">
                   {savedPackages.length === 0 ? (
-                    <div className="text-center py-6 border border-dashed border-slate-600 rounded-lg">
-                      <Bookmark className="w-6 h-6 text-slate-600 mx-auto mb-2" />
-                      <p className="text-slate-400 text-sm">暂无保存的套餐</p>
-                      <p className="text-slate-500 text-xs mt-1">切换到「弹性开通」配置后保存为套餐</p>
+                    <div className="text-center py-6 border border-dashed border-border rounded-lg">
+                      <Bookmark className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-muted-foreground text-sm">暂无保存的套餐</p>
+                      <p className="text-muted-foreground text-xs mt-1">切换到「弹性开通」配置后保存为套餐</p>
                     </div>
                   ) : (
                     <>
                       <div className="flex items-center gap-2">
-                        <Label className="text-slate-300 text-xs whitespace-nowrap">选择产品</Label>
+                        <Label className="text-foreground/80 text-xs whitespace-nowrap">选择产品</Label>
                         <Select
                           value={selectedProductId?.toString() || ''}
                           onValueChange={(val) => {
@@ -6491,17 +6222,17 @@ export default function OneClickOrderPage() {
                             }
                           }}
                         >
-                          <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white h-8 flex-1 min-w-0 text-sm">
+                          <SelectTrigger className="bg-muted border-border text-foreground h-8 flex-1 min-w-0 text-sm">
                             <SelectValue placeholder="选择产品" />
                           </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-slate-700 max-h-80">
+                          <SelectContent className="bg-popover border-border max-h-80">
                             {(() => {
                               return sortedProductIds.map(pid => {
                                 const info = productInfoMap.get(pid);
                                 if (!info) return null;
                                 return (
-                                  <SelectItem key={pid} value={String(pid)} className="text-white focus:bg-slate-700">
-                                    {info.name} <span className="text-slate-500 text-xs ml-1">({info.count}个套餐)</span>
+                                  <SelectItem key={pid} value={String(pid)} className="text-foreground focus:bg-accent">
+                                    {info.name} <span className="text-muted-foreground text-xs ml-1">({info.count}个套餐)</span>
                                   </SelectItem>
                                 );
                               });
@@ -6511,7 +6242,7 @@ export default function OneClickOrderPage() {
                         {savedPackages.length > 1 && (
                           <Button type="button" variant="ghost" size="sm"
                             onClick={() => setShowGroupSortDialog(true)}
-                            className="text-slate-500 bg-slate-800/40 hover:text-slate-400 hover:bg-slate-700/50 h-7 px-2 text-xs shrink-0">
+                            className="text-muted-foreground bg-muted/40 hover:text-muted-foreground hover:bg-accent/50 h-7 px-2 text-xs shrink-0">
                             <ArrowUpDown className="w-3 h-3 sm:mr-1" /><span className="hidden sm:inline">排序/隐藏</span>
                           </Button>
                         )}
@@ -6597,14 +6328,14 @@ export default function OneClickOrderPage() {
                   {/* 付款周期 + 数量 - 始终一排 */}
                   <div className="flex items-center gap-3 flex-nowrap">
                     <div className="flex items-center gap-2 shrink-0">
-                      <Label className="text-slate-400 text-sm whitespace-nowrap">周期</Label>
+                      <Label className="text-muted-foreground text-sm whitespace-nowrap">周期</Label>
                       <Select value={selectedBillingCycle} onValueChange={setSelectedBillingCycle}>
-                        <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white h-8 text-sm w-20 sm:w-24">
+                        <SelectTrigger className="bg-muted border-border text-foreground h-8 text-sm w-20 sm:w-24">
                           <SelectValue placeholder="选择" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectContent className="bg-popover border-border">
                           {productCycles.map(c => (
-                            <SelectItem key={c.value} value={c.value} className="text-white focus:bg-slate-700">
+                            <SelectItem key={c.value} value={c.value} className="text-foreground focus:bg-accent">
                               {c.label}
                             </SelectItem>
                           ))}
@@ -6612,17 +6343,17 @@ export default function OneClickOrderPage() {
                       </Select>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Label className="text-slate-400 text-sm whitespace-nowrap">数量</Label>
+                      <Label className="text-muted-foreground text-sm whitespace-nowrap">数量</Label>
                       <div className="flex items-center gap-1">
                         <button type="button"
-                          className="w-7 h-8 rounded bg-slate-700 border border-slate-600 text-white flex items-center justify-center hover:bg-slate-600 text-sm shrink-0"
+                          className="w-7 h-8 rounded bg-accent border border-border text-foreground flex items-center justify-center hover:bg-accent text-sm shrink-0"
                           onClick={() => setProductQty(prev => Math.max(1, prev - 1))}
                         >-</button>
                         <Input type="number" min={1} value={productQty}
                           onChange={(e) => { let val = parseInt(e.target.value) || 1; val = Math.max(1, val); setProductQty(val); }}
-                          className="bg-slate-700/50 border-slate-600 text-white text-center h-8 w-14 text-sm" />
+                          className="bg-muted border-border text-foreground text-center h-8 w-14 text-sm" />
                         <button type="button"
-                          className="w-7 h-8 rounded bg-slate-700 border border-slate-600 text-white flex items-center justify-center hover:bg-slate-600 text-sm shrink-0"
+                          className="w-7 h-8 rounded bg-accent border border-border text-foreground flex items-center justify-center hover:bg-accent text-sm shrink-0"
                           onClick={() => setProductQty(prev => prev + 1)}
                         >+</button>
                       </div>
@@ -6638,41 +6369,41 @@ export default function OneClickOrderPage() {
                   </div>
 
                   {/* 价格汇总 */}
-                  <div className="bg-slate-700/30 rounded-lg p-3 space-y-2 min-h-[180px]">
+                  <div className="bg-muted rounded-lg p-3 space-y-2 min-h-[180px]">
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">{'产品'}</span>
-                      <span className="text-white">{selectedProductName}</span>
+                      <span className="text-muted-foreground">{'产品'}</span>
+                      <span className="text-foreground">{selectedProductName}</span>
                     </div>
                     {selectedNodeName && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">{'节点'}</span>
-                        <span className="text-white">{selectedNodeName}</span>
+                        <span className="text-muted-foreground">{'节点'}</span>
+                        <span className="text-foreground">{selectedNodeName}</span>
                       </div>
                     )}
                     {firstPrice && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">首次价格</span>
-                        <span className="text-orange-400">¥{parseFloat(firstPrice).toFixed(2)}</span>
+                        <span className="text-muted-foreground">首次价格</span>
+                        <span className="text-primary">¥{parseFloat(firstPrice).toFixed(2)}</span>
                       </div>
                     )}
                     {renewPrice && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">续费价格</span>
-                        <span className="text-orange-400">¥{parseFloat(renewPrice).toFixed(2)}</span>
+                        <span className="text-muted-foreground">续费价格</span>
+                        <span className="text-primary">¥{parseFloat(renewPrice).toFixed(2)}</span>
                       </div>
                     )}
                     {selectedGateway && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">支付方式</span>
-                        <span className="text-white">{gateways.find(g => g.name === selectedGateway)?.title || selectedGateway}{autoRecharge ? ' + 自动充余额' : useCredit ? ' + 余额抵扣' : ''}</span>
+                        <span className="text-muted-foreground">支付方式</span>
+                        <span className="text-foreground">{gateways.find(g => g.name === selectedGateway)?.title || selectedGateway}{autoRecharge ? ' + 自动充余额' : useCredit ? ' + 余额抵扣' : ''}</span>
                       </div>
                     )}
-                    <div className="border-t border-slate-600 pt-2 flex justify-between font-bold">
-                      <span className="text-slate-300">合计</span>
-                      <span className="text-orange-400 text-lg">¥{firstPrice ? (parseFloat(firstPrice) * productQty).toFixed(2) : '--'}</span>
+                    <div className="border-t border-border pt-2 flex justify-between font-bold">
+                      <span className="text-foreground/80">合计</span>
+                      <span className="text-primary text-lg">¥{firstPrice ? (parseFloat(firstPrice) * productQty).toFixed(2) : '--'}</span>
                     </div>
                     {productQty > 1 && firstPrice && (
-                      <div className="text-right text-xs text-slate-500 mt-0.5">¥{parseFloat(firstPrice).toFixed(2)} × {productQty}</div>
+                      <div className="text-right text-xs text-muted-foreground mt-0.5">¥{parseFloat(firstPrice).toFixed(2)} × {productQty}</div>
                     )}
                   </div>
 
@@ -6680,7 +6411,7 @@ export default function OneClickOrderPage() {
                   <Button
                     onClick={handleOneClickOrder}
                     disabled={isProcessing || !selectedProductId}
-                    className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-5 text-base"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-5 text-base"
                   >
                     {isProcessing ? (
                       <><Loader2 className="w-5 h-5 mr-2 animate-spin" />正在处理...</>
@@ -6689,7 +6420,7 @@ export default function OneClickOrderPage() {
                     )}
                   </Button>
                   {!selectedUser && selectedProductId && (
-                    <p className="text-xs text-orange-400 text-center">点击开通后搜索选择用户</p>
+                    <p className="text-xs text-primary text-center">点击开通后搜索选择用户</p>
                   )}
                 </div>
               )}
@@ -6698,26 +6429,26 @@ export default function OneClickOrderPage() {
               {configMode === 'custom' && (
                 <div className="space-y-3">
                   <div className="flex-1">
-                    <Label className="text-slate-300 text-xs mb-1 block">选择产品</Label>
+                    <Label className="text-foreground/80 text-xs mb-1 block">选择产品</Label>
                     {productGroups.length === 0 ? (
                       <Button variant="outline" onClick={loadProducts} disabled={isLoadingProducts}
-                        className="w-full border-slate-600 text-slate-400 hover:text-white h-9">
+                        className="w-full border-border text-muted-foreground hover:text-foreground h-9">
                         {isLoadingProducts ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Package className="w-4 h-4 mr-2" />}
                         {isLoadingProducts ? '加载中...' : '点击加载产品列表'}
                       </Button>
                     ) : (
                       <Select value={selectedProductId?.toString() || ''} onValueChange={(val) => { setSelectedPackageId(''); handleSelectProduct(parseInt(val)); }}>
-                        <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white h-9 w-full max-w-md">
+                        <SelectTrigger className="bg-muted border-border text-foreground h-9 w-full max-w-md">
                           <SelectValue placeholder="选择要开通的产品" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700 max-h-80">
+                        <SelectContent className="bg-popover border-border max-h-80">
                           {(sortedProductGroups || []).filter(g => Array.isArray(g.groups)).flatMap(firstGroup =>
                             (firstGroup.groups || []).filter(sg => Array.isArray(sg.products) && sg.products.length > 0).flatMap(subGroup => [
-                              <SelectItem key={`group-${subGroup.id}`} value={`__group_${subGroup.id}`} disabled className="text-orange-400 font-semibold text-xs">
+                              <SelectItem key={`group-${subGroup.id}`} value={`__group_${subGroup.id}`} disabled className="text-primary font-semibold text-xs">
                                 {firstGroup.name} / {subGroup.name}
                               </SelectItem>,
                               ...(subGroup.products || []).map(p => (
-                                <SelectItem key={p.id} value={String(p.id)} className="text-white focus:bg-slate-700 pl-8">
+                                <SelectItem key={p.id} value={String(p.id)} className="text-foreground focus:bg-accent pl-8">
                                   {p.name}{p.hidden ? ' (隐藏)' : ''}
                                 </SelectItem>
                               )),
@@ -6736,7 +6467,7 @@ export default function OneClickOrderPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => { setShowSaveDialog(true); setPackageNameInput(''); }}
-                        className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 h-8"
+                        className="border-primary/30 text-primary hover:bg-primary/90/10 hover:text-primary h-8"
                       >
                         <Bookmark className="w-3.5 h-3.5 mr-1.5" />
                         保存为套餐
@@ -6747,7 +6478,7 @@ export default function OneClickOrderPage() {
                         size="sm"
                         onClick={openImportDialog}
                         disabled={importingPackages}
-                        className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 h-8"
+                        className="border-success/30 text-success hover:bg-success/10 hover:text-success/80 h-8"
                       >
                         {importingPackages ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}
                         批量导入套餐
@@ -6760,15 +6491,15 @@ export default function OneClickOrderPage() {
                             onChange={(e) => setPackageNameInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSavePackage()}
                             placeholder="输入套餐名称，如：香港云-标准版"
-                            className="flex-1 max-w-xs bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 text-sm h-8"
+                            className="flex-1 max-w-xs bg-muted border-border text-foreground placeholder:text-muted-foreground text-sm h-8"
                             autoFocus
                           />
                           <Button type="button" size="sm" onClick={handleSavePackage}
-                            className="bg-orange-500 hover:bg-orange-600 text-white shrink-0 h-8">
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 h-8">
                             保存
                           </Button>
                           <Button type="button" size="sm" variant="ghost" onClick={() => setShowSaveDialog(false)}
-                            className="text-slate-400 hover:text-white shrink-0 h-8">
+                            className="text-muted-foreground hover:text-foreground shrink-0 h-8">
                             取消
                           </Button>
                         </div>
@@ -6784,10 +6515,10 @@ export default function OneClickOrderPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 sm:gap-6">
           {/* 左侧 - 配置选项 & 开通 */}
           <div className="space-y-4">
-            <Card className="border-slate-700 bg-slate-800/50">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-base flex items-center gap-2">
-                  <Settings className="w-4 h-4 text-orange-400" />
+                <CardTitle className="text-foreground text-base flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-primary" />
                   开通配置
                 </CardTitle>
               </CardHeader>
@@ -6795,7 +6526,7 @@ export default function OneClickOrderPage() {
                 {/* 价格覆盖 */}
                 {selectedProductId && (
                   <div className="space-y-2">
-                    <Label className="text-slate-300 text-sm">内部价格(首次)</Label>
+                    <Label className="text-foreground/80 text-sm">内部价格(首次)</Label>
                     <div className="space-y-1">
                       <Input
                         type="number"
@@ -6804,15 +6535,15 @@ export default function OneClickOrderPage() {
                         value={firstPrice}
                         onChange={(e) => setFirstPrice(e.target.value)}
                         placeholder="请输入内部价格"
-                        className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                        className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                       />
-                      <p className="text-xs text-slate-500">(只有手动输入价格才能替换默认的价格)</p>
+                      <p className="text-xs text-muted-foreground">(只有手动输入价格才能替换默认的价格)</p>
                     </div>
                   </div>
                 )}
                 {selectedProductId && (
                   <div className="space-y-2">
-                    <Label className="text-slate-300 text-sm">内部价格(续费)</Label>
+                    <Label className="text-foreground/80 text-sm">内部价格(续费)</Label>
                     <div className="space-y-1">
                       <Input
                         type="number"
@@ -6821,9 +6552,9 @@ export default function OneClickOrderPage() {
                         value={renewPrice}
                         onChange={(e) => setRenewPrice(e.target.value)}
                         placeholder="请输入内部价格"
-                        className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                        className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                       />
-                      <p className="text-xs text-slate-500">(只有手动输入价格才能替换默认的价格)</p>
+                      <p className="text-xs text-muted-foreground">(只有手动输入价格才能替换默认的价格)</p>
                     </div>
                   </div>
                 )}
@@ -6831,14 +6562,14 @@ export default function OneClickOrderPage() {
                 {/* 支付方式 */}
                 {selectedProductId && gateways.length > 0 && (
                   <div className="space-y-2">
-                    <Label className="text-slate-300 text-sm">支付方式</Label>
+                    <Label className="text-foreground/80 text-sm">支付方式</Label>
                     <Select value={selectedGateway} onValueChange={setSelectedGateway}>
-                      <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                      <SelectTrigger className="bg-muted border-border text-foreground">
                         <SelectValue placeholder="选择支付方式" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-popover border-border">
                         {gateways.filter(g => g.status === 1).map(g => (
-                          <SelectItem key={g.id} value={g.name} className="text-white focus:bg-slate-700">
+                          <SelectItem key={g.id} value={g.name} className="text-foreground focus:bg-accent">
                             {g.title}
                           </SelectItem>
                         ))}
@@ -6855,11 +6586,11 @@ export default function OneClickOrderPage() {
                               setAutoRecharge(e.target.checked);
                               if (e.target.checked) setUseCredit(true);
                             }}
-                            className="rounded border-slate-600 bg-slate-700/50"
+                            className="rounded border-border bg-muted"
                           />
-                          <label htmlFor="autoRecharge" className="text-sm text-slate-300 cursor-pointer">
+                          <label htmlFor="autoRecharge" className="text-sm text-foreground/80 cursor-pointer">
                             自动充余额后开通 {firstPrice && (
-                              <span className="text-orange-400 text-xs">(充值 ¥{parseFloat(firstPrice).toFixed(2)})</span>
+                              <span className="text-primary text-xs">(充值 ¥{parseFloat(firstPrice).toFixed(2)})</span>
                             )}
                           </label>
                         </div>
@@ -6870,9 +6601,9 @@ export default function OneClickOrderPage() {
                             checked={useCredit}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUseCredit(e.target.checked)}
                             disabled={autoRecharge}
-                            className="rounded border-slate-600 bg-slate-700/50 disabled:opacity-50"
+                            className="rounded border-border bg-muted disabled:opacity-50"
                           />
-                          <label htmlFor="useCredit" className={`text-sm cursor-pointer ${autoRecharge ? 'text-slate-500' : 'text-slate-300'}`}>
+                          <label htmlFor="useCredit" className={`text-sm cursor-pointer ${autoRecharge ? 'text-muted-foreground' : 'text-foreground/80'}`}>
                             使用余额抵扣 (余额: ¥{Number(selectedUser.credit).toFixed(2)})
                           </label>
                         </div>
@@ -6883,7 +6614,7 @@ export default function OneClickOrderPage() {
 
                 {/* 配置选项加载中 */}
                 {isLoadingConfig && (
-                  <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm py-4">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     加载配置选项中...
                   </div>
@@ -6892,7 +6623,7 @@ export default function OneClickOrderPage() {
                 {/* 可配置选项 */}
                 {configOptions.length > 0 && !isLoadingConfig && (
                   <div className="space-y-3">
-                    <Label className="text-slate-300 text-sm font-bold flex items-center gap-1">
+                    <Label className="text-foreground/80 text-sm font-bold flex items-center gap-1">
                       <Settings className="w-3.5 h-3.5" />
                       可配置选项
                     </Label>
@@ -6913,20 +6644,20 @@ export default function OneClickOrderPage() {
                               )}
                               {/* 其他配置项折叠 */}
                               {extraOpts.length > 0 && (
-                                <div className="border border-slate-700 rounded-lg overflow-hidden">
+                                <div className="border border-border rounded-lg overflow-hidden">
                                   <button
                                     type="button"
                                     onClick={() => setPackageExtraExpanded(!packageExtraExpanded)}
-                                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 hover:text-slate-300 hover:bg-slate-700/30 transition-colors"
+                                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-muted-foreground hover:text-foreground/80 hover:bg-accent/30 transition-colors"
                                   >
                                     <span className="flex items-center gap-1.5">
                                       {packageExtraExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                                       配置项 ({extraOpts.length}项)
                                     </span>
-                                    <span className="text-xs text-slate-600">套餐已保存，通常无需修改</span>
+                                    <span className="text-xs text-muted-foreground">套餐已保存，通常无需修改</span>
                                   </button>
                                   {packageExtraExpanded && (
-                                    <div className="px-3 pb-3 space-y-3 border-t border-slate-700 pt-3">
+                                    <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
                                       {extraOpts.map(opt => <ConfigOptionItem key={opt.id} opt={opt} configValues={configValues} onConfigChange={setConfigValues} />)}
                                     </div>
                                   )}
@@ -6941,14 +6672,14 @@ export default function OneClickOrderPage() {
                       <>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="flex items-center gap-2">
-                            <Label className="text-slate-400 text-xs sm:text-sm whitespace-nowrap">付款周期</Label>
+                            <Label className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap">付款周期</Label>
                             <Select value={selectedBillingCycle} onValueChange={setSelectedBillingCycle}>
-                              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white h-8 flex-1 text-sm">
+                              <SelectTrigger className="bg-muted border-border text-foreground h-8 flex-1 text-sm">
                                 <SelectValue placeholder="选择" />
                               </SelectTrigger>
-                              <SelectContent className="bg-slate-800 border-slate-700">
+                              <SelectContent className="bg-popover border-border">
                                 {productCycles.map(c => (
-                                  <SelectItem key={c.value} value={c.value} className="text-white focus:bg-slate-700">
+                                  <SelectItem key={c.value} value={c.value} className="text-foreground focus:bg-accent">
                                     {c.label}
                                   </SelectItem>
                                 ))}
@@ -6956,17 +6687,17 @@ export default function OneClickOrderPage() {
                             </Select>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Label className="text-slate-400 text-xs sm:text-sm whitespace-nowrap">数量</Label>
+                            <Label className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap">数量</Label>
                             <div className="flex items-center gap-1 flex-1">
                               <button type="button"
-                                className="w-7 h-7 rounded bg-slate-700 border border-slate-600 text-white flex items-center justify-center hover:bg-slate-600 text-sm shrink-0"
+                                className="w-7 h-7 rounded bg-accent border border-border text-foreground flex items-center justify-center hover:bg-accent text-sm shrink-0"
                                 onClick={() => setProductQty(prev => Math.max(1, prev - 1))}
                               >-</button>
                               <Input type="number" min={1} value={productQty}
                                 onChange={(e) => { let val = parseInt(e.target.value) || 1; val = Math.max(1, val); setProductQty(val); }}
-                                className="bg-slate-700/50 border-slate-600 text-white text-center w-14 h-7 text-sm" />
+                                className="bg-muted border-border text-foreground text-center w-14 h-7 text-sm" />
                               <button type="button"
-                                className="w-7 h-7 rounded bg-slate-700 border border-slate-600 text-white flex items-center justify-center hover:bg-slate-600 text-sm shrink-0"
+                                className="w-7 h-7 rounded bg-accent border border-border text-foreground flex items-center justify-center hover:bg-accent text-sm shrink-0"
                                 onClick={() => setProductQty(prev => prev + 1)}
                               >+</button>
                             </div>
@@ -6983,49 +6714,49 @@ export default function OneClickOrderPage() {
 
                 {/* 价格汇总 - 仅弹性模式显示（套餐模式在上方套餐区域显示） */}
                 {selectedProductId && configMode !== 'package' && (
-                  <div className="bg-slate-700/30 rounded-lg p-3 space-y-2 min-h-[180px]">
+                  <div className="bg-muted rounded-lg p-3 space-y-2 min-h-[180px]">
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">{'产品'}</span>
-                      <span className="text-white">{selectedProductName}</span>
+                      <span className="text-muted-foreground">{'产品'}</span>
+                      <span className="text-foreground">{selectedProductName}</span>
                     </div>
                     {selectedNodeName && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">{'节点'}</span>
-                        <span className="text-white">{selectedNodeName}</span>
+                        <span className="text-muted-foreground">{'节点'}</span>
+                        <span className="text-foreground">{selectedNodeName}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">计费周期</span>
-                      <span className="text-white">{selectedBillingCycle}</span>
+                      <span className="text-muted-foreground">计费周期</span>
+                      <span className="text-foreground">{selectedBillingCycle}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">数量</span>
-                      <span className="text-white">{productQty}</span>
+                      <span className="text-muted-foreground">数量</span>
+                      <span className="text-foreground">{productQty}</span>
                     </div>
                     {firstPrice && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">首次价格</span>
-                        <span className="text-orange-400">¥{parseFloat(firstPrice).toFixed(2)}</span>
+                        <span className="text-muted-foreground">首次价格</span>
+                        <span className="text-primary">¥{parseFloat(firstPrice).toFixed(2)}</span>
                       </div>
                     )}
                     {renewPrice && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">续费价格</span>
-                        <span className="text-orange-400">¥{parseFloat(renewPrice).toFixed(2)}</span>
+                        <span className="text-muted-foreground">续费价格</span>
+                        <span className="text-primary">¥{parseFloat(renewPrice).toFixed(2)}</span>
                       </div>
                     )}
                     {selectedGateway && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">支付方式</span>
-                        <span className="text-white">{gateways.find(g => g.name === selectedGateway)?.title || selectedGateway}{autoRecharge ? ' + 自动充余额' : useCredit ? ' + 余额抵扣' : ''}</span>
+                        <span className="text-muted-foreground">支付方式</span>
+                        <span className="text-foreground">{gateways.find(g => g.name === selectedGateway)?.title || selectedGateway}{autoRecharge ? ' + 自动充余额' : useCredit ? ' + 余额抵扣' : ''}</span>
                       </div>
                     )}
-                    <div className="border-t border-slate-600 pt-2 flex justify-between font-bold">
-                      <span className="text-slate-300">合计</span>
-                      <span className="text-orange-400 text-lg">¥{firstPrice ? (parseFloat(firstPrice) * productQty).toFixed(2) : '--'}</span>
+                    <div className="border-t border-border pt-2 flex justify-between font-bold">
+                      <span className="text-foreground/80">合计</span>
+                      <span className="text-primary text-lg">¥{firstPrice ? (parseFloat(firstPrice) * productQty).toFixed(2) : '--'}</span>
                     </div>
                     {productQty > 1 && firstPrice && (
-                      <div className="text-right text-xs text-slate-500 mt-0.5">¥{parseFloat(firstPrice).toFixed(2)} × {productQty}</div>
+                      <div className="text-right text-xs text-muted-foreground mt-0.5">¥{parseFloat(firstPrice).toFixed(2)} × {productQty}</div>
                     )}
                   </div>
                 )}
@@ -7035,7 +6766,7 @@ export default function OneClickOrderPage() {
                 <Button
                   onClick={handleOneClickOrder}
                   disabled={isProcessing || !selectedProductId}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-5 text-base"
+                  className="w-full bg-gradient-to-b from-primary to-primary/90 hover:from-primary/95 hover:to-primary/85 text-primary-foreground font-bold py-5 text-base shadow-lg shadow-primary/30 border border-primary/20"
                 >
                   {isProcessing ? (
                     <><Loader2 className="w-5 h-5 mr-2 animate-spin" />正在处理...</>
@@ -7045,7 +6776,7 @@ export default function OneClickOrderPage() {
                 </Button>
                 )}
                 {!selectedUser && selectedProductId && configMode !== 'package' && (
-                  <p className="text-xs text-red-400 text-center">请先在上方搜索并选择用户</p>
+                  <p className="text-xs text-destructive text-center">请先在上方搜索并选择用户</p>
                 )}
               </CardContent>
             </Card>
@@ -7055,15 +6786,15 @@ export default function OneClickOrderPage() {
           <div className="space-y-4">
             {/* 已选配置摘要 */}
             {selectedProductId && configOptions.length > 0 && !isLoadingConfig && (
-              <Card className="border-slate-700 bg-slate-800/50">
+              <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-white text-base flex items-center gap-2">
-                    <Package className="w-4 h-4 text-orange-400" />
+                  <CardTitle className="text-foreground text-base flex items-center gap-2">
+                    <Package className="w-4 h-4 text-primary" />
                     当前配置摘要
                     {selectedPackageId && (() => {
                       const pkg = savedPackages.find(p => p.id === selectedPackageId);
                       return pkg ? (
-                        <Badge variant="outline" className="border-orange-500/50 text-orange-400 bg-orange-500/10 text-xs ml-2">
+                        <Badge variant="outline" className="border-primary/50 text-primary bg-primary/10 text-xs ml-2">
                           <Star className="w-3 h-3 mr-1" />{pkg.name}
                         </Badge>
                       ) : null;
@@ -7099,8 +6830,8 @@ export default function OneClickOrderPage() {
                       }
                       return (
                         <div key={opt.id} className="flex justify-between items-center py-1.5">
-                          <span className="text-slate-500 text-xs">{opt.option_name}</span>
-                          <span className="text-white text-xs font-medium">{selectedName || '-'}</span>
+                          <span className="text-muted-foreground text-xs">{opt.option_name}</span>
+                          <span className="text-foreground text-xs font-medium">{selectedName || '-'}</span>
                         </div>
                       );
                     })}
@@ -7130,23 +6861,23 @@ export default function OneClickOrderPage() {
                 setProductCycles([]);
               }
             }}>
-              <DialogContent className="sm:!max-w-lg bg-slate-900 border-slate-700 p-0 gap-0 max-h-[85vh] flex flex-col w-[calc(100vw-1.5rem)]" showCloseButton={false}>
+              <DialogContent className="sm:!max-w-lg bg-card border-border p-0 gap-0 max-h-[85vh] flex flex-col w-[calc(100vw-1.5rem)]" showCloseButton={false}>
                 {/* 进度部分 - 结果出来后隐藏 */}
                 {((processingSteps.length > 0 || isProcessing) && !orderResult) && (
                   <div className="p-3 sm:p-5 sm:pb-3 pb-2 shrink-0">
                     <DialogTitle className="flex items-center justify-between mb-2 sm:mb-3">
-                      <span className="text-white text-sm sm:text-base font-semibold">开通进度</span>
-                      <span className="text-xs sm:text-sm text-slate-400">{progress}%</span>
+                      <span className="text-foreground text-sm sm:text-base font-semibold">开通进度</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">{progress}%</span>
                     </DialogTitle>
-                    <Progress value={progress} className="h-1.5 sm:h-2 bg-slate-700 mb-2 sm:mb-4" />
+                    <Progress value={progress} className="h-1.5 sm:h-2 bg-accent mb-2 sm:mb-4" />
                     <div className="space-y-1.5 sm:space-y-2">
                       {processingSteps.map((step, index) => (
                         <div key={step.id} className="flex items-center gap-1.5 sm:gap-2">
                           <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shrink-0 ${
-                            step.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                            step.status === 'processing' ? 'bg-orange-500/20 text-orange-400' :
-                            step.status === 'failed' ? 'bg-red-500/20 text-red-400' :
-                            'bg-slate-700 text-slate-500'
+                            step.status === 'completed' ? 'bg-success/20 text-success' :
+                            step.status === 'processing' ? 'bg-primary/20 text-primary' :
+                            step.status === 'failed' ? 'bg-destructive/20 text-destructive' :
+                            'bg-accent text-muted-foreground'
                           }`}>
                             {step.status === 'completed' ? <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> :
                              step.status === 'processing' ? <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin" /> :
@@ -7155,12 +6886,12 @@ export default function OneClickOrderPage() {
                             }
                           </div>
                           <span className={`text-xs sm:text-sm ${
-                            step.status === 'completed' ? 'text-emerald-400' :
-                            step.status === 'processing' ? 'text-orange-400' :
-                            step.status === 'failed' ? 'text-red-400' : 'text-slate-500'
+                            step.status === 'completed' ? 'text-success' :
+                            step.status === 'processing' ? 'text-primary' :
+                            step.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'
                           }`}>{step.name}</span>
                           {step.message && (
-                            <span className="text-[10px] sm:text-xs text-slate-500 truncate">{step.message}</span>
+                            <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{step.message}</span>
                           )}
                         </div>
                       ))}
@@ -7169,10 +6900,10 @@ export default function OneClickOrderPage() {
                 )}
                 {/* 结果部分 */}
                 {orderResult && (
-                  <div className={`${processingSteps.length > 0 ? 'border-t border-slate-700' : ''} flex flex-col min-h-0 flex-1`}>
+                  <div className={`${processingSteps.length > 0 ? 'border-t border-border' : ''} flex flex-col min-h-0 flex-1`}>
                     {/* 标题 */}
                     <div className="shrink-0 px-3 sm:px-5 pt-3 sm:pt-5">
-                      <h3 className={`text-base sm:text-lg flex items-center gap-2 ${orderResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <h3 className={`text-base sm:text-lg flex items-center gap-2 ${orderResult.success ? 'text-success' : 'text-destructive'}`}>
                         {orderResult.success ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
                         {orderResult.success ? '开通成功' : '开通失败'}
                       </h3>
@@ -7181,15 +6912,15 @@ export default function OneClickOrderPage() {
                     {orderResult.success && resultData && (
                       <div className="overflow-y-auto min-h-0 flex-1 px-3 sm:px-5 py-3 space-y-2 sm:space-y-3">
                         {Array.isArray(resultData) && resultData.length > 1 && (
-                          <p className="text-slate-400 text-[10px] sm:text-xs text-center">共开通 {resultData.length} 台服务器</p>
+                          <p className="text-muted-foreground text-[10px] sm:text-xs text-center">共开通 {resultData.length} 台服务器</p>
                         )}
                         {/* 多台时订单ID只显示一次 */}
                         {Array.isArray(resultData) && resultData.length > 1 && resultData[0]?.orderId && (
-                          <div className="bg-slate-800/50 rounded-lg p-2 flex items-center justify-between">
-                            <span className="text-slate-400 text-xs">订单ID</span>
+                          <div className="bg-muted/50 rounded-lg p-2 flex items-center justify-between">
+                            <span className="text-muted-foreground text-xs">订单ID</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-white font-mono text-xs">{resultData[0].orderId}</span>
-                              <button onClick={() => copyText(resultData[0].orderId)} className="text-slate-500 hover:text-white">
+                              <span className="text-foreground font-mono text-xs">{resultData[0].orderId}</span>
+                              <button onClick={() => copyText(resultData[0].orderId)} className="text-muted-foreground hover:text-foreground">
                                 <Copy className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -7198,14 +6929,14 @@ export default function OneClickOrderPage() {
                         {(Array.isArray(resultData) ? resultData : [resultData]).map((item, idx) => {
                           const isMulti = Array.isArray(resultData) && resultData.length > 1;
                           return (
-                            <div key={item.hostId || idx} className={`${isMulti ? 'bg-slate-800/30 rounded-lg p-2 border border-slate-700/50' : 'space-y-2'}`}>
+                            <div key={item.hostId || idx} className={`${isMulti ? 'bg-muted/30 rounded-lg p-2 border border-border/50' : 'space-y-2'}`}>
                               {isMulti && (
                                 <div className="flex items-center justify-between mb-1.5">
-                                  <span className="text-blue-400 text-xs font-medium">第 {idx + 1} 台</span>
+                                  <span className="text-info text-xs font-medium">第 {idx + 1} 台</span>
                                   {item.hostId && (
                                     <div className="flex items-center gap-1.5">
-                                      <span className="text-slate-500 text-xs">ID:{item.hostId}</span>
-                                      <button onClick={() => copyText(item.hostId)} className="text-slate-500 hover:text-white">
+                                      <span className="text-muted-foreground text-xs">ID:{item.hostId}</span>
+                                      <button onClick={() => copyText(item.hostId)} className="text-muted-foreground hover:text-foreground">
                                         <Copy className="w-3 h-3" />
                                       </button>
                                     </div>
@@ -7215,55 +6946,55 @@ export default function OneClickOrderPage() {
                               <div className="space-y-1.5">
                                 {/* 单台时显示订单ID和服务ID */}
                                 {!isMulti && item.orderId && (
-                                  <div className="bg-slate-800/50 rounded-lg p-2 flex items-center justify-between">
-                                    <span className="text-slate-400 text-xs">订单ID</span>
+                                  <div className="bg-muted/50 rounded-lg p-2 flex items-center justify-between">
+                                    <span className="text-muted-foreground text-xs">订单ID</span>
                                     <div className="flex items-center gap-2">
-                                      <span className="text-white font-mono text-xs">{item.orderId}</span>
-                                      <button onClick={() => copyText(item.orderId)} className="text-slate-500 hover:text-white">
+                                      <span className="text-foreground font-mono text-xs">{item.orderId}</span>
+                                      <button onClick={() => copyText(item.orderId)} className="text-muted-foreground hover:text-foreground">
                                         <Copy className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
                                   </div>
                                 )}
                                 {!isMulti && item.hostId && (
-                                  <div className="bg-slate-800/50 rounded-lg p-2 flex items-center justify-between">
-                                    <span className="text-slate-400 text-xs">服务ID</span>
+                                  <div className="bg-muted/50 rounded-lg p-2 flex items-center justify-between">
+                                    <span className="text-muted-foreground text-xs">服务ID</span>
                                     <div className="flex items-center gap-2">
-                                      <span className="text-white font-mono text-xs">{item.hostId}</span>
-                                      <button onClick={() => copyText(item.hostId)} className="text-slate-500 hover:text-white">
+                                      <span className="text-foreground font-mono text-xs">{item.hostId}</span>
+                                      <button onClick={() => copyText(item.hostId)} className="text-muted-foreground hover:text-foreground">
                                         <Copy className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
                                   </div>
                                 )}
                                 {item.ip && (
-                                  <div className="bg-slate-800/50 rounded-lg p-2 flex items-center justify-between">
-                                    <span className="text-slate-400 text-xs">IP地址</span>
+                                  <div className="bg-muted/50 rounded-lg p-2 flex items-center justify-between">
+                                    <span className="text-muted-foreground text-xs">IP地址</span>
                                     <div className="flex items-center gap-2">
-                                      <span className="text-emerald-400 font-mono font-bold text-xs break-all">{item.ip}</span>
-                                      <button onClick={() => copyText(item.ip)} className="text-slate-500 hover:text-white shrink-0">
+                                      <span className="text-success font-mono font-bold text-xs break-all">{item.ip}</span>
+                                      <button onClick={() => copyText(item.ip)} className="text-muted-foreground hover:text-foreground shrink-0">
                                         <Copy className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
                                   </div>
                                 )}
                                 {item.username && (
-                                  <div className="bg-slate-800/50 rounded-lg p-2 flex items-center justify-between">
-                                    <span className="text-slate-400 text-xs">用户名</span>
+                                  <div className="bg-muted/50 rounded-lg p-2 flex items-center justify-between">
+                                    <span className="text-muted-foreground text-xs">用户名</span>
                                     <div className="flex items-center gap-2">
-                                      <span className="text-white font-mono text-xs break-all">{item.username}</span>
-                                      <button onClick={() => copyText(item.username)} className="text-slate-500 hover:text-white shrink-0">
+                                      <span className="text-foreground font-mono text-xs break-all">{item.username}</span>
+                                      <button onClick={() => copyText(item.username)} className="text-muted-foreground hover:text-foreground shrink-0">
                                         <Copy className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
                                   </div>
                                 )}
                                 {item.password && (
-                                  <div className="bg-slate-800/50 rounded-lg p-2 flex items-center justify-between">
-                                    <span className="text-slate-400 text-xs">密码</span>
+                                  <div className="bg-muted/50 rounded-lg p-2 flex items-center justify-between">
+                                    <span className="text-muted-foreground text-xs">密码</span>
                                     <div className="flex items-center gap-2">
-                                      <span className="text-white font-mono text-xs break-all">{item.password}</span>
-                                      <button onClick={() => copyText(item.password)} className="text-slate-500 hover:text-white shrink-0">
+                                      <span className="text-foreground font-mono text-xs break-all">{item.password}</span>
+                                      <button onClick={() => copyText(item.password)} className="text-muted-foreground hover:text-foreground shrink-0">
                                         <Copy className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
@@ -7300,15 +7031,15 @@ export default function OneClickOrderPage() {
                         renderedText = renderTemplate(matchedTmpl, buildVars(items[0]));
                       }
                       return (
-                        <div className="border-t border-slate-700/50 px-3 sm:px-5 py-3">
+                        <div className="border-t border-border/50 px-3 sm:px-5 py-3">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-1.5">
-                              <FileText className="w-3.5 h-3.5 text-orange-400" />
-                              <span className="text-orange-400 text-xs font-medium">交付话术</span>
-                              <span className="text-slate-500 text-[10px]">({matchedTmpl.name})</span>
+                              <FileText className="w-3.5 h-3.5 text-primary" />
+                              <span className="text-primary text-xs font-medium">交付话术</span>
+                              <span className="text-muted-foreground text-[10px]">({matchedTmpl.name})</span>
                             </div>
                             <Button size="sm" variant="ghost"
-                              className="text-slate-400 hover:text-white h-6 px-2 text-xs"
+                              className="text-muted-foreground hover:text-foreground h-6 px-2 text-xs"
                               onClick={() => {
                                 copyText(renderedText);
                                 showNotification('success', '话术已复制');
@@ -7316,8 +7047,8 @@ export default function OneClickOrderPage() {
                               <Copy className="w-3 h-3 mr-1" />复制话术
                             </Button>
                           </div>
-                          <div className="bg-slate-800/60 rounded-lg p-2.5 max-h-40 overflow-y-auto">
-                            <pre className="text-slate-200 text-xs whitespace-pre-wrap break-all font-sans leading-relaxed">{renderedText}</pre>
+                          <div className="bg-muted/60 rounded-lg p-2.5 max-h-40 overflow-y-auto">
+                            <pre className="text-foreground text-xs whitespace-pre-wrap break-all font-sans leading-relaxed">{renderedText}</pre>
                           </div>
                         </div>
                       );
@@ -7327,9 +7058,9 @@ export default function OneClickOrderPage() {
                       const first = Array.isArray(resultData) ? resultData[0] : resultData;
                       if (!first) return null;
                       return (
-                        <div className="shrink-0 border-t border-slate-700/50 px-3 sm:px-5 py-2 space-y-1.5">
+                        <div className="shrink-0 border-t border-border/50 px-3 sm:px-5 py-2 space-y-1.5">
                           <div className="grid grid-cols-4 gap-1.5">
-                            <Button size="sm" className="bg-blue-600 hover:bg-blue-500 text-white border-0 text-[11px] h-7 px-1"
+                            <Button size="sm" className="bg-info hover:bg-info/90 text-info-foreground border-0 text-[11px] h-7 px-1"
                               onClick={() => {
                                 const items = Array.isArray(resultData) ? resultData : [resultData];
                                 const text = items.map((it, i) => {
@@ -7340,7 +7071,7 @@ export default function OneClickOrderPage() {
                               }}>
                               <Copy className="w-3 h-3 mr-0.5" />复制信息
                             </Button>
-                            <Button size="sm" className="bg-purple-600 hover:bg-purple-500 text-white border-0 text-[11px] h-7 px-1"
+                            <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 text-[11px] h-7 px-1"
                               onClick={() => {
                                 const items = Array.isArray(resultData) ? resultData : [resultData];
                                 const osName = getCurrentOsName();
@@ -7377,13 +7108,13 @@ export default function OneClickOrderPage() {
                               href={`${financeUrl}/#/customer-view/product-innerpage?id=${first.uid || selectedUser?.id || ''}&hid=${first.hostId}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center gap-1 text-[11px] text-white bg-emerald-600 hover:bg-emerald-500 px-1 py-1 h-7 rounded-md"
+                              className="inline-flex items-center justify-center gap-1 text-[11px] text-success-foreground bg-success hover:bg-success/90 px-1 py-1 h-7 rounded-md"
                             >
                               <ExternalLink className="w-3 h-3" />财务
                             </a>
                             )}
                             {isAdminUser && mfyUrl && (
-                            <Button size="sm" className="bg-amber-600 hover:bg-amber-500 text-white border-0 text-[11px] h-7 px-1"
+                            <Button size="sm" className="bg-warning text-warning-foreground hover:bg-warning/90 border-0 text-[11px] h-7 px-1"
                               onClick={async () => {
                                 try {
                                   if (first.dcimid) {
@@ -7406,7 +7137,7 @@ export default function OneClickOrderPage() {
                             )}
                           </div>
                           <div className="flex justify-center">
-                            <Button variant="outline" className="border-zinc-600 text-zinc-400 hover:text-white hover:bg-zinc-700/50 px-8 py-2"
+                            <Button variant="outline" className="border-border text-muted-foreground hover:text-foreground hover:bg-accent/50 px-8 py-2"
                               onClick={() => {
                                 setOrderResult(null); setResultData(null); setProcessingSteps([]); setProgress(0);
                                 setSelectedProductId(null); setSelectedProductDetail(null); setSelectedBillingCycle('monthly'); setSelectedPackageId('');

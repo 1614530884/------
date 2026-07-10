@@ -8,40 +8,19 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { cleanupRuleStore } from '@/lib/services/server-tools/store';
-import { getCurrentUser } from '@/lib/services/server-tools/auth';
 import type { CleanupScope } from '@/lib/services/server-tools/types';
-import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
-import { logUnauthorizedAccess } from '@/lib/access-log';
+import { withAuth } from '@/lib/services/server-tools/api-helpers';
 
 const VALID_SCOPES: CleanupScope[] = ['tasks', 'connections', 'bt_panels'];
 const MIN_RETAIN_DAYS = 1;
 const MAX_RETAIN_DAYS = 365;
 
-export async function GET(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-cleanup-get');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
+export const GET = withAuth(async (_request, currentUser) => {
   const rules = cleanupRuleStore.list(currentUser);
   return NextResponse.json({ success: true, data: rules });
-}
+}, 'st-cleanup-get');
 
-export async function PATCH(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-cleanup-patch');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
-
+export const PATCH = withAuth(async (request, currentUser) => {
   const body = await request.json() as { scope?: string; enabled?: boolean; retainDays?: number; _loginUser?: string };
   const { _loginUser, ...input } = body;
   void _loginUser;
@@ -62,19 +41,9 @@ export async function PATCH(request: NextRequest) {
     retainDays: input.retainDays,
   }, currentUser);
   return NextResponse.json({ success: true, data: rule });
-}
+}, 'st-cleanup-patch');
 
-export async function POST(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-cleanup-post');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
-
+export const POST = withAuth(async (_request, currentUser) => {
   // 立即执行清理（全局，但只清理当前用户的数据需要额外支持；当前 executeCleanup 是全局的）
   // 为安全起见，普通用户只能触发自己的规则；admin 可触发全部
   const rules = cleanupRuleStore.list(currentUser);
@@ -90,19 +59,9 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json({ success: true, data: results });
-}
+}, 'st-cleanup-post');
 
-export async function DELETE(request: NextRequest) {
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!verifySessionToken(sessionCookie)) {
-    logUnauthorizedAccess(request, 'st-cleanup-delete');
-    return NextResponse.json({ success: false, message: '未授权，请先登录' }, { status: 401 });
-  }
-  const currentUser = await getCurrentUser(request);
-  if (!currentUser) {
-    return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-  }
-
+export const DELETE = withAuth(async (request, currentUser) => {
   const url = new URL(request.url);
   const scopeParam = url.searchParams.get('scope');
   if (!scopeParam || !VALID_SCOPES.includes(scopeParam as CleanupScope)) {
@@ -111,4 +70,4 @@ export async function DELETE(request: NextRequest) {
 
   const result = cleanupRuleStore.purgeAll(scopeParam as CleanupScope);
   return NextResponse.json({ success: true, data: { scope: scopeParam, deleted: result.deleted } });
-}
+}, 'st-cleanup-delete');

@@ -162,7 +162,7 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1a1d27] border-gray-800 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border text-foreground max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? '编辑规则' : '添加规则'}</DialogTitle>
         </DialogHeader>
@@ -170,38 +170,38 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
         <div className="space-y-4">
           {/* 规则名称 */}
           <div>
-            <Label className="text-gray-300 text-xs">规则名称</Label>
+            <Label className="text-foreground/80 text-xs">规则名称</Label>
             <Input
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="例如: CPU过高自动禁用"
-              className="mt-1 bg-[#0f1117] border-gray-700 text-white"
+              className="mt-1 bg-input border-border text-foreground"
             />
           </div>
 
           {/* 目标节点 */}
           <div>
-            <Label className="text-gray-300 text-xs">目标节点 ({nodeIds.length}个已选)</Label>
+            <Label className="text-foreground/80 text-xs">目标节点 ({nodeIds.length}个已选)</Label>
             <div className="mt-1 relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
                 value={nodeSearch}
                 onChange={e => setNodeSearch(e.target.value)}
                 placeholder="搜索节点..."
-                className="pl-8 bg-[#0f1117] border-gray-700 text-white text-xs"
+                className="pl-8 bg-input border-border text-foreground text-xs"
               />
             </div>
-            <div className="mt-1.5 border border-gray-800 rounded-lg max-h-40 overflow-y-auto bg-[#0f1117]">
+            <div className="mt-1.5 border border-border rounded-lg max-h-40 overflow-y-auto bg-input">
               {filteredNodes.length === 0 ? (
-                <div className="p-2 text-xs text-gray-500 text-center">无匹配节点</div>
+                <div className="p-2 text-xs text-muted-foreground text-center">无匹配节点</div>
               ) : filteredNodes.map(n => (
-                <label key={n.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-800/50 cursor-pointer text-xs">
+                <label key={n.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/50 cursor-pointer text-xs">
                   <Checkbox
                     checked={nodeIds.includes(n.id)}
                     onCheckedChange={() => toggleNode(n.id)}
                   />
-                  <span className="text-gray-200">{n.name}</span>
-                  <span className="text-gray-500 ml-auto font-mono">{n.ip}</span>
+                  <span className="text-foreground">{n.name}</span>
+                  <span className="text-muted-foreground ml-auto font-mono">{n.ip}</span>
                 </label>
               ))}
             </div>
@@ -210,21 +210,21 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
           {/* 监控指标 */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-gray-300 text-xs">监控指标</Label>
+              <Label className="text-foreground/80 text-xs">监控指标</Label>
               <select
                 value={metric}
                 onChange={e => setMetric(e.target.value as MonitorMetric)}
-                className="mt-1 w-full bg-[#0f1117] border border-gray-700 rounded-md px-2 py-1.5 text-xs text-white"
+                className="mt-1 w-full bg-input border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
               >
                 {METRIC_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <Label className="text-gray-300 text-xs">比较模式</Label>
+              <Label className="text-foreground/80 text-xs">比较模式</Label>
               <select
                 value={operator}
                 onChange={e => setOperator(e.target.value as MonitorOperator)}
-                className="mt-1 w-full bg-[#0f1117] border border-gray-700 rounded-md px-2 py-1.5 text-xs text-white"
+                className="mt-1 w-full bg-input border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
               >
                 {OPERATOR_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -233,7 +233,7 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
 
           {/* 模式描述 */}
           {isRangeMode && OPERATOR_OPTIONS.find(o => o.value === operator)?.desc && (
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-md px-3 py-2 text-[11px] text-purple-300">
+            <div className="bg-primary/10 border border-primary/30 rounded-md px-3 py-2 text-[11px] text-primary">
               {OPERATOR_OPTIONS.find(o => o.value === operator)?.desc}
             </div>
           )}
@@ -241,55 +241,55 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
           {/* 条件配置 - 根据模式动态显示 */}
           {isRangeMode ? (
             /* ====== 区间模式 ====== */
-            <div className="border border-gray-800 rounded-lg p-3 space-y-3 bg-[#0f1117]/50">
-              <div className="text-xs font-medium text-orange-400 flex items-center gap-1.5">
+            <div className="border border-border rounded-lg p-3 space-y-3 bg-input/50">
+              <div className="text-xs font-medium text-primary flex items-center gap-1.5">
                 <span>高位条件</span>
-                <span className="font-normal text-gray-500">(指标超过此值时触发)</span>
+                <span className="font-normal text-muted-foreground">(指标超过此值时触发)</span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-gray-400 text-[11px]">高位阈值 (%)</Label>
+                  <Label className="text-muted-foreground text-[11px]">高位阈值 (%)</Label>
                   <Input
                     type="number" min={1} max={100}
                     value={threshold}
                     onChange={e => setThreshold(Number(e.target.value))}
-                    className="mt-1 bg-[#0f1117] border-gray-700 text-white text-xs"
+                    className="mt-1 bg-input border-border text-foreground text-xs"
                   />
                 </div>
                 <div>
-                  <Label className="text-gray-400 text-[11px]">高位动作</Label>
+                  <Label className="text-muted-foreground text-[11px]">高位动作</Label>
                   <select
                     value={action}
                     onChange={e => setAction(e.target.value as MonitorAction)}
-                    className="mt-1 w-full bg-[#0f1117] border border-gray-700 rounded-md px-2 py-1.5 text-xs text-white"
+                    className="mt-1 w-full bg-input border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
                   >
                     {ACTION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
               </div>
 
-              <div className="h-px bg-gray-800" />
+              <div className="h-px bg-muted" />
 
-              <div className="text-xs font-medium text-cyan-400 flex items-center gap-1.5">
+              <div className="text-xs font-medium text-info flex items-center gap-1.5">
                 <span>低位条件</span>
-                <span className="font-normal text-gray-500">(指标低于此值时触发)</span>
+                <span className="font-normal text-muted-foreground">(指标低于此值时触发)</span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-gray-400 text-[11px]">低位阈值 (%)</Label>
+                  <Label className="text-muted-foreground text-[11px]">低位阈值 (%)</Label>
                   <Input
                     type="number" min={0} max={99}
                     value={thresholdLow}
                     onChange={e => setThresholdLow(Number(e.target.value))}
-                    className="mt-1 bg-[#0f1117] border-gray-700 text-white text-xs"
+                    className="mt-1 bg-input border-border text-foreground text-xs"
                   />
                 </div>
                 <div>
-                  <Label className="text-gray-400 text-[11px]">低位动作</Label>
+                  <Label className="text-muted-foreground text-[11px]">低位动作</Label>
                   <select
                     value={actionLow}
                     onChange={e => setActionLow(e.target.value as MonitorAction)}
-                    className="mt-1 w-full bg-[#0f1117] border border-gray-700 rounded-md px-2 py-1.5 text-xs text-white"
+                    className="mt-1 w-full bg-input border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
                   >
                     {ACTION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -300,24 +300,24 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
             /* ====== 单条件模式 ====== */
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-gray-300 text-xs">比较条件</Label>
+                <Label className="text-foreground/80 text-xs">比较条件</Label>
                 <select
                   value={operator}
                   onChange={e => setOperator(e.target.value as MonitorOperator)}
-                  className="mt-1 w-full bg-[#0f1117] border border-gray-700 rounded-md px-2 py-1.5 text-xs text-white"
+                  className="mt-1 w-full bg-input border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
                 >
                   {OPERATOR_OPTIONS.filter(o => o.value !== 'range').map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
-                <Label className="text-gray-300 text-xs">阈值 (%)</Label>
+                <Label className="text-foreground/80 text-xs">阈值 (%)</Label>
                 <Input
                   type="number"
                   min={0}
                   max={100}
                   value={threshold}
                   onChange={e => setThreshold(Number(e.target.value))}
-                  className="mt-1 bg-[#0f1117] border-gray-700 text-white"
+                  className="mt-1 bg-input border-border text-foreground"
                 />
               </div>
             </div>
@@ -325,11 +325,11 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
 
           {!isRangeMode && (
             <div>
-              <Label className="text-gray-300 text-xs">触发动作</Label>
+              <Label className="text-foreground/80 text-xs">触发动作</Label>
               <select
                 value={action}
                 onChange={e => setAction(e.target.value as MonitorAction)}
-                className="mt-1 w-full bg-[#0f1117] border border-gray-700 rounded-md px-2 py-1.5 text-xs text-white"
+                className="mt-1 w-full bg-input border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
               >
                 {ACTION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -339,47 +339,47 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
           {/* 间隔、触发次数、冷却 */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label className="text-gray-300 text-xs">检查间隔</Label>
+              <Label className="text-foreground/80 text-xs">检查间隔</Label>
               <select
                 value={interval}
                 onChange={e => setInterval_(Number(e.target.value))}
-                className="mt-1 w-full bg-[#0f1117] border border-gray-700 rounded-md px-2 py-1.5 text-xs text-white"
+                className="mt-1 w-full bg-input border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
               >
                 {INTERVAL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <Label className="text-gray-300 text-xs">触发次数</Label>
+              <Label className="text-foreground/80 text-xs">触发次数</Label>
               <Input
                 type="number"
                 min={1}
                 max={100}
                 value={triggerCount}
                 onChange={e => setTriggerCount(Math.max(1, Number(e.target.value)))}
-                className="mt-1 bg-[#0f1117] border-gray-700 text-white"
+                className="mt-1 bg-input border-border text-foreground"
               />
-              <span className="text-[10px] text-gray-500 mt-0.5 block">连续满足后执行</span>
+              <span className="text-[10px] text-muted-foreground mt-0.5 block">连续满足后执行</span>
             </div>
             <div>
-              <Label className="text-gray-300 text-xs">冷却时间</Label>
+              <Label className="text-foreground/80 text-xs">冷却时间</Label>
               <select
                 value={cooldown}
                 onChange={e => setCooldown(Number(e.target.value))}
-                className="mt-1 w-full bg-[#0f1117] border border-gray-700 rounded-md px-2 py-1.5 text-xs text-white"
+                className="mt-1 w-full bg-input border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
               >
                 {COOLDOWN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
           </div>
 
-          {error && <div className="text-xs text-red-400">{error}</div>}
+          {error && <div className="text-xs text-destructive">{error}</div>}
         </div>
 
         <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-700 text-gray-300">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-border text-foreground/80">
             取消
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700 text-white">
+          <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
             {isEdit ? '保存' : '添加'}
           </Button>

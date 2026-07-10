@@ -481,7 +481,7 @@ const SshTerminal = forwardRef<SshTerminalHandle, SshTerminalProps>(function Ssh
       {connected && (
         <button
           onClick={() => pasteFnRef.current?.()}
-          className="absolute top-1.5 right-1.5 z-10 p-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 rounded border border-zinc-700/50 backdrop-blur-sm transition-colors"
+          className="absolute top-1.5 right-1.5 z-10 p-1.5 bg-muted/80 hover:bg-accent text-muted-foreground hover:text-foreground rounded border border-border/50 backdrop-blur-sm transition-colors"
           title="粘贴剪贴板内容"
         >
           <Clipboard className="w-3.5 h-3.5" />
@@ -490,7 +490,7 @@ const SshTerminal = forwardRef<SshTerminalHandle, SshTerminalProps>(function Ssh
       {!connected && status !== 'connecting' && status !== 'creating_shell' && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a]/85 backdrop-blur-sm pointer-events-none">
           <div className="text-center pointer-events-auto">
-            <div className="text-sm text-zinc-400 mb-3">
+            <div className="text-sm text-muted-foreground mb-3">
               {status === 'idle' && '准备中...'}
               {status === 'disconnected' && '连接已断开'}
               {status === 'error' && '连接失败'}
@@ -498,7 +498,7 @@ const SshTerminal = forwardRef<SshTerminalHandle, SshTerminalProps>(function Ssh
             {(status === 'disconnected' || status === 'error' || status === 'idle') && (
               <button
                 onClick={connect}
-                className="px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded border border-zinc-700"
+                className="px-3 py-1.5 text-xs bg-muted hover:bg-accent text-foreground rounded border border-border"
               >
                 重新连接
               </button>

@@ -80,19 +80,19 @@ function getLoginUser(): string {
 }
 
 const STATUS_META: Record<TaskStatus, { label: string; color: string; icon: typeof Circle }> = {
-  pending: { label: '等待', color: 'text-gray-400', icon: Circle },
-  running: { label: '运行中', color: 'text-blue-400', icon: Loader2 },
-  success: { label: '成功', color: 'text-emerald-400', icon: CheckCircle2 },
-  failed: { label: '失败', color: 'text-red-400', icon: XCircle },
-  cancelled: { label: '已取消', color: 'text-amber-400', icon: PauseCircle },
-  interrupted: { label: '已中断', color: 'text-amber-400', icon: AlertTriangle },
+  pending: { label: '等待', color: 'text-muted-foreground', icon: Circle },
+  running: { label: '运行中', color: 'text-info', icon: Loader2 },
+  success: { label: '成功', color: 'text-success', icon: CheckCircle2 },
+  failed: { label: '失败', color: 'text-destructive', icon: XCircle },
+  cancelled: { label: '已取消', color: 'text-warning', icon: PauseCircle },
+  interrupted: { label: '已中断', color: 'text-warning', icon: AlertTriangle },
 };
 
 const LEVEL_COLOR: Record<LogLevel, string> = {
-  info: 'text-gray-300',
-  warn: 'text-amber-400',
-  error: 'text-red-400',
-  success: 'text-emerald-400',
+  info: 'text-foreground/80',
+  warn: 'text-warning',
+  error: 'text-destructive',
+  success: 'text-success',
 };
 
 const TYPE_LABEL: Record<TaskType, string> = {
@@ -488,19 +488,19 @@ export default function TaskPanel({ connectionId, refreshTrigger, initialTaskId 
     <div className="flex flex-col flex-1 min-h-0">
       {/* 头部 */}
       <div className="flex items-center justify-between mb-2">
-        <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider">任务</div>
+        <div className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">任务</div>
         <div className="flex items-center gap-1">
           <button
             onClick={fetchTasks}
             disabled={loadingTasks}
-            className="p-1 text-gray-500 hover:text-white"
+            className="p-1 text-muted-foreground hover:text-foreground"
             title="刷新"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingTasks ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={() => setShowCreate(s => !s)}
-            className="p-1 text-gray-500 hover:text-white"
+            className="p-1 text-muted-foreground hover:text-foreground"
             title="新建命令任务"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -510,25 +510,25 @@ export default function TaskPanel({ connectionId, refreshTrigger, initialTaskId 
 
       {/* 创建表单 */}
       {showCreate && (
-        <div className="mb-2 p-2 bg-gray-800/40 rounded border border-gray-700">
+        <div className="mb-2 p-2 bg-muted/40 rounded border border-border">
           <textarea
             value={cmdInput}
             onChange={e => setCmdInput(e.target.value)}
             placeholder="输入要执行的命令..."
-            className="w-full h-16 text-xs bg-gray-900/60 border border-gray-700 rounded p-2 text-gray-200 resize-none focus:outline-none focus:border-emerald-500"
+            className="w-full h-16 text-xs bg-input border border-border rounded p-2 text-foreground resize-none focus:outline-none focus:border-success"
             autoFocus
           />
           <div className="flex justify-end gap-1 mt-1">
             <button
               onClick={() => { setShowCreate(false); setCmdInput(''); }}
-              className="px-2 py-1 text-[11px] text-gray-400 hover:text-white"
+              className="px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
             >
               取消
             </button>
             <button
               onClick={handleCreate}
               disabled={creating}
-              className="px-2 py-1 text-[11px] bg-emerald-700 hover:bg-emerald-600 text-white rounded flex items-center gap-1"
+              className="px-2 py-1 text-[11px] bg-success hover:bg-success/90 text-success-foreground rounded flex items-center gap-1"
             >
               {creating && <Loader2 className="w-3 h-3 animate-spin" />}
               执行
@@ -540,7 +540,7 @@ export default function TaskPanel({ connectionId, refreshTrigger, initialTaskId 
       {/* 任务列表 */}
       <div className="max-h-32 overflow-y-auto mb-2 space-y-1">
         {tasks.length === 0 && (
-          <div className="text-[11px] text-gray-600 text-center py-3">暂无任务</div>
+          <div className="text-[11px] text-muted-foreground text-center py-3">暂无任务</div>
         )}
         {tasks.map(task => {
           const meta = STATUS_META[task.status];
@@ -551,16 +551,16 @@ export default function TaskPanel({ connectionId, refreshTrigger, initialTaskId 
               key={task.id}
               onClick={() => setSelectedTaskId(isSelected ? null : task.id)}
               className={`p-1.5 rounded cursor-pointer border text-xs ${
-                isSelected ? 'bg-emerald-900/30 border-emerald-700' : 'bg-gray-800/30 border-gray-800 hover:bg-gray-800/60'
+                isSelected ? 'bg-success/20 border-success/40' : 'bg-muted/30 border-border hover:bg-muted/60'
               }`}
             >
               <div className="flex items-center gap-1.5">
                 <Icon className={`w-3 h-3 ${meta.color} ${task.status === 'running' ? 'animate-spin' : ''}`} />
-                <div className="flex-1 truncate text-gray-300">{task.title}</div>
+                <div className="flex-1 truncate text-foreground/80">{task.title}</div>
                 {task.isRunning && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setCancelTarget(task); }}
-                    className="text-amber-500 hover:text-amber-400"
+                    className="text-warning hover:text-warning/80"
                     title="取消任务"
                   >
                     <X className="w-3 h-3" />
@@ -569,20 +569,20 @@ export default function TaskPanel({ connectionId, refreshTrigger, initialTaskId 
                 {!task.isRunning && (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDelete(task.id); }}
-                    className="text-gray-600 hover:text-red-400"
+                    className="text-muted-foreground hover:text-destructive"
                     title="删除"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 )}
               </div>
-              <div className="flex items-center justify-between mt-0.5 text-[10px] text-gray-500">
+              <div className="flex items-center justify-between mt-0.5 text-[10px] text-muted-foreground">
                 <span>{TYPE_LABEL[task.type]}</span>
                 <span>{meta.label} · {task.progress}%</span>
               </div>
               {task.status === 'running' && (
-                <div className="h-0.5 bg-gray-700 rounded mt-1 overflow-hidden">
-                  <div className="h-full bg-emerald-500 transition-all" style={{ width: `${task.progress}%` }} />
+                <div className="h-0.5 bg-accent rounded mt-1 overflow-hidden">
+                  <div className="h-full bg-success transition-all" style={{ width: `${task.progress}%` }} />
                 </div>
               )}
             </div>
@@ -591,18 +591,18 @@ export default function TaskPanel({ connectionId, refreshTrigger, initialTaskId 
       </div>
 
       {/* 日志区 */}
-      <div className="flex-1 min-h-0 flex flex-col border-t border-gray-800 pt-2">
+      <div className="flex-1 min-h-0 flex flex-col border-t border-border pt-2">
         <div className="flex items-center justify-between mb-1">
-          <div className="text-[11px] text-gray-500 uppercase tracking-wider">
+          <div className="text-[11px] text-muted-foreground uppercase tracking-wider">
             {selectedTask ? '日志' : '选择任务查看日志'}
           </div>
           {selectedTask && (
-            <div className="text-[10px] text-gray-600">{logs.length} 行</div>
+            <div className="text-[10px] text-muted-foreground">{logs.length} 行</div>
           )}
         </div>
 
         {!selectedTask ? (
-          <div className="flex-1 flex items-center justify-center text-[11px] text-gray-600">
+          <div className="flex-1 flex items-center justify-center text-[11px] text-muted-foreground">
             <Terminal className="w-4 h-4 mr-1 opacity-30" />
             点击上方任务查看日志
           </div>
@@ -611,25 +611,25 @@ export default function TaskPanel({ connectionId, refreshTrigger, initialTaskId 
             <div
               ref={logContainerRef}
               onScroll={onLogScroll}
-              className="absolute inset-0 overflow-y-auto bg-black/40 rounded p-2 text-[11px] font-mono leading-relaxed"
+              className="absolute inset-0 overflow-y-auto bg-muted rounded p-2 text-[11px] font-mono leading-relaxed"
             >
             {loadingLogs && logs.length === 0 ? (
-              <div className="text-gray-500 flex items-center">
+              <div className="text-muted-foreground flex items-center">
                 <Loader2 className="w-3 h-3 animate-spin mr-1" />
                 加载中...
               </div>
             ) : logs.length === 0 ? (
-              <div className="text-gray-600">暂无日志</div>
+              <div className="text-muted-foreground">暂无日志</div>
             ) : (
               <>
                 {hasMoreLogs && (
-                  <div className="text-center text-gray-600 py-1">
+                  <div className="text-center text-muted-foreground py-1">
                     {loadingLogs ? '加载中...' : '↑ 向上滚动加载更多'}
                   </div>
                 )}
                 {logs.map(log => (
-                  <div key={log.id} className="flex gap-1.5 hover:bg-white/5 px-0.5 rounded">
-                    <span className="text-gray-600 shrink-0">{new Date(log.ts).toLocaleTimeString('zh-CN', { hour12: false })}</span>
+                  <div key={log.id} className="flex gap-1.5 hover:bg-accent/50 px-0.5 rounded">
+                    <span className="text-muted-foreground shrink-0">{new Date(log.ts).toLocaleTimeString('zh-CN', { hour12: false })}</span>
                     <span className={`shrink-0 ${LEVEL_COLOR[log.level]}`}>
                       {log.level === 'info' ? ' ' : `[${log.level.toUpperCase()}]`}
                     </span>
@@ -644,7 +644,7 @@ export default function TaskPanel({ connectionId, refreshTrigger, initialTaskId 
             {showJumpToBottom && (
               <button
                 onClick={jumpToBottom}
-                className="absolute bottom-2 right-2 p-1.5 bg-zinc-800/90 hover:bg-zinc-700 text-blue-400 rounded-full border border-zinc-700 shadow-lg transition-colors"
+                className="absolute bottom-2 right-2 p-1.5 bg-muted/90 hover:bg-accent text-info rounded-full border border-border shadow-lg transition-colors"
                 title="跳转到最新日志"
               >
                 <ArrowDown className="w-3.5 h-3.5" />
@@ -656,22 +656,22 @@ export default function TaskPanel({ connectionId, refreshTrigger, initialTaskId 
 
       {/* 取消任务确认对话框 */}
       <AlertDialog open={cancelTarget !== null} onOpenChange={(open) => { if (!open && !cancelling) setCancelTarget(null); }}>
-        <AlertDialogContent className="bg-[#222632] border-gray-700 text-gray-100">
+        <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <AlertTriangle className="w-4 h-4 text-warning" />
               确认取消任务
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-400">
-              取消后将<strong className="text-amber-400">立即关闭 SSH 连接</strong>并强制终止远程进程。
+            <AlertDialogDescription className="text-muted-foreground">
+              取消后将<strong className="text-warning">立即关闭 SSH 连接</strong>并强制终止远程进程。
               <br />
               正在执行中的命令（如宝塔安装）将被中断，部分操作可能无法回滚。
               <br />
-              <span className="text-gray-500">任务: {cancelTarget?.title}</span>
+              <span className="text-muted-foreground">任务: {cancelTarget?.title}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelling} className="bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700">
+            <AlertDialogCancel disabled={cancelling} className="bg-muted border-border text-foreground/80 hover:bg-accent">
               再想想
             </AlertDialogCancel>
             <AlertDialogAction
@@ -680,7 +680,7 @@ export default function TaskPanel({ connectionId, refreshTrigger, initialTaskId 
                 e.preventDefault();
                 if (cancelTarget) handleCancel(cancelTarget.id);
               }}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className="bg-warning hover:bg-warning/90 text-warning-foreground"
             >
               {cancelling ? (
                 <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> 正在停止...</>

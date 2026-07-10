@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, RotateCcw, Loader2, Search, X, Server, Globe, AlertCircle, CheckCircle, RefreshCw, Trash2, Link2, CheckCircle2, XCircle, Copy, Check } from 'lucide-react';
-import MobileSidebar from '@/components/mobile-sidebar';
 import { loadAuth, getLoginUser } from '@/lib/auth-client';
+import { PageHeader } from '@/components/layout/page-header';
 
 interface RecycleInstance {
   id: number;
@@ -399,57 +399,34 @@ export default function RecycleBinPage() {
   useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white">
-      {/* 顶部导航 */}
-      <div className="sticky top-0 z-10 bg-[#1a1d27] border-b border-gray-800 px-3 py-2 sm:px-4 sm:py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
-          <MobileSidebar currentPath="/recycle-bin" variant="subpage" />
-          <button onClick={() => router.push('/')} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors shrink-0">
-            <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">首页</span>
-          </button>
-          <h1 className="text-lg font-semibold flex items-center gap-2 shrink-0">
-            <Trash2 className="w-5 h-5 text-cyan-500" />
-            <span className="hidden sm:inline">回收站</span>
-          </h1>
+    <div className="min-h-screen">
+      <PageHeader
+        title="回收站"
+        titleIcon={Trash2}
+        search={{
+          value: searchKeyword,
+          onChange: (v) => { setSearchKeyword(v); setCurrentPage(1); },
+          placeholder: '搜索主机名 / IP / ID / 用户名...',
+        }}
+        actions={
           <button
             onClick={fetchList}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors disabled:opacity-50 shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent/80 rounded-lg text-sm transition-colors disabled:opacity-50 shrink-0 text-foreground"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">刷新</span>
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="max-w-6xl mx-auto p-3 sm:p-4 space-y-3">
-        {/* 搜索框 */}
-        <div className="relative max-w-md mx-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          <input
-            type="text"
-            value={searchKeyword}
-            onChange={(e) => { setSearchKeyword(e.target.value); setCurrentPage(1); }}
-            placeholder="搜索主机名 / IP / ID / 用户名..."
-            className="w-full pl-9 pr-8 py-2 bg-gray-800/80 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
-          />
-          {searchKeyword && (
-            <button
-              onClick={() => { setSearchKeyword(''); setCurrentPage(1); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4">
         {/* 恢复提示消息 */}
         {restoreMsg && (
           <div className={`flex items-start gap-2 px-4 py-3 rounded-lg border ${
             restoreMsg.type === 'success'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-              : 'bg-red-500/10 border-red-500/30 text-red-400'
+              ? 'bg-success/10 border-success/30 text-success'
+              : 'bg-destructive/10 border-destructive/30 text-destructive'
           }`}>
             {restoreMsg.type === 'success' ? <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" /> : <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />}
             <span className="text-sm flex-1">{restoreMsg.text}</span>
@@ -462,32 +439,32 @@ export default function RecycleBinPage() {
         {/* 列表 */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
-            <span className="ml-3 text-gray-400">加载回收站实例...</span>
+            <Loader2 className="w-8 h-8 animate-spin text-info" />
+            <span className="ml-3 text-muted-foreground">加载回收站实例...</span>
           </div>
         ) : error ? (
           <div className="text-center py-20">
-            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-red-500" />
-            <p className="text-red-400">{error}</p>
-            <button onClick={fetchList} className="mt-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">
+            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-destructive" />
+            <p className="text-destructive">{error}</p>
+            <button onClick={fetchList} className="mt-4 px-4 py-2 bg-accent hover:bg-accent rounded-lg text-sm">
               重试
             </button>
           </div>
         ) : pagedInstances.length === 0 ? (
           <div className="text-center py-20">
-            <Trash2 className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-            <p className="text-gray-400">{searchKeyword ? '未找到匹配的实例' : '回收站为空'}</p>
-            <p className="text-gray-500 text-xs mt-1">{searchKeyword ? '尝试更换关键词' : '没有处于回收站状态的实例'}</p>
+            <Trash2 className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+            <p className="text-muted-foreground">{searchKeyword ? '未找到匹配的实例' : '回收站为空'}</p>
+            <p className="text-muted-foreground text-xs mt-1">{searchKeyword ? '尝试更换关键词' : '没有处于回收站状态的实例'}</p>
           </div>
         ) : (
           <>
-            <div className="text-xs text-gray-500 px-1">
+            <div className="text-xs text-muted-foreground px-1">
               共 {filteredInstances.length} 个实例{searchKeyword ? ` (搜索结果)` : ''}
               {filteredInstances.length > PAGE_SIZE && `，第 ${safePage}/${totalPages} 页`}
             </div>
 
             {/* 列表表头（桌面端） */}
-            <div className="hidden md:grid grid-cols-[60px_170px_130px_110px_1fr_96px_140px_140px_68px] gap-2 px-2 py-2 text-xs text-gray-500 border-b border-gray-800">
+            <div className="hidden md:grid grid-cols-[60px_170px_130px_110px_1fr_96px_140px_140px_68px] gap-2 px-2 py-2 text-xs text-muted-foreground border-b border-border">
               <span>ID</span>
               <span>主机名</span>
               <span>主IP</span>
@@ -506,25 +483,25 @@ export default function RecycleBinPage() {
                 return (
                   <div key={inst.id}>
                     {/* 桌面端：grid 行 */}
-                    <div className="hidden md:grid grid-cols-[60px_170px_130px_110px_1fr_96px_140px_140px_68px] gap-2 items-center px-2 py-2 rounded-lg hover:bg-gray-800/40 transition-colors">
-                      <span className="text-xs text-gray-400 font-mono">#{inst.id}</span>
+                    <div className="hidden md:grid grid-cols-[60px_170px_130px_110px_1fr_96px_140px_140px_68px] gap-2 items-center px-2 py-2 rounded-lg hover:bg-muted/40 transition-colors">
+                      <span className="text-xs text-muted-foreground font-mono">#{inst.id}</span>
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <Server className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                        <span className="text-sm text-white truncate" title={inst.hostname}>{inst.hostname}</span>
+                        <Server className="w-3.5 h-3.5 text-info shrink-0" />
+                        <span className="text-sm text-foreground truncate" title={inst.hostname}>{inst.hostname}</span>
                       </div>
-                      <span className="text-xs text-white font-mono truncate">{inst.mainip}</span>
-                      <span className="text-xs text-gray-300 truncate">{inst.username}</span>
-                      <span className="text-xs text-gray-300 truncate">{inst.node_name}</span>
-                      <span className="text-xs text-gray-300 whitespace-nowrap">{inst.cpu}核/{formatMemory(inst.memory)}</span>
-                      <span className="text-xs text-gray-400 whitespace-nowrap">{formatTime(inst.recycle_time)}</span>
+                      <span className="text-xs text-foreground font-mono truncate">{inst.mainip}</span>
+                      <span className="text-xs text-foreground/80 truncate">{inst.username}</span>
+                      <span className="text-xs text-foreground/80 truncate">{inst.node_name}</span>
+                      <span className="text-xs text-foreground/80 whitespace-nowrap">{inst.cpu}核/{formatMemory(inst.memory)}</span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{formatTime(inst.recycle_time)}</span>
                       {(() => { const d = formatDaysUntil(inst.delete_time); return (
-                        <span className="text-xs whitespace-nowrap text-gray-400" title={`删除时间: ${d.title}`}>{d.text}</span>
+                        <span className="text-xs whitespace-nowrap text-muted-foreground" title={`删除时间: ${d.title}`}>{d.text}</span>
                       ); })()}
                       <div className="flex justify-end">
                         <button
                           onClick={() => handleRestore(inst)}
                           disabled={isRestoring || isRenewProcessing}
-                          className="flex items-center justify-center gap-1 px-2 py-1 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:text-gray-500 rounded text-xs font-medium transition-colors whitespace-nowrap"
+                          className="flex items-center justify-center gap-1 px-2 py-1 bg-info text-info-foreground hover:bg-info/90 disabled:bg-accent disabled:text-muted-foreground rounded text-xs font-medium transition-colors whitespace-nowrap"
                         >
                           {isRestoring ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
                           {isRestoring ? '恢复中' : '恢复'}
@@ -533,28 +510,28 @@ export default function RecycleBinPage() {
                     </div>
 
                     {/* 移动端：紧凑卡片 */}
-                    <div className="md:hidden p-3 bg-[#1a1d27] rounded-xl border border-gray-800 space-y-2">
+                    <div className="md:hidden p-3 bg-card rounded-xl border border-border space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                          <Server className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                          <span className="text-sm text-white truncate" title={inst.hostname}>{inst.hostname}</span>
+                          <Server className="w-3.5 h-3.5 text-info shrink-0" />
+                          <span className="text-sm text-foreground truncate" title={inst.hostname}>{inst.hostname}</span>
                         </div>
-                        <span className="text-xs text-gray-500 shrink-0">#{inst.id}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">#{inst.id}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-1 text-xs">
-                        <span className="text-gray-500">IP: <span className="text-white font-mono">{inst.mainip}</span></span>
-                        <span className="text-gray-500">用户: <span className="text-gray-300">{inst.username}</span></span>
-                        <span className="text-gray-500">节点: <span className="text-gray-300">{inst.node_name}</span></span>
-                        <span className="text-gray-500">配置: <span className="text-gray-300">{inst.cpu}核 / {formatMemory(inst.memory)}</span></span>
-                        <span className="text-gray-500">回收: <span className="text-gray-400">{formatTime(inst.recycle_time)}</span></span>
+                        <span className="text-muted-foreground">IP: <span className="text-foreground font-mono">{inst.mainip}</span></span>
+                        <span className="text-muted-foreground">用户: <span className="text-foreground/80">{inst.username}</span></span>
+                        <span className="text-muted-foreground">节点: <span className="text-foreground/80">{inst.node_name}</span></span>
+                        <span className="text-muted-foreground">配置: <span className="text-foreground/80">{inst.cpu}核 / {formatMemory(inst.memory)}</span></span>
+                        <span className="text-muted-foreground">回收: <span className="text-muted-foreground">{formatTime(inst.recycle_time)}</span></span>
                         {(() => { const d = formatDaysUntil(inst.delete_time); return (
-                          <span className="text-gray-500">删除: <span className="text-gray-400" title={d.title}>{d.text}</span></span>
+                          <span className="text-muted-foreground">删除: <span className="text-muted-foreground" title={d.title}>{d.text}</span></span>
                         ); })()}
                       </div>
                       <button
                         onClick={() => handleRestore(inst)}
                         disabled={isRestoring || isRenewProcessing}
-                        className="w-full flex items-center justify-center gap-1 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:text-gray-500 rounded text-xs font-medium transition-colors"
+                        className="w-full flex items-center justify-center gap-1 py-1.5 bg-info text-info-foreground hover:bg-info/90 disabled:bg-accent disabled:text-muted-foreground rounded text-xs font-medium transition-colors"
                       >
                         {isRestoring ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
                         {isRestoring ? '恢复中...' : '恢复实例'}
@@ -571,15 +548,15 @@ export default function RecycleBinPage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={safePage === 1}
-                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm transition-colors"
+                  className="px-3 py-1.5 bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm transition-colors"
                 >
                   上一页
                 </button>
-                <span className="text-sm text-gray-400 px-2">{safePage} / {totalPages}</span>
+                <span className="text-sm text-muted-foreground px-2">{safePage} / {totalPages}</span>
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={safePage === totalPages}
-                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm transition-colors"
+                  className="px-3 py-1.5 bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm transition-colors"
                 >
                   下一页
                 </button>
@@ -592,57 +569,57 @@ export default function RecycleBinPage() {
       {/* 恢复确认弹窗 */}
       {confirmModal.open && confirmModal.instance && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, searchError: '' })}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-5 max-w-md w-full space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card border border-border rounded-xl p-5 max-w-md w-full space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-white text-base font-semibold flex items-center gap-2">
-                <RotateCcw className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-foreground text-base font-semibold flex items-center gap-2">
+                <RotateCcw className="w-4 h-4 text-info" />
                 恢复实例确认
               </h3>
-              <button onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, searchError: '' })} className="text-gray-500 hover:text-white">
+              <button onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, searchError: '' })} className="text-muted-foreground hover:text-foreground">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="bg-gray-800/40 rounded-lg p-3 space-y-1.5 text-sm select-text">
-              <div className="text-xs text-gray-500 mb-1">魔方云实例</div>
+            <div className="bg-muted/40 rounded-lg p-3 space-y-1.5 text-sm select-text">
+              <div className="text-xs text-muted-foreground mb-1">魔方云实例</div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-500 shrink-0">主机名:</span>
-                <span className="text-white truncate ml-2 flex-1 text-right">{confirmModal.instance.hostname}</span>
-                <button onClick={() => copyToClipboard(confirmModal.instance!.hostname, 'hostname')} className="ml-1.5 p-0.5 text-gray-500 hover:text-cyan-400 transition-colors shrink-0" title="复制主机名">
-                  {copiedField === 'hostname' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                <span className="text-muted-foreground shrink-0">主机名:</span>
+                <span className="text-foreground truncate ml-2 flex-1 text-right">{confirmModal.instance.hostname}</span>
+                <button onClick={() => copyToClipboard(confirmModal.instance!.hostname, 'hostname')} className="ml-1.5 p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制主机名">
+                  {copiedField === 'hostname' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
                 </button>
               </div>
-              <div className="flex justify-between"><span className="text-gray-500">实例ID:</span><span className="text-gray-300 font-mono">#{confirmModal.instance.id}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">实例ID:</span><span className="text-foreground/80 font-mono">#{confirmModal.instance.id}</span></div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-500 shrink-0">主IP:</span>
-                <span className="text-white font-mono truncate ml-2 flex-1 text-right">{confirmModal.instance.mainip}</span>
-                <button onClick={() => copyToClipboard(confirmModal.instance!.mainip, 'mainip')} className="ml-1.5 p-0.5 text-gray-500 hover:text-cyan-400 transition-colors shrink-0" title="复制IP">
-                  {copiedField === 'mainip' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                <span className="text-muted-foreground shrink-0">主IP:</span>
+                <span className="text-foreground font-mono truncate ml-2 flex-1 text-right">{confirmModal.instance.mainip}</span>
+                <button onClick={() => copyToClipboard(confirmModal.instance!.mainip, 'mainip')} className="ml-1.5 p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制IP">
+                  {copiedField === 'mainip' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
                 </button>
               </div>
-              <div className="flex justify-between"><span className="text-gray-500">配置:</span><span className="text-gray-300">{confirmModal.instance.cpu}核 / {formatMemory(confirmModal.instance.memory)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">配置:</span><span className="text-foreground/80">{confirmModal.instance.cpu}核 / {formatMemory(confirmModal.instance.memory)}</span></div>
               {(() => { const d = formatDaysUntil(confirmModal.instance.delete_time); return (
-                <div className="flex justify-between"><span className="text-gray-500">剩余时间:</span><span className="text-orange-400" title={d.title}>{d.text}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">剩余时间:</span><span className="text-primary" title={d.title}>{d.text}</span></div>
               ); })()}
             </div>
 
             {/* 财务产品信息（反查结果） */}
-            <div className="bg-gray-800/40 rounded-lg p-3 space-y-1.5 text-sm select-text">
-              <div className="text-xs text-gray-500 mb-1 flex items-center justify-between">
+            <div className="bg-muted/40 rounded-lg p-3 space-y-1.5 text-sm select-text">
+              <div className="text-xs text-muted-foreground mb-1 flex items-center justify-between">
                 <span>关联财务产品</span>
-                {confirmModal.searching && <span className="flex items-center gap-1 text-cyan-400"><Loader2 className="w-3 h-3 animate-spin" />反查中...</span>}
+                {confirmModal.searching && <span className="flex items-center gap-1 text-info"><Loader2 className="w-3 h-3 animate-spin" />反查中...</span>}
               </div>
               {confirmModal.searching ? (
-                <div className="text-xs text-gray-500 py-2">正在查询财务产品信息...</div>
+                <div className="text-xs text-muted-foreground py-2">正在查询财务产品信息...</div>
               ) : confirmModal.hostInfo ? (
                 <>
-                  <div className="flex justify-between"><span className="text-gray-500">产品名:</span><span className="text-white truncate ml-2">{confirmModal.hostInfo.productname}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">产品ID:</span><span className="text-gray-300 font-mono">#{confirmModal.hostInfo.hostid}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">当前状态:</span><span className="text-gray-300">{formatDomainStatus(confirmModal.hostInfo.domainstatus)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">续费金额:</span><span className="text-emerald-400 font-medium">¥{confirmModal.hostInfo.amount.toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">续费周期:</span><span className="text-gray-300">{formatBillingCycle(confirmModal.hostInfo.billingcycle)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">产品名:</span><span className="text-foreground truncate ml-2">{confirmModal.hostInfo.productname}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">产品ID:</span><span className="text-foreground/80 font-mono">#{confirmModal.hostInfo.hostid}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">当前状态:</span><span className="text-foreground/80">{formatDomainStatus(confirmModal.hostInfo.domainstatus)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">续费金额:</span><span className="text-success font-medium">¥{confirmModal.hostInfo.amount.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">续费周期:</span><span className="text-foreground/80">{formatBillingCycle(confirmModal.hostInfo.billingcycle)}</span></div>
                 </>
               ) : (
-                <div className="text-xs text-yellow-500 py-1">{confirmModal.searchError || '未找到关联的财务产品'}</div>
+                <div className="text-xs text-warning py-1">{confirmModal.searchError || '未找到关联的财务产品'}</div>
               )}
             </div>
 
@@ -650,21 +627,21 @@ export default function RecycleBinPage() {
               <button
                 onClick={doRestoreWithRenew}
                 disabled={!confirmModal.hostInfo}
-                className="w-full flex items-center justify-center gap-1.5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg text-sm font-medium transition-colors"
+                className="w-full flex items-center justify-center gap-1.5 py-2 bg-info text-info-foreground hover:bg-info/90 disabled:bg-accent disabled:text-muted-foreground rounded-lg text-sm font-medium transition-colors"
               >
                 <Link2 className="w-4 h-4" />
                 关联财务产品并续费
               </button>
               <button
                 onClick={doRestoreOnly}
-                className="w-full flex items-center justify-center gap-1.5 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors"
+                className="w-full flex items-center justify-center gap-1.5 py-2 bg-accent hover:bg-accent rounded-lg text-sm font-medium transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />
                 仅恢复魔方云实例
               </button>
               <button
                 onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, searchError: '' })}
-                className="w-full py-2 text-gray-400 hover:text-white text-sm transition-colors"
+                className="w-full py-2 text-muted-foreground hover:text-foreground text-sm transition-colors"
               >
                 取消
               </button>
@@ -676,13 +653,13 @@ export default function RecycleBinPage() {
       {/* 恢复并续费进度弹窗 */}
       {isRenewProcessing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-5 max-w-md w-full">
+          <div className="bg-card border border-border rounded-xl p-5 max-w-md w-full">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white text-base font-semibold flex items-center gap-2">
-                <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
+              <h3 className="text-foreground text-base font-semibold flex items-center gap-2">
+                <Loader2 className="w-4 h-4 text-info animate-spin" />
                 恢复与续费进度
               </h3>
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-muted-foreground">
                 {renewSteps.length > 0 ? Math.round(renewSteps.filter(s => s.status === 'completed').length / renewSteps.length * 100) : 0}%
               </span>
             </div>
@@ -690,9 +667,9 @@ export default function RecycleBinPage() {
               {renewSteps.map((step) => (
                 <div key={step.id} className="flex items-start gap-2.5">
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                    step.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                    step.status === 'processing' ? 'bg-orange-500/20 text-orange-400' :
-                    'bg-red-500/20 text-red-400'
+                    step.status === 'completed' ? 'bg-success/20 text-success' :
+                    step.status === 'processing' ? 'bg-primary/20 text-primary' :
+                    'bg-destructive/20 text-destructive'
                   }`}>
                     {step.status === 'completed' ? <CheckCircle2 className="w-3 h-3" /> :
                      step.status === 'processing' ? <Loader2 className="w-3 h-3 animate-spin" /> :
@@ -700,18 +677,18 @@ export default function RecycleBinPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className={`text-sm ${
-                      step.status === 'completed' ? 'text-emerald-400' :
-                      step.status === 'processing' ? 'text-orange-400' :
-                      'text-red-400'
+                      step.status === 'completed' ? 'text-success' :
+                      step.status === 'processing' ? 'text-primary' :
+                      'text-destructive'
                     }`}>{step.name}</div>
-                    {step.message && <div className="text-xs text-gray-500 truncate mt-0.5">{step.message}</div>}
+                    {step.message && <div className="text-xs text-muted-foreground truncate mt-0.5">{step.message}</div>}
                   </div>
                 </div>
               ))}
             </div>
             {!isRenewProcessing && renewSteps.length > 0 && (
               <div className="mt-4 flex justify-end">
-                <button onClick={() => setRenewSteps([])} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white transition-colors">
+                <button onClick={() => setRenewSteps([])} className="px-3 py-1.5 bg-accent hover:bg-accent rounded-lg text-sm text-foreground transition-colors">
                   关闭
                 </button>
               </div>

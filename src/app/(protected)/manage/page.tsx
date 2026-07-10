@@ -9,8 +9,8 @@ import {
   ArrowUpDown, FileText, Edit3, Save, Cpu, MemoryStick, Wifi, HardDrive, X,
   Zap, ScreenShare, KeyRound, Shield
 } from 'lucide-react';
-import MobileSidebar from '@/components/mobile-sidebar';
 import { loadAuth, saveAuth } from '@/lib/auth-client';
+import { PageHeader } from '@/components/layout/page-header';
 
 interface ServerStatus {
   powerStatus: string;       // 电源状态: on/off
@@ -989,15 +989,15 @@ function ManageContent() {
   }, [hostid, targetPackageId, packages, product, upgradeConfigOptions, upgradeCurrentConfig, refreshProduct]);
 
   const statusMap: Record<string, { label: string; color: string; bgColor: string }> = {
-    'Active': { label: '已激活', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10 border-emerald-500/30' },
-    '活跃': { label: '已激活', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10 border-emerald-500/30' },
-    'Suspended': { label: '已暂停', color: 'text-yellow-400', bgColor: 'bg-yellow-500/10 border-yellow-500/30' },
-    '暂停': { label: '已暂停', color: 'text-yellow-400', bgColor: 'bg-yellow-500/10 border-yellow-500/30' },
-    'Cancelled': { label: '已取消', color: 'text-red-400', bgColor: 'bg-red-500/10 border-red-500/30' },
-    '已取消': { label: '已取消', color: 'text-red-400', bgColor: 'bg-red-500/10 border-red-500/30' },
+    'Active': { label: '已激活', color: 'text-success', bgColor: 'bg-success/10 border-success/30' },
+    '活跃': { label: '已激活', color: 'text-success', bgColor: 'bg-success/10 border-success/30' },
+    'Suspended': { label: '已暂停', color: 'text-warning', bgColor: 'bg-warning/10 border-warning/30' },
+    '暂停': { label: '已暂停', color: 'text-warning', bgColor: 'bg-warning/10 border-warning/30' },
+    'Cancelled': { label: '已取消', color: 'text-destructive', bgColor: 'bg-destructive/10 border-destructive/30' },
+    '已取消': { label: '已取消', color: 'text-destructive', bgColor: 'bg-destructive/10 border-destructive/30' },
   };
 
-  const statusInfo = statusMap[product?.status || ''] || { label: product?.status || '未知', color: 'text-gray-400', bgColor: 'bg-gray-500/10 border-gray-500/30' };
+  const statusInfo = statusMap[product?.status || ''] || { label: product?.status || '未知', color: 'text-muted-foreground', bgColor: 'bg-muted/50 border-border/50' };
 
   const formatDate = (timestamp: string | number | undefined) => {
     if (!timestamp) return '-';
@@ -1015,11 +1015,11 @@ function ManageContent() {
 
   if (!hostid) {
     return (
-      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center text-gray-400">
+      <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">
         <div className="text-center">
-          <AlertCircle className="w-12 h-12 mx-auto mb-3 text-yellow-500" />
+          <AlertCircle className="w-12 h-12 mx-auto mb-3 text-warning" />
           <p>未指定产品ID</p>
-          <button onClick={() => router.push('/')} className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
+          <button onClick={() => router.push('/')} className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
             返回首页
           </button>
         </div>
@@ -1028,40 +1028,29 @@ function ManageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white">
-      {/* 顶部导航栏 */}
-      <div className="sticky top-0 z-10 bg-[#1a1d27] border-b border-gray-800 px-3 py-2 sm:px-4 sm:py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
-          <MobileSidebar currentPath="/manage" variant="subpage" />
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>首页</span>
-          </button>
-          <h1 className="text-lg font-semibold flex items-center gap-2">
-            <Monitor className="w-5 h-5 text-orange-500" />
-            产品管理
-          </h1>
+    <div className="min-h-screen">
+      <PageHeader
+        title="产品管理"
+        titleIcon={Monitor}
+        actions={
           <button
             onClick={refreshProduct}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent/80 rounded-lg text-sm transition-colors disabled:opacity-50 text-foreground"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             刷新
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="max-w-4xl mx-auto p-2 sm:p-4 space-y-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* 操作提示 */}
         {actionMsg && (
           <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${
-            actionMsg.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
-            actionMsg.type === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-            'bg-blue-500/10 border-blue-500/30 text-blue-400'
+            actionMsg.type === 'success' ? 'bg-success/10 border-success/30 text-success' :
+            actionMsg.type === 'error' ? 'bg-destructive/10 border-destructive/30 text-destructive' :
+            'bg-info/10 border-info/30 text-info'
           }`}>
             {actionMsg.type === 'success' && <CheckCircle className="w-5 h-5 shrink-0" />}
             {actionMsg.type === 'error' && <XCircle className="w-5 h-5 shrink-0" />}
@@ -1072,16 +1061,16 @@ function ManageContent() {
 
         {isLoading && !product ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-            <span className="ml-3 text-gray-400">加载产品信息...</span>
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">加载产品信息...</span>
           </div>
         ) : product ? (
           <>
             {/* 产品信息卡片 */}
-            <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-              <div className="px-3 py-3 sm:px-5 sm:py-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="px-3 py-3 sm:px-5 sm:py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Server className="w-5 h-5 text-orange-500" />
+                  <Server className="w-5 h-5 text-primary" />
                   <h2 className="font-semibold text-lg">{product.name}</h2>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusInfo.bgColor} ${statusInfo.color}`}>
@@ -1119,10 +1108,10 @@ function ManageContent() {
             </div>
 
             {/* 操作面板 */}
-            <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-              <div className="px-3 py-3 sm:px-5 sm:py-4 border-b border-gray-800">
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="px-3 py-3 sm:px-5 sm:py-4 border-b border-border">
                 <h3 className="font-semibold flex items-center gap-2">
-                  <Power className="w-4 h-4 text-orange-500" />
+                  <Power className="w-4 h-4 text-primary" />
                   服务器操作
                 </h3>
               </div>
@@ -1215,24 +1204,24 @@ function ManageContent() {
                     onClick={() => router.push(`/advanced?hostid=${hostid}&uid=${uidParam}`)}
                   />
                 </div>
-                <p className="mt-3 text-xs text-gray-500">
+                <p className="mt-3 text-xs text-muted-foreground">
                   提示：操作可能需要等待数秒至数十秒才会有响应
                 </p>
               </div>
             </div>
 
             {/* 产品详情编辑 */}
-            <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-              <div className="px-3 py-3 sm:px-5 sm:py-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="px-3 py-3 sm:px-5 sm:py-4 border-b border-border flex items-center justify-between">
                 <h3 className="font-semibold flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-orange-500" />
+                  <FileText className="w-4 h-4 text-primary" />
                   产品详情
                 </h3>
                 {!showDetailPanel && (
                   <button
                     onClick={fetchHostDetail}
                     disabled={detailLoading}
-                    className="text-xs text-orange-400 hover:text-orange-300 transition-colors flex items-center gap-1 disabled:opacity-50"
+                    className="text-xs text-primary hover:text-primary transition-colors flex items-center gap-1 disabled:opacity-50"
                   >
                     {detailLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Edit3 className="w-3 h-3" />}
                     {detailLoading ? '加载中...' : '编辑详情'}
@@ -1241,7 +1230,7 @@ function ManageContent() {
                 {showDetailPanel && (
                   <button
                     onClick={() => setShowDetailPanel(false)}
-                    className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
+                    className="text-xs text-muted-foreground hover:text-foreground/80 transition-colors"
                   >
                     收起
                   </button>
@@ -1250,20 +1239,20 @@ function ManageContent() {
               {showDetailPanel && hostDetail && (
                 <div className="p-5 space-y-3">
                   {/* 可编辑的关键字段 */}
-                  <div className="bg-[#0f1117] rounded-lg p-4 space-y-3 border border-orange-500/20">
-                    <div className="text-xs text-orange-400 font-medium mb-2">可编辑字段</div>
+                  <div className="bg-card rounded-lg p-4 space-y-3 border border-primary/20">
+                    <div className="text-xs text-primary font-medium mb-2">可编辑字段</div>
                     {['amount', 'firstpaymentamount'].map(field => (
                       <div key={field} className="flex items-center gap-3">
-                        <label className="text-sm text-gray-400 w-28 shrink-0">
+                        <label className="text-sm text-muted-foreground w-28 shrink-0">
                           {FIELD_LABELS[field] || field}
                         </label>
                         <div className="flex items-center gap-1 flex-1">
-                          <span className="text-gray-500">¥</span>
+                          <span className="text-muted-foreground">¥</span>
                           <input
                             type="text"
                             value={editFields[field] || ''}
                             onChange={(e) => setEditFields(prev => ({ ...prev, [field]: e.target.value }))}
-                            className="flex-1 bg-[#1a1d27] border border-gray-700 rounded px-3 py-1.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+                            className="flex-1 bg-card border border-border rounded px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1271,14 +1260,14 @@ function ManageContent() {
                     {/* 其他可编辑字段：billingcycle, domainstatus */}
                     {['billingcycle', 'domainstatus'].map(field => (
                       <div key={field} className="flex items-center gap-3">
-                        <label className="text-sm text-gray-400 w-28 shrink-0">
+                        <label className="text-sm text-muted-foreground w-28 shrink-0">
                           {FIELD_LABELS[field] || field}
                         </label>
                         {field === 'billingcycle' ? (
                           <select
                             value={editFields[field] || ''}
                             onChange={(e) => setEditFields(prev => ({ ...prev, [field]: e.target.value }))}
-                            className="flex-1 bg-[#1a1d27] border border-gray-700 rounded px-3 py-1.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+                            className="flex-1 bg-card border border-border rounded px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
                           >
                             <option value="monthly">月付 (monthly)</option>
                             <option value="quarterly">季付 (quarterly)</option>
@@ -1293,7 +1282,7 @@ function ManageContent() {
                           <select
                             value={editFields[field] || ''}
                             onChange={(e) => setEditFields(prev => ({ ...prev, [field]: e.target.value }))}
-                            className="flex-1 bg-[#1a1d27] border border-gray-700 rounded px-3 py-1.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+                            className="flex-1 bg-card border border-border rounded px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
                           >
                             <option value="Pending">Pending - 待审核</option>
                             <option value="Active">Active - 使用中</option>
@@ -1309,20 +1298,20 @@ function ManageContent() {
                     {/* 其他可编辑字段：dcimid, dedicatedip, port, username, password, assignedips, domain */}
                     {['dcimid', 'dedicatedip', 'port', 'username', 'password', 'assignedips', 'domain'].map(field => (
                       <div key={field} className="flex items-center gap-3">
-                        <label className="text-sm text-gray-400 w-28 shrink-0">
+                        <label className="text-sm text-muted-foreground w-28 shrink-0">
                           {FIELD_LABELS[field] || field}
                         </label>
                         <input
                           type={field === 'password' ? 'text' : 'text'}
                           value={editFields[field] || ''}
                           onChange={(e) => setEditFields(prev => ({ ...prev, [field]: e.target.value }))}
-                          className="flex-1 bg-[#1a1d27] border border-gray-700 rounded px-3 py-1.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+                          className="flex-1 bg-card border border-border rounded px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
                         />
                       </div>
                     ))}
                     {/* nextduedate 编辑：时间戳 ↔ datetime-local 双向转换 */}
                     <div className="flex items-center gap-3">
-                      <label className="text-sm text-gray-400 w-28 shrink-0">{FIELD_LABELS['nextduedate'] || '到期时间'}</label>
+                      <label className="text-sm text-muted-foreground w-28 shrink-0">{FIELD_LABELS['nextduedate'] || '到期时间'}</label>
                       <input
                         type="datetime-local"
                         value={(() => {
@@ -1347,14 +1336,14 @@ function ManageContent() {
                           // 转回秒级时间戳，与后台格式保持一致
                           setEditFields(prev => ({ ...prev, nextduedate: String(Math.floor(ms / 1000)) }));
                         }}
-                        className="flex-1 bg-[#1a1d27] border border-gray-700 rounded px-3 py-1.5 text-sm text-white focus:border-orange-500 focus:outline-none [color-scheme:dark]"
+                        className="flex-1 bg-card border border-border rounded px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
                       />
                     </div>
                   </div>
 
                   {/* 只读字段 */}
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-500 font-medium mb-2">其他信息</div>
+                    <div className="text-xs text-muted-foreground font-medium mb-2">其他信息</div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                       {Object.entries(hostDetail)
                         .filter(([k, v]) => v !== undefined && v !== null && !Array.isArray(v) && typeof v !== 'object')
@@ -1376,9 +1365,9 @@ function ManageContent() {
                             displayVal = '无';
                           }
                           return (
-                            <div key={k} className="bg-[#0f1117] rounded px-3 py-2">
-                              <span className="text-gray-500 text-xs">{label}</span>
-                              <span className="block text-white text-sm truncate" title={String(v)}>{displayVal}</span>
+                            <div key={k} className="bg-card rounded px-3 py-2">
+                              <span className="text-muted-foreground text-xs">{label}</span>
+                              <span className="block text-foreground text-sm truncate" title={String(v)}>{displayVal}</span>
                             </div>
                           );
                         })}
@@ -1390,7 +1379,7 @@ function ManageContent() {
                     <button
                       onClick={saveHostDetail}
                       disabled={detailSaving}
-                      className="px-5 py-2 bg-orange-600 hover:bg-orange-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+                      className="px-5 py-2 bg-primary hover:bg-primary/90 disabled:bg-accent disabled:text-muted-foreground rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
                     >
                       {detailSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                       保存修改
@@ -1398,7 +1387,7 @@ function ManageContent() {
                     <button
                       onClick={fetchHostDetail}
                       disabled={detailLoading}
-                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm flex items-center gap-2"
+                      className="px-4 py-2 bg-accent hover:bg-accent rounded-lg transition-colors text-sm flex items-center gap-2"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${detailLoading ? 'animate-spin' : ''}`} />
                       重新加载
@@ -1410,23 +1399,23 @@ function ManageContent() {
 
             {/* 服务器实时状态 */}
             {serverStatus && (
-              <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-                <div className="px-3 py-3 sm:px-5 sm:py-4 border-b border-gray-800 flex items-center justify-between">
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="px-3 py-3 sm:px-5 sm:py-4 border-b border-border flex items-center justify-between">
                   <h3 className="font-semibold flex items-center gap-2">
-                    <Monitor className="w-4 h-4 text-orange-500" />
+                    <Monitor className="w-4 h-4 text-primary" />
                     实时状态
                   </h3>
-                  <span className="text-xs text-gray-500">每30秒自动刷新</span>
+                  <span className="text-xs text-muted-foreground">每30秒自动刷新</span>
                 </div>
                 <div className="p-3 sm:p-5">
                   {/* 电源状态 */}
                   {serverStatus.powerStatus && (
                     <div className="mb-4 flex items-center gap-3">
-                      <span className="text-sm text-gray-400">电源状态</span>
+                      <span className="text-sm text-muted-foreground">电源状态</span>
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         serverStatus.powerStatus === 'on' || serverStatus.powerStatus === 'running' || serverStatus.powerStatus === 'active'
-                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                          ? 'bg-success/15 text-success border border-success/30'
+                          : 'bg-destructive/15 text-destructive border border-destructive/30'
                       }`}>
                         {serverStatus.powerStatus === 'on' || serverStatus.powerStatus === 'running' || serverStatus.powerStatus === 'active'
                           ? '运行中' : serverStatus.powerStatus === 'off' ? '已关机' : serverStatus.powerStatus}
@@ -1452,14 +1441,14 @@ function ManageContent() {
                   <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                     {serverStatus.uptime && (
                       <div>
-                        <span className="text-gray-500">运行时间</span>
-                        <span className="ml-2 text-white">{serverStatus.uptime}</span>
+                        <span className="text-muted-foreground">运行时间</span>
+                        <span className="ml-2 text-foreground">{serverStatus.uptime}</span>
                       </div>
                     )}
                     {serverStatus.osRunning && (
                       <div>
-                        <span className="text-gray-500">运行系统</span>
-                        <span className="ml-2 text-white">{serverStatus.osRunning}</span>
+                        <span className="text-muted-foreground">运行系统</span>
+                        <span className="ml-2 text-foreground">{serverStatus.osRunning}</span>
                       </div>
                     )}
                     {/* 显示其他未知的状态字段 */}
@@ -1467,8 +1456,8 @@ function ManageContent() {
                       .filter(([key]) => !['powerStatus','cpuUsage','memUsage','diskUsage','bandwidthUsage','uptime','osRunning'].includes(key) && serverStatus[key] !== '' && serverStatus[key] !== undefined)
                       .map(([key, value]) => (
                         <div key={key}>
-                          <span className="text-gray-500">{key}</span>
-                          <span className="ml-2 text-white">{String(value)}</span>
+                          <span className="text-muted-foreground">{key}</span>
+                          <span className="ml-2 text-foreground">{String(value)}</span>
                         </div>
                       ))
                     }
@@ -1478,16 +1467,16 @@ function ManageContent() {
             )}
 
             {/* 套餐升级 */}
-            <div className="bg-[#1a1d27] rounded-xl border border-gray-800 overflow-hidden">
-              <div className="px-3 py-3 sm:px-5 sm:py-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="px-3 py-3 sm:px-5 sm:py-4 border-b border-border flex items-center justify-between">
                 <h3 className="font-semibold flex items-center gap-2">
-                  <ArrowUpDown className="w-4 h-4 text-orange-500" />
+                  <ArrowUpDown className="w-4 h-4 text-primary" />
                   套餐升级
                 </h3>
                 {!showUpgradePanel && !upgradeLoading && (
                   <button
                     onClick={fetchUpgradePackages}
-                    className="text-xs text-orange-400 hover:text-orange-300 transition-colors flex items-center gap-1"
+                    className="text-xs text-primary hover:text-primary transition-colors flex items-center gap-1"
                   >
                     <RefreshCw className="w-3 h-3" />
                     加载套餐
@@ -1496,30 +1485,30 @@ function ManageContent() {
               </div>
               <div className="p-3 sm:p-5">
                 {upgradeLoading && !showUpgradePanel && (
-                  <div className="flex items-center justify-center py-8 text-gray-400">
+                  <div className="flex items-center justify-center py-8 text-muted-foreground">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
                     加载套餐信息中...
                   </div>
                 )}
 
                 {showUpgradePanel && packages.length === 0 && !upgradeLoading && (
-                  <p className="text-gray-400 text-sm text-center py-4">该产品暂无可用套餐</p>
+                  <p className="text-muted-foreground text-sm text-center py-4">该产品暂无可用套餐</p>
                 )}
 
                 {showUpgradePanel && packages.length > 0 && (
                   <div className="space-y-4">
                     {/* 当前套餐 */}
                     {currentPackageId && (
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                        <div className="text-sm text-blue-400 font-medium mb-1">当前套餐</div>
-                        <div className="text-white font-semibold">
+                      <div className="bg-info/10 border border-info/30 rounded-lg p-3">
+                        <div className="text-sm text-info font-medium mb-1">当前套餐</div>
+                        <div className="text-foreground font-semibold">
                           {packages.find(p => p.id === currentPackageId)?.name || '未知'}
                         </div>
                       </div>
                     )}
                     {!currentPackageId && (
-                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                        <div className="text-sm text-yellow-400">无法自动匹配当前套餐，请手动选择目标套餐</div>
+                      <div className="bg-warning/10 border border-warning/30 rounded-lg p-3">
+                        <div className="text-sm text-warning">无法自动匹配当前套餐，请手动选择目标套餐</div>
                       </div>
                     )}
 
@@ -1532,17 +1521,17 @@ function ManageContent() {
                       return (
                         <div className="flex gap-2 mb-2">
                           <button
-                            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${upgradeBillingCycle === 'monthly' ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${upgradeBillingCycle === 'monthly' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}
                             onClick={() => { setUpgradeBillingCycle('monthly'); setTargetPackageId(null); }}
                           >月付</button>
                           <button
-                            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${upgradeBillingCycle === 'annually' ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${upgradeBillingCycle === 'annually' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}
                             onClick={() => { setUpgradeBillingCycle('annually'); setTargetPackageId(null); }}
                           >年付</button>
                         </div>
                       );
                     })()}
-                    <div className="text-sm text-gray-400 mb-2">选择升级目标：</div>
+                    <div className="text-sm text-muted-foreground mb-2">选择升级目标：</div>
                     <div className="grid grid-cols-1 gap-3">
                       {packages.map((pkg) => {
                         const isCurrent = pkg.id === currentPackageId;
@@ -1563,29 +1552,29 @@ function ManageContent() {
                             onClick={() => !isCurrent && setTargetPackageId(isTarget ? null : pkg.id)}
                             className={`relative rounded-lg border-2 p-4 cursor-pointer transition-all ${
                               isCurrent
-                                ? 'border-blue-500/50 bg-blue-500/5 cursor-default'
+                                ? 'border-info/50 bg-info/5 cursor-default'
                                 : isTarget
-                                  ? 'border-orange-500 bg-orange-500/10'
-                                  : 'border-gray-700 bg-[#0f1117] hover:border-gray-500'
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-border bg-card hover:border-border'
                             }`}
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                  isCurrent ? 'bg-blue-500 text-white' : isTarget ? 'bg-orange-500 text-white' : 'bg-gray-700 text-gray-300'
+                                  isCurrent ? 'bg-info text-info-foreground' : isTarget ? 'bg-primary text-primary-foreground' : 'bg-accent text-foreground/80'
                                 }`}>
                                   {isCurrent ? '✓' : '▸'}
                                 </span>
-                                <span className="font-semibold text-white">{pkg.name}</span>
+                                <span className="font-semibold text-foreground">{pkg.name}</span>
                                 {isCurrent && (
-                                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">当前</span>
+                                  <span className="text-xs bg-info/20 text-info px-2 py-0.5 rounded">当前</span>
                                 )}
                               </div>
                               <div className="text-right">
-                                <span className="text-orange-400 font-bold">
+                                <span className="text-primary font-bold">
                                   ¥{pkg.firstPrice}
                                 </span>
-                                <span className="text-gray-500 text-xs ml-1">
+                                <span className="text-muted-foreground text-xs ml-1">
                                   /{pkg.billingCycleLabel || pkg.billingCycle}
                                 </span>
                               </div>
@@ -1611,8 +1600,8 @@ function ManageContent() {
                                 const value = isQty ? String(subId) : getConfigLabel(optId, subId);
                                 return (
                                   <div key={optId} className="text-xs">
-                                    <span className="text-gray-500">{label}:</span>{' '}
-                                    <span className="text-gray-300">{value}</span>
+                                    <span className="text-muted-foreground">{label}:</span>{' '}
+                                    <span className="text-foreground/80">{value}</span>
                                   </div>
                                 );
                               })}
@@ -1706,38 +1695,38 @@ function ManageContent() {
                       }
 
                       return (
-                        <div className="bg-[#0f1117] rounded-lg border border-orange-500/30 p-4 space-y-2">
-                          <div className="text-sm font-medium text-orange-400 mb-2">
+                        <div className="bg-card rounded-lg border border-primary/30 p-4 space-y-2">
+                          <div className="text-sm font-medium text-primary mb-2">
                             升级变更：{currentPkg?.name || '当前'} → {targetPkg.name}
                           </div>
                           {changedConfigs.map((c, i) => (
                             <div key={i} className="flex items-center justify-between text-sm">
-                              <span className="text-gray-400">{c.name}</span>
-                              <span className="text-white">
-                                <span className="text-gray-400 line-through">{c.from}</span>
-                                <span className="mx-2 text-gray-600">→</span>
-                                <span className="text-orange-400">{c.to}</span>
+                              <span className="text-muted-foreground">{c.name}</span>
+                              <span className="text-foreground">
+                                <span className="text-muted-foreground line-through">{c.from}</span>
+                                <span className="mx-2 text-muted-foreground">→</span>
+                                <span className="text-primary">{c.to}</span>
                               </span>
                             </div>
                           ))}
                           {/* 差价信息 */}
                           {priceDiff > 0 && totalDays > 0 && (
-                            <div className="mt-3 pt-3 border-t border-gray-700 space-y-1.5">
+                            <div className="mt-3 pt-3 border-t border-border space-y-1.5">
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-400">月价差</span>
-                                <span className="text-white">¥{priceDiff.toFixed(2)}/月</span>
+                                <span className="text-muted-foreground">月价差</span>
+                                <span className="text-foreground">¥{priceDiff.toFixed(2)}/月</span>
                               </div>
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-400">{billingcycle === 'monthly' ? '当前月天数' : '计费周期'}</span>
-                                <span className="text-white">{totalDays}天</span>
+                                <span className="text-muted-foreground">{billingcycle === 'monthly' ? '当前月天数' : '计费周期'}</span>
+                                <span className="text-foreground">{totalDays}天</span>
                               </div>
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-400">剩余天数</span>
-                                <span className="text-white">{remainingDays}天</span>
+                                <span className="text-muted-foreground">剩余天数</span>
+                                <span className="text-foreground">{remainingDays}天</span>
                               </div>
                               <div className="flex items-center justify-between text-sm font-medium">
-                                <span className="text-orange-400">升级差价</span>
-                                <span className="text-orange-400 text-lg">¥{upgradeCost.toFixed(2)}</span>
+                                <span className="text-primary">升级差价</span>
+                                <span className="text-primary text-lg">¥{upgradeCost.toFixed(2)}</span>
                               </div>
                             </div>
                           )}
@@ -1749,7 +1738,7 @@ function ManageContent() {
                     <button
                       onClick={submitUpgrade}
                       disabled={upgradeSubmitting || !targetPackageId}
-                      className="w-full px-4 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2.5 bg-accent2 hover:bg-accent2/90 text-accent2-foreground disabled:bg-accent disabled:text-muted-foreground rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
                     >
                       {upgradeSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUpDown className="w-4 h-4" />}
                       {targetPackageId ? `确认升级到「${packages.find(p => p.id === targetPackageId)?.name}」` : '请选择目标套餐'}
@@ -1763,7 +1752,7 @@ function ManageContent() {
             <div className="flex justify-center pt-2 pb-8">
               <button
                 onClick={() => window.close()}
-                className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-2"
+                className="px-6 py-2.5 bg-accent hover:bg-accent rounded-lg transition-colors flex items-center gap-2"
               >
                 <X className="w-4 h-4" />
                 关闭标签
@@ -1771,8 +1760,8 @@ function ManageContent() {
             </div>
           </>
         ) : (
-          <div className="text-center py-20 text-gray-400">
-            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-yellow-500" />
+          <div className="text-center py-20 text-muted-foreground">
+            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-warning" />
             <p>无法加载产品信息</p>
           </div>
         )}
@@ -1781,32 +1770,32 @@ function ManageContent() {
       {/* 重置密码弹窗 */}
       {showCrackPassDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowCrackPassDialog(false)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-orange-400" />
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" />
               重置密码
             </h3>
-            <p className="text-sm text-gray-400 mb-3">请输入新的服务器密码：</p>
+            <p className="text-sm text-muted-foreground mb-3">请输入新的服务器密码：</p>
             <input
               type="text"
               value={crackPassValue}
               onChange={e => setCrackPassValue(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleCrackPassConfirm(); }}
               placeholder="输入新密码"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 text-sm"
+              className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary text-sm"
               autoFocus
             />
             <div className="flex justify-end gap-3 mt-5">
               <button
                 onClick={() => setShowCrackPassDialog(false)}
-                className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 取消
               </button>
               <button
                 onClick={handleCrackPassConfirm}
                 disabled={!crackPassValue.trim()}
-                className="px-4 py-2 text-sm bg-orange-600 hover:bg-orange-500 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 确认重置
               </button>
@@ -1818,17 +1807,17 @@ function ManageContent() {
       {/* 电源操作确认弹窗 */}
       {powerConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setPowerConfirm(null)}>
-          <div className="bg-[#1a1d27] border border-gray-700 rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-3">确认{powerConfirm.name}</h3>
-            <p className="text-sm text-gray-400 mb-1">确定要执行「{powerConfirm.name}」操作吗？</p>
+          <div className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-foreground mb-3">确认{powerConfirm.name}</h3>
+            <p className="text-sm text-muted-foreground mb-1">确定要执行「{powerConfirm.name}」操作吗？</p>
             {(powerConfirm.action === 'provisionOff' || powerConfirm.action === 'provisionHardOff' || powerConfirm.action === 'provisionReboot' || powerConfirm.action === 'provisionHardReboot') && (
-              <p className="text-xs text-yellow-400 mt-2">建议先在系统内正常关机/重启，强制操作可能导致数据丢失。</p>
+              <p className="text-xs text-warning mt-2">建议先在系统内正常关机/重启，强制操作可能导致数据丢失。</p>
             )}
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setPowerConfirm(null)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+              <button onClick={() => setPowerConfirm(null)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">取消</button>
               <button
                 onClick={() => { executeAction(powerConfirm.action, powerConfirm.name); setPowerConfirm(null); }}
-                className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+                className="px-4 py-2 text-sm bg-info hover:bg-info/90 text-info-foreground rounded-lg transition-colors"
               >
                 确认
               </button>
@@ -1842,7 +1831,7 @@ function ManageContent() {
 
 export default function ManagePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-900 flex items-center justify-center text-gray-400">加载中...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">加载中...</div>}>
       <ManageContent />
     </Suspense>
   );
@@ -1851,7 +1840,7 @@ export default function ManagePage() {
 function InfoItem({ icon: Icon, label, value }: { icon?: typeof Server; label: string; value: string }) {
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+      <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
         {Icon && <Icon className="w-3.5 h-3.5" />}
         {label}
       </div>
@@ -1864,15 +1853,15 @@ function ActionButton({ icon: Icon, label, color, loading, disabled, onClick }: 
   icon: typeof Power; label: string; color: string; loading: boolean; disabled: boolean; onClick: () => void;
 }) {
   const colorMap: Record<string, string> = {
-    emerald: 'bg-emerald-600 hover:bg-emerald-500 text-white',
-    yellow: 'bg-yellow-600 hover:bg-yellow-500 text-white',
-    blue: 'bg-blue-600 hover:bg-blue-500 text-white',
-    orange: 'bg-orange-600 hover:bg-orange-500 text-white',
-    red: 'bg-red-600 hover:bg-red-500 text-white',
-    cyan: 'bg-cyan-600 hover:bg-cyan-500 text-white',
-    purple: 'bg-purple-600 hover:bg-purple-500 text-white',
+    emerald: 'bg-success hover:bg-success/90 text-success-foreground',
+    yellow: 'bg-warning hover:bg-warning/90 text-warning-foreground',
+    blue: 'bg-info hover:bg-info/90 text-info-foreground',
+    orange: 'bg-primary hover:bg-primary/90 text-primary-foreground',
+    red: 'bg-destructive hover:bg-destructive/90 text-destructive-foreground',
+    cyan: 'bg-info hover:bg-info/90 text-info-foreground',
+    purple: 'bg-accent2 hover:bg-accent2/90 text-accent2-foreground',
   };
-  const disabledClass = 'bg-gray-700 text-gray-500 cursor-not-allowed';
+  const disabledClass = 'bg-accent text-muted-foreground cursor-not-allowed';
 
   return (
     <button
@@ -1897,18 +1886,18 @@ function UsageBar({ label, value }: { label: string; value: string }) {
   
   const percent = parsePercent(value);
   const barColor = percent !== null
-    ? percent > 90 ? 'bg-red-500'
-    : percent > 70 ? 'bg-yellow-500'
-    : 'bg-emerald-500'
-    : 'bg-orange-500';
+    ? percent > 90 ? 'bg-destructive'
+    : percent > 70 ? 'bg-warning'
+    : 'bg-success'
+    : 'bg-primary';
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-gray-400">{label}</span>
-        <span className="text-white font-medium">{value}</span>
+        <span className="text-muted-foreground">{label}</span>
+        <span className="text-foreground font-medium">{value}</span>
       </div>
-      <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+      <div className="h-2 bg-accent rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${barColor}`}
           style={{ width: percent !== null ? `${Math.min(percent, 100)}%` : '100%' }}
