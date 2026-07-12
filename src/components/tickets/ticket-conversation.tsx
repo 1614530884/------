@@ -30,6 +30,20 @@ interface TicketConversationProps {
   userAvatar?: string;
 }
 
+function formatShortTime(timeStr: string): string {
+  if (!timeStr) return '';
+  const d = new Date(String(timeStr).replace(/-/g, '/'));
+  if (isNaN(d.getTime())) return timeStr;
+  const now = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  if (d.toDateString() === now.toDateString()) return `${hh}:${mm}`;
+  const mo = d.getMonth() + 1;
+  const dd = d.getDate();
+  if (d.getFullYear() === now.getFullYear()) return `${mo}/${dd} ${hh}:${mm}`;
+  return `${d.getFullYear()}/${mo}/${dd} ${hh}:${mm}`;
+}
+
 function renderContent(content: string): string {
   if (!content) return '';
   let text = content;
@@ -183,9 +197,9 @@ function TicketOriginCard({ msg, onPreview, userAvatar }: { msg: TicketMessage; 
       <div className="max-w-[90%] rounded-xl border border-border bg-muted/30 px-4 py-3 text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Avatar isAdmin={isAdmin} userAvatar={avatar} displayName={displayName} />
-          <div className="text-xs text-muted-foreground text-left">
+          <div className="text-xs text-muted-foreground text-left min-w-0">
             <span className="font-medium text-foreground">{displayName}</span>
-            <span className="ml-1">创建工单 · {msg.format_time}</span>
+            <span className="ml-1 shrink-0">创建工单 · {formatShortTime(msg.format_time)}</span>
           </div>
         </div>
         <p className="text-sm text-foreground whitespace-pre-wrap break-words text-left">
@@ -205,7 +219,7 @@ function TicketNoteBlock({ msg }: { msg: TicketMessage }) {
           <FileText className="w-3 h-3" />
           <span className="font-medium">内部备注</span>
           <span>· {msg.realname || msg.user || '管理员'}</span>
-          <span>· {msg.format_time}</span>
+          <span className="shrink-0">· {formatShortTime(msg.format_time)}</span>
         </div>
         <p className="text-sm text-foreground whitespace-pre-wrap break-words">
           {renderContent(msg.content)}
@@ -221,7 +235,7 @@ function TicketTransferLog({ msg }: { msg: TicketMessage }) {
       <div className="text-xs text-muted-foreground bg-muted/50 rounded-full px-3 py-1">
         {msg.mode_zh || '工单转移'}：{msg.from || '?'} → {msg.to || '?'}
         {msg.remarks ? `（${msg.remarks}）` : ''}
-        <span className="ml-1">· {msg.format_time}</span>
+        <span className="ml-1 shrink-0">· {formatShortTime(msg.format_time)}</span>
       </div>
     </div>
   );
@@ -230,7 +244,6 @@ function TicketTransferLog({ msg }: { msg: TicketMessage }) {
 function ReplyBubble({ msg, onPreview, userAvatar }: { msg: TicketMessage; onPreview: (img: string, name: string) => void; userAvatar?: string }) {
   const isAdmin = isAdminType(msg);
   const displayName = msg.realname || msg.user || (isAdmin ? '客服' : '用户');
-  const roleLabel = isAdmin ? '客服' : '用户';
   const attachments = getAttachments(msg.attachment);
   const avatar = isAdmin ? undefined : userAvatar;
 
@@ -243,14 +256,9 @@ function ReplyBubble({ msg, onPreview, userAvatar }: { msg: TicketMessage; onPre
             ? 'bg-primary text-primary-foreground rounded-tr-sm'
             : 'bg-muted text-foreground rounded-tl-sm'
         }`}>
-          <div className={`flex items-center gap-1.5 text-xs mb-1 ${isAdmin ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              isAdmin ? 'bg-primary-foreground/20' : 'bg-foreground/10'
-            }`}>
-              {roleLabel}
-            </span>
-            <span className="font-medium">{displayName}</span>
-            <span className="opacity-80">{msg.format_time}</span>
+          <div className={`flex items-center gap-1.5 text-xs mb-1 min-w-0 ${isAdmin ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+            <span className="font-medium truncate">{displayName}</span>
+            <span className="opacity-80 shrink-0 whitespace-nowrap">{formatShortTime(msg.format_time)}</span>
           </div>
           <div className="text-sm whitespace-pre-wrap break-words leading-relaxed">
             {renderContent(msg.content)}
@@ -361,7 +369,7 @@ export function TicketConversation({ messages, loading, userAvatar }: TicketConv
           if (msg.type === 'r') return <ReplyBubble key={key} msg={msg} onPreview={handlePreview} userAvatar={userAvatar} />;
           return (
             <div key={key} className="text-xs text-muted-foreground text-center my-1">
-              {msg.content} · {msg.format_time}
+              {msg.content} · {formatShortTime(msg.format_time)}
             </div>
           );
         })}
@@ -369,64 +377,73 @@ export function TicketConversation({ messages, loading, userAvatar }: TicketConv
       </div>
 
       <Dialog open={!!previewImg} onOpenChange={(open) => { if (!open) setPreviewImg(null); }}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-black/95 border-none overflow-hidden" showCloseButton={false}>
+        <DialogContent className="max-w-[90vw] sm:max-w-[90vw] max-h-[90dvh] p-0 bg-black/95 border-none overflow-hidden flex flex-col gap-0 w-auto min-w-[260px]" showCloseButton={false}>
           <DialogTitle className="sr-only">附件预览</DialogTitle>
           {previewImg && (
-            <div
-              ref={imgContainerRef}
-              className="relative w-full h-full flex items-center justify-center"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-            >
-              <img
-                src={previewImg.img}
-                alt={previewImg.name}
-                draggable={false}
-                className="max-w-full max-h-[85vh] object-contain rounded-lg transition-transform duration-150 ease-out select-none"
-                style={{
-                  transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-                  cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
-                }}
-              />
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 text-xs text-white/80 bg-black/60 px-3 py-1 rounded-full max-w-[80%] truncate">
-                {previewImg.name}
-              </div>
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 rounded-full px-3 py-1.5">
-                <button
-                  type="button"
-                  onClick={() => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)))}
-                  className="text-white/90 hover:text-white p-1 transition-colors"
-                  aria-label="缩小"
-                >
-                  <ZoomOut className="w-4 h-4" />
-                </button>
-                <span className="text-xs text-white/80 min-w-[3rem] text-center tabular-nums">
-                  {Math.round(zoom * 100)}%
+            <>
+              <div className="shrink-0 flex items-center justify-between gap-2 px-3 py-2">
+                <span className="text-xs text-white/80 truncate flex-1 min-w-0">
+                  {previewImg.name}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setZoom((z) => Math.min(5, +(z + 0.25).toFixed(2)))}
-                  className="text-white/90 hover:text-white p-1 transition-colors"
-                  aria-label="放大"
-                >
-                  <ZoomIn className="w-4 h-4" />
-                </button>
-                <div className="w-px h-4 bg-white/20 mx-1" />
-                <button
-                  type="button"
-                  onClick={resetZoom}
-                  className="text-white/90 hover:text-white p-1 transition-colors"
-                  aria-label="重置"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
+                <DialogClose className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors shrink-0">
+                  <X className="w-4 h-4" />
+                </DialogClose>
               </div>
-              <DialogClose className="absolute top-2 right-2 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors">
-                <X className="w-4 h-4" />
-              </DialogClose>
-            </div>
+
+              <div
+                ref={imgContainerRef}
+                className="flex items-center justify-center overflow-hidden"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
+                <img
+                  src={previewImg.img}
+                  alt={previewImg.name}
+                  draggable={false}
+                  className="max-w-[90vw] object-contain transition-transform duration-150 ease-out select-none block"
+                  style={{
+                    maxHeight: 'calc(90dvh - 6rem)',
+                    transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                    cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+                  }}
+                />
+              </div>
+
+              <div className="shrink-0 flex items-center justify-center py-2">
+                <div className="flex items-center gap-2 bg-black/70 rounded-full px-3 py-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)))}
+                    className="text-white/90 hover:text-white p-1 transition-colors"
+                    aria-label="缩小"
+                  >
+                    <ZoomOut className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs text-white/80 min-w-[3rem] text-center tabular-nums">
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setZoom((z) => Math.min(5, +(z + 0.25).toFixed(2)))}
+                    className="text-white/90 hover:text-white p-1 transition-colors"
+                    aria-label="放大"
+                  >
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                  <div className="w-px h-4 bg-white/20 mx-1" />
+                  <button
+                    type="button"
+                    onClick={resetZoom}
+                    className="text-white/90 hover:text-white p-1 transition-colors"
+                    aria-label="重置"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
