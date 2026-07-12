@@ -287,7 +287,13 @@ export const connectionStore = {
 
 // ─── 任务 ──────────────────────────────────────────────────
 export const taskStore = {
-  list(currentUser: CurrentUser, options?: { status?: TaskStatus; connectionId?: string; limit?: number }): ServerTask[] {
+  list(currentUser: CurrentUser, options?: {
+    status?: TaskStatus;
+    statusList?: TaskStatus[];
+    connectionId?: string;
+    limit?: number;
+    finishedAfter?: string;
+  }): ServerTask[] {
     const db = getDb();
     const conditions: string[] = [];
     const params: (string | number)[] = [];
@@ -299,9 +305,18 @@ export const taskStore = {
       conditions.push('status = ?');
       params.push(options.status);
     }
+    if (options?.statusList && options.statusList.length > 0) {
+      const placeholders = options.statusList.map(() => '?').join(',');
+      conditions.push(`status IN (${placeholders})`);
+      params.push(...options.statusList);
+    }
     if (options?.connectionId) {
       conditions.push('connection_id = ?');
       params.push(options.connectionId);
+    }
+    if (options?.finishedAfter) {
+      conditions.push('finished_at IS NOT NULL AND finished_at > ?');
+      params.push(options.finishedAfter);
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const limit = options?.limit ?? 200;

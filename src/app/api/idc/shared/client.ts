@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { IdcRequestContext } from './types';
 
 const FRONTEND_UPGRADE_ACTIONS = ['upgradeConfigPage', 'upgradeConfigCalc', 'upgradeConfigCheckout'];
-const FORM_URLENCODED_ACTIONS = ['upgradeConfigCalc', 'adminUpgradeConfig', 'upgradeConfigCheckout', 'updateHostAmount', 'saveServiceInfo2'];
+const FORM_URLENCODED_ACTIONS = ['upgradeConfigCalc', 'adminUpgradeConfig', 'upgradeConfigCheckout', 'updateHostAmount', 'saveServiceInfo2', 'ticketClose', 'ticketDelete'];
 
 export function buildFullUrl(apiPath: string, ctx: IdcRequestContext, isFrontendApi: boolean): string {
   if (isFrontendApi) {
@@ -15,13 +15,15 @@ export function buildFullUrl(apiPath: string, ctx: IdcRequestContext, isFrontend
 export function resolvePathParams(apiPath: string, params: Record<string, unknown>): { path: string; params: Record<string, unknown> } {
   let path = apiPath;
   const remaining = { ...params };
-  if (path.includes(':uid') && remaining.uid) {
-    path = path.replace(':uid', String(remaining.uid));
-    delete remaining.uid;
-  }
-  if (path.includes(':client_id') && remaining.client_id) {
-    path = path.replace(':client_id', String(remaining.client_id));
-    delete remaining.client_id;
+  const matches = path.match(/:(\w+)/g);
+  if (matches) {
+    for (const match of matches) {
+      const key = match.slice(1);
+      if (remaining[key] !== undefined && remaining[key] !== null) {
+        path = path.replace(match, String(remaining[key]));
+        delete remaining[key];
+      }
+    }
   }
   return { path, params: remaining };
 }
@@ -29,7 +31,12 @@ export function resolvePathParams(apiPath: string, params: Record<string, unknow
 export function buildQueryString(params: Record<string, unknown>): string {
   return Object.entries(params)
     .filter(([_, v]) => v !== undefined && v !== null && v !== '')
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .flatMap(([k, v]) => {
+      if (Array.isArray(v)) {
+        return v.map((item) => `${encodeURIComponent(k + '[]')}=${encodeURIComponent(String(item))}`);
+      }
+      return [`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`];
+    })
     .join('&');
 }
 

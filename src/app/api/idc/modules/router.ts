@@ -6,6 +6,7 @@ import { ProductModule } from './product';
 import { OrderModule } from './order';
 import { ServiceModule } from './service';
 import { ProvisionModule } from './provision';
+import { TicketModule } from './ticket';
 
 const modules: ModuleHandler[] = [
   new UserModule(),
@@ -13,6 +14,7 @@ const modules: ModuleHandler[] = [
   new OrderModule(),
   new ServiceModule(),
   new ProvisionModule(),
+  new TicketModule(),
 ];
 
 // 构建 action -> module 索引

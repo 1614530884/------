@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { loadAuth, saveAuth } from '@/lib/auth-client';
 import ProductCard from '@/components/ProductCard';
 import ConfigOptionItem from '@/components/ConfigOptionItem';
@@ -421,6 +422,7 @@ export default function OneClickOrderPage() {
   }, []);
 
   // 用户管理
+  const urlSearchParams = useSearchParams();
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchType, setSearchType] = useState<'auto' | 'uid' | 'username' | 'email' | 'phone' | 'qq'>('auto');
   const [searchResults, setSearchResults] = useState<Array<{
@@ -3286,15 +3288,16 @@ export default function OneClickOrderPage() {
   }, [pendingProvision, selectedUser]);
 
   // 搜索用户
-  const handleSearchUsers = async () => {
-    if (!searchKeyword.trim()) { showNotification('error', '请输入搜索关键词'); return; }
+  const handleSearchUsers = async (overrideKeyword?: string, overrideType?: typeof searchType) => {
+    const kw = (overrideKeyword ?? searchKeyword).trim();
+    if (!kw) { showNotification('error', '请输入搜索关键词'); return; }
+    const currentSearchType = overrideType ?? searchType;
     setIsSearching(true);
     try {
-      const kw = searchKeyword.trim();
 
       // UID搜索：根据UID估算页码，二分法精确定位
       // auto模式下：手机号(1开头11位)走手机搜索，其余纯数字走UID搜索
-      const isUidSearch = searchType === 'uid' || (searchType === 'auto' && /^\d+$/.test(kw) && !/^1[3-9]\d{9}$/.test(kw));
+      const isUidSearch = currentSearchType === 'uid' || (currentSearchType === 'auto' && /^\d+$/.test(kw) && !/^1[3-9]\d{9}$/.test(kw));
       if (isUidSearch) {
         const uid = parseInt(kw);
         const pageSize = 50;
@@ -3356,13 +3359,13 @@ export default function OneClickOrderPage() {
 
       // 其他搜索类型：搜索用户列表
       const searchParams: Record<string, string | number> = { page: 1, limit: 20 };
-      if (searchType === 'username') {
+      if (currentSearchType === 'username') {
         searchParams.username = kw;
-      } else if (searchType === 'email') {
+      } else if (currentSearchType === 'email') {
         searchParams.email = kw;
-      } else if (searchType === 'phone') {
+      } else if (currentSearchType === 'phone') {
         searchParams.phonenumber = kw;
-      } else if (searchType === 'qq') {
+      } else if (currentSearchType === 'qq') {
         searchParams.qq = kw;
       } else {
         // auto: 自动判断
@@ -3412,6 +3415,21 @@ export default function OneClickOrderPage() {
       setIsSearching(false);
     }
   };
+
+  // URL参数自动查询用户（从工单详情页跳转，优先手机号/邮箱）
+  const urlQuerySearchedRef = useRef(false);
+  useEffect(() => {
+    if (urlQuerySearchedRef.current) return;
+    if (!authToken) return; // 等待认证信息从 localStorage 加载完成
+    const qParam = urlSearchParams?.get('q');
+    if (qParam && qParam.trim()) {
+      urlQuerySearchedRef.current = true;
+      setSearchKeyword(qParam.trim());
+      setSearchType('auto');
+      void handleSearchUsers(qParam.trim(), 'auto');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlSearchParams, authToken]);
 
   // 添加余额
   const handleAddBalance = async () => {
@@ -3857,7 +3875,7 @@ export default function OneClickOrderPage() {
                         </button>
                       )}
                     </div>
-                    <Button onClick={handleSearchUsers} disabled={isSearching} size="sm" className="h-9 bg-primary hover:bg-primary/90 px-3">
+                    <Button onClick={() => void handleSearchUsers()} disabled={isSearching} size="sm" className="h-9 bg-primary hover:bg-primary/90 px-3">
                       {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                     </Button>
                   </div>
@@ -3994,7 +4012,7 @@ export default function OneClickOrderPage() {
                   </button>
                 )}
               </div>
-              <Button onClick={handleSearchUsers} disabled={isSearching} className="bg-primary hover:bg-primary/90">
+              <Button onClick={() => void handleSearchUsers()} disabled={isSearching} className="bg-primary hover:bg-primary/90">
                 {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 <span className="ml-1">搜索</span>
               </Button>

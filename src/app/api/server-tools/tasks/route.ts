@@ -17,10 +17,20 @@ export const GET = withAuth(async (request, currentUser) => {
   const url = new URL(request.url);
   const statusParam = url.searchParams.get('status');
   const status = statusParam && VALID_STATUSES.includes(statusParam as TaskStatus) ? statusParam as TaskStatus : undefined;
+  // status 支持逗号分隔多值："success,failed,cancelled,interrupted"
+  const statusList = statusParam
+    ? statusParam.split(',').map(s => s.trim()).filter((s): s is TaskStatus => VALID_STATUSES.includes(s as TaskStatus))
+    : undefined;
   const connectionId = url.searchParams.get('connectionId');
+  const finishedAfter = url.searchParams.get('finishedAfter') ?? undefined;
+  const limitParam = url.searchParams.get('limit');
+  const limit = limitParam ? Math.min(200, Math.max(1, Number(limitParam) || 200)) : undefined;
   const list = taskStore.list(currentUser, {
     status,
+    statusList: statusList && statusList.length > 1 ? statusList : undefined,
     connectionId: connectionId ?? undefined,
+    finishedAfter,
+    limit,
   });
   // 标注运行中状态（内存中真实状态）
   const annotated = list.map(t => ({
