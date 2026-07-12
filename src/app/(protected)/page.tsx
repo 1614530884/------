@@ -177,6 +177,7 @@ interface Template {
   productIds: number[];
   isDefault: boolean;
   perServer: boolean;  // 是否按台数生成话术（true=每台一份，false=只生成一份）
+  scene: 'provision' | 'renew';  // 场景：开通 / 续费
   createdAt: number;
   updatedAt: number;
 }
@@ -1109,6 +1110,17 @@ export default function OneClickOrderPage() {
     productName?: string;
   }[] | null>(null);
 
+  // ===== 续费完成话术弹窗 =====
+  const [renewResultData, setRenewResultData] = useState<{
+    hostId: number;
+    ip: string;
+    nextduedate: string;
+    productName: string;
+    amount: string;
+    billingcycle: string;
+  }[] | null>(null);
+  const [showRenewResult, setShowRenewResult] = useState(false);
+
   // ===== 话术模板 =====
   const [templates, setTemplates] = useState<Template[]>([]);
 
@@ -1124,18 +1136,24 @@ export default function OneClickOrderPage() {
   // 页面加载时获取模板
   useEffect(() => { loadTemplates(); }, [loadTemplates]);
 
-  // 匹配话术模板：OS版本精确匹配 > 产品ID匹配 > 默认模板
-  const matchTemplate = useCallback((osName: string, productId: number | null, tmplList: Template[]): Template | null => {
+  // 匹配话术模板：OS版本精确匹配 > 产品ID匹配 > 默认模板 > 通用模板兜底（按 scene 过滤）
+  const matchTemplate = useCallback((osName: string, productId: number | null, tmplList: Template[], scene: 'provision' | 'renew' = 'provision'): Template | null => {
+    // 0. 先按场景过滤（向后兼容：无 scene 字段视为 provision）
+    const list = tmplList.filter(t => (t.scene || 'provision') === scene);
+    if (list.length === 0) return null;
     // 1. OS版本精确匹配
-    const osMatch = tmplList.find(t => t.osFilters.some(f => osName && f && osName.includes(f)));
+    const osMatch = list.find(t => t.osFilters.some(f => osName && f && osName.includes(f)));
     if (osMatch) return osMatch;
     // 2. 产品ID匹配
     if (productId) {
-      const prodMatch = tmplList.find(t => t.productIds.includes(productId));
+      const prodMatch = list.find(t => t.productIds.includes(productId));
       if (prodMatch) return prodMatch;
     }
     // 3. 默认模板
-    return tmplList.find(t => t.isDefault) || null;
+    const defaultTmpl = list.find(t => t.isDefault);
+    if (defaultTmpl) return defaultTmpl;
+    // 4. 兜底：无 OS 过滤且无产品ID 限制的通用模板（续费场景常配单一通用模板）
+    return list.find(t => t.osFilters.length === 0 && t.productIds.length === 0) || null;
   }, []);
 
   // 替换话术变量
@@ -1493,6 +1511,7 @@ export default function OneClickOrderPage() {
     const steps: ProcessingStep[] = [];
     let successCount = 0;
     let failCount = 0;
+    const renewedHostIds: number[] = [];
 
     for (const hostId of targetIds) {
       const product = userProducts.find((p: Record<string, unknown>) => p.id === hostId);
@@ -1602,12 +1621,45 @@ export default function OneClickOrderPage() {
         if (renewFailed) continue;
 
         successCount++;
+        renewedHostIds.push(hostId);
       } catch (err) {
         failCount++;
         steps[steps.length - 1].status = 'failed';
         steps[steps.length - 1].message = String(err instanceof Error ? err.message : '请求异常');
       }
       setProcessingSteps([...steps]);
+    }
+
+    // 拉取最新产品列表，提取续费成功产品的 IP、到期时间、金额、周期
+    let renewSuccessItems: {
+      hostId: number; ip: string; nextduedate: string;
+      productName: string; amount: string; billingcycle: string;
+    }[] = [];
+    if (renewedHostIds.length > 0 && selectedUser) {
+      try {
+        const latestRes = await callIdcApi('getServiceInfo', { uid: selectedUser.id });
+        const rawData = latestRes?.data;
+        let list: typeof userProducts = [];
+        if (rawData && Array.isArray(rawData.list)) list = rawData.list;
+        else if (Array.isArray(rawData)) list = rawData;
+        else if (rawData && Array.isArray(rawData.host_list)) list = rawData.host_list;
+        else if (rawData && Array.isArray(rawData.data)) list = rawData.data;
+
+        renewSuccessItems = renewedHostIds.map(hid => {
+          const p = list.find((it: Record<string, unknown>) => it.id === hid);
+          const rawCycle = String(p?.billingcycle || '');
+          return {
+            hostId: hid,
+            ip: String(p?.dedicatedip || p?.ip || '-'),
+            nextduedate: formatDueDate(p?.nextduedate as string | number | undefined),
+            productName: String(p?.productname || p?.product_name || '产品'),
+            amount: String(p?.amount || '0'),
+            billingcycle: CYCLE_MAP[rawCycle] || rawCycle,
+          };
+        }).filter(it => it.ip !== '-' || it.nextduedate !== '-');
+      } catch {
+        // 拉取失败不影响主流程，notification 已展示
+      }
     }
 
     setIsRenewing(false);
@@ -1621,6 +1673,14 @@ export default function OneClickOrderPage() {
     setRenewAsAnnually(new Set());
     setRenewCycles(1);
     setDirectRenewId(null);
+
+    // 仿开通模式：续费完成立即清空进度弹窗，直接显示话术弹窗
+    setProcessingSteps([]);
+    setProgress(0);
+    if (renewSuccessItems.length > 0) {
+      setRenewResultData(renewSuccessItems);
+      setShowRenewResult(true);
+    }
   }, [directRenewId, selectedRenewIds, selectedUser, userProducts, renewAsAnnually, callIdcApi, showNotification, fetchUserProducts, findMatchingPackage]);
 
   // ===== 升级套餐 =====
@@ -4387,7 +4447,7 @@ export default function OneClickOrderPage() {
                           key={pkg.id}
                           className={`rounded-lg border p-3 cursor-pointer transition-colors ${
                             isSelected
-                              ? 'border-primary/50 bg-primary/15'
+                              ? 'border-primary ring-1 ring-primary/30'
                               : 'border-border bg-muted/50 hover:border-border'
                           }`}
                           onClick={() => setTargetPackageId(pkg.id)}
@@ -7159,6 +7219,129 @@ export default function OneClickOrderPage() {
         </>
         )}
 
+
+      {/* 续费完成话术弹窗 - 放在条件块外，确保续费时也能渲染 */}
+      <Dialog open={showRenewResult} onOpenChange={setShowRenewResult}>
+        <DialogContent className="sm:!max-w-md bg-card border-border p-0 gap-0 max-h-[85vh] flex flex-col w-[calc(100vw-1.5rem)]" showCloseButton={false}>
+          {/* 标题 */}
+          <div className="shrink-0 px-3 sm:px-5 pt-3 sm:pt-5">
+            <DialogTitle className="text-base sm:text-lg flex items-center gap-2 text-success">
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              续费完成
+            </DialogTitle>
+          </div>
+          {/* 产品信息列表 - 多台时每行一条 */}
+          <div className="overflow-y-auto min-h-0 flex-1 px-3 sm:px-5 py-3 space-y-2">
+            {renewResultData?.map((item, idx) => (
+              <div key={item.hostId || idx} className="bg-muted/50 rounded-lg p-2.5">
+                <div className="text-foreground text-xs font-medium truncate mb-1">{item.productName}</div>
+                <div className="text-muted-foreground text-xs flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                  <span>IP：<span className="text-foreground font-mono">{item.ip || '-'}</span></span>
+                  <span>到期：<span className="text-foreground">{item.nextduedate || '-'}</span></span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* 话术预览区 - 按 scene='renew' 匹配模板渲染 */}
+          {renewResultData && renewResultData.length > 0 && templates.length > 0 && (() => {
+            const items = renewResultData;
+            const matchedTmpl = matchTemplate('', null, templates, 'renew');
+            if (!matchedTmpl) return null;
+            const buildVars = (it: typeof items[0]) => ({
+              ip: it.ip || '',
+              username: '',
+              password: '',
+              nextduedate: it.nextduedate || '',
+              amount: it.amount || '',
+              billingcycle: it.billingcycle || '',
+              product_name: it.productName || '',
+              os_name: '',
+            });
+            let renderedText = '';
+            if (matchedTmpl.perServer && items.length > 1) {
+              renderedText = items.map((it, i) => `[第${i + 1}台]\n${renderTemplate(matchedTmpl, buildVars(it))}`).join('\n\n');
+            } else {
+              renderedText = renderTemplate(matchedTmpl, buildVars(items[0]));
+            }
+            return (
+              <div className="border-t border-border/50 px-3 sm:px-5 py-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-primary text-xs font-medium">续费话术</span>
+                    <span className="text-muted-foreground text-[10px]">({matchedTmpl.name})</span>
+                  </div>
+                  <Button size="sm" variant="ghost"
+                    className="text-muted-foreground hover:text-foreground h-6 px-2 text-xs"
+                    onClick={() => {
+                      copyText(renderedText);
+                      showNotification('success', '话术已复制');
+                    }}>
+                    <Copy className="w-3 h-3 mr-1" />复制话术
+                  </Button>
+                </div>
+                <div className="bg-muted/60 rounded-lg p-2.5 max-h-40 overflow-y-auto">
+                  <pre className="text-foreground text-xs whitespace-pre-wrap break-all font-sans leading-relaxed">{renderedText}</pre>
+                </div>
+              </div>
+            );
+          })()}
+          {/* 底部按钮区 - 与开通弹窗一致的三按钮 grid 布局 */}
+          <div className="shrink-0 border-t border-border/50 px-3 sm:px-5 py-2 space-y-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
+              <Button size="sm" className="bg-info hover:bg-info/90 text-info-foreground border-0 text-[11px] h-7 px-1"
+                onClick={() => {
+                  const items = renewResultData || [];
+                  const text = items.map((it, i) => {
+                    const prefix = items.length > 1 ? `第${i + 1}台 ` : '';
+                    return `${prefix}IP：${it.ip}  到期：${it.nextduedate}`;
+                  }).join('\n');
+                  copyText(text);
+                }}>
+                <Copy className="w-3 h-3 mr-0.5" />复制信息
+              </Button>
+              <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 text-[11px] h-7 px-1"
+                onClick={() => {
+                  const items = renewResultData || [];
+                  // 信息部分：IP + 到期时间
+                  const infoText = items.map((it, i) => {
+                    const prefix = items.length > 1 ? `第${i + 1}台 ` : '';
+                    return `${prefix}IP：${it.ip}  到期：${it.nextduedate}`;
+                  }).join('\n');
+                  // 话术部分：匹配续费模板渲染
+                  const matchedTmpl = matchTemplate('', null, templates, 'renew');
+                  let templateText = '';
+                  if (matchedTmpl) {
+                    const buildVars = (it: typeof items[0]) => ({
+                      ip: it.ip || '',
+                      username: '',
+                      password: '',
+                      nextduedate: it.nextduedate || '',
+                      amount: it.amount || '',
+                      billingcycle: it.billingcycle || '',
+                      product_name: it.productName || '',
+                      os_name: '',
+                    });
+                    if (matchedTmpl.perServer && items.length > 1) {
+                      templateText = items.map((it, i) => `[第${i + 1}台]\n${renderTemplate(matchedTmpl, buildVars(it))}`).join('\n\n');
+                    } else {
+                      templateText = renderTemplate(matchedTmpl, buildVars(items[0]));
+                    }
+                  }
+                  const combined = templateText ? `${infoText}\n\n${templateText}` : infoText;
+                  copyText(combined);
+                  showNotification('success', '信息与话术已复制');
+                }}>
+                <Copy className="w-3 h-3 mr-0.5" />复制全部
+              </Button>
+              <Button variant="outline" className="border-border text-muted-foreground hover:text-foreground hover:bg-accent/50 text-[11px] h-7 px-1"
+                onClick={() => setShowRenewResult(false)}>
+                关闭
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       </main>
     </div>

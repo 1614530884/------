@@ -198,7 +198,7 @@ export default function ServerToolsPage() {
   // 复制全部宝塔信息
   const handleCopyAllBt = (panel: BtPanelInfo) => {
     const lines: string[] = ['=== 宝塔面板信息 ==='];
-    if (panel.url) lines.push(`外网面板地址: ${panel.url}`);
+    if (panel.url) lines.push(`公网面板地址: ${panel.url}`);
     if (panel.innerUrl) lines.push(`内网面板地址: ${panel.innerUrl}`);
     if (panel.username) lines.push(`面板账号: ${panel.username}`);
     if (panel.password) lines.push(`面板密码: ${panel.password}`);
@@ -578,7 +578,7 @@ export default function ServerToolsPage() {
                 <div key={panel.id} className="p-3 bg-muted/40 rounded border border-border/50 text-xs space-y-1.5">
                   {panel.url && (
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground shrink-0 w-16">外网地址</span>
+                      <span className="text-muted-foreground shrink-0 w-16">公网地址</span>
                       <span className="flex-1 truncate text-success" title={panel.url}>{panel.url}</span>
                       <a href={panel.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground shrink-0">
                         <ExternalLink className="w-3 h-3" />

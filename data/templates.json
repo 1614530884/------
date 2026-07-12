@@ -8,9 +8,10 @@
     ],
     "productIds": [],
     "isDefault": false,
+    "perServer": true,
+    "scene": "provision",
     "createdAt": 1781424241327,
-    "updatedAt": 1781426402028,
-    "perServer": true
+    "updatedAt": 1781426402028
   },
   {
     "id": "d5525978-a8ca-4577-bcaa-86e110f7e627",
@@ -22,6 +23,8 @@
     ],
     "productIds": [],
     "isDefault": false,
+    "perServer": false,
+    "scene": "provision",
     "createdAt": 1781424754961,
     "updatedAt": 1781425740878
   },
@@ -34,7 +37,21 @@
     ],
     "productIds": [],
     "isDefault": false,
+    "perServer": false,
+    "scene": "provision",
     "createdAt": 1781425172135,
     "updatedAt": 1781425733352
+  },
+  {
+    "id": "10d7f3b9-fcc8-4139-90df-33b5ff158c0a",
+    "name": "测试",
+    "content": "续费测试成功",
+    "osFilters": [],
+    "productIds": [],
+    "isDefault": false,
+    "perServer": false,
+    "scene": "renew",
+    "createdAt": 1783821371235,
+    "updatedAt": 1783821371235
   }
 ]

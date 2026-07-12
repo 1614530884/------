@@ -21,6 +21,9 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter,
 } from '@/components/ui/card';
 import { PageHeader } from '@/components/layout/page-header';
@@ -35,6 +38,7 @@ interface Template {
   productIds: number[];
   isDefault: boolean;
   perServer: boolean;  // 是否按台数生成话术
+  scene: 'provision' | 'renew';  // 场景：开通 / 续费
   createdAt: number;
   updatedAt: number;
 }
@@ -63,6 +67,7 @@ function createEmptyTemplate(): Template {
     productIds: [],
     isDefault: false,
     perServer: false,
+    scene: 'provision',
     createdAt: 0,
     updatedAt: 0,
   };
@@ -423,6 +428,9 @@ export default function TemplatesPage() {
                         默认
                       </Badge>
                     )}
+                    <Badge className={`text-[10px] px-1.5 py-0 border ${t.scene === 'renew' ? 'bg-warning/15 text-warning border-warning/30' : 'bg-info/15 text-info border-info/30'}`}>
+                      {t.scene === 'renew' ? '续费' : '开通'}
+                    </Badge>
                     {t.perServer && (
                       <Badge className="bg-primary/10 text-primary border-primary text-[10px] px-1.5 py-0">
                         按台数
@@ -476,6 +484,26 @@ export default function TemplatesPage() {
                 placeholder="如：开通成功通知"
                 className="bg-background/70 border-border text-foreground placeholder:text-muted-foreground"
               />
+            </div>
+
+            {/* 适用场景 */}
+            <div className="space-y-1.5">
+              <Label className="text-foreground/80">适用场景</Label>
+              <Select
+                value={editingTemplate.scene || 'provision'}
+                onValueChange={(val: 'provision' | 'renew') =>
+                  setEditingTemplate(prev => ({ ...prev, scene: val }))
+                }
+              >
+                <SelectTrigger className="bg-background/70 border-border text-foreground">
+                  <SelectValue placeholder="选择场景" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="provision">开通 - 服务器开通完成</SelectItem>
+                  <SelectItem value="renew">续费 - 服务器续费完成</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">开通话术在开通弹窗匹配，续费话术在续费完成弹窗匹配</p>
             </div>
 
             {/* 话术内容 */}

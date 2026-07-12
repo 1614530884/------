@@ -15,8 +15,25 @@ interface Template {
   productIds: number[];
   isDefault: boolean;
   perServer: boolean;
+  scene: 'provision' | 'renew';  // 场景：开通 / 续费
   createdAt: number;
   updatedAt: number;
+}
+
+function normalizeTemplate(t: Partial<Template>): Template {
+  return {
+    id: String(t.id || ''),
+    name: String(t.name || ''),
+    content: String(t.content || ''),
+    osFilters: Array.isArray(t.osFilters) ? t.osFilters : [],
+    productIds: Array.isArray(t.productIds) ? t.productIds : [],
+    isDefault: !!t.isDefault,
+    perServer: !!t.perServer,
+    // 向后兼容：旧数据无 scene 字段视为 provision
+    scene: t.scene === 'renew' ? 'renew' : 'provision',
+    createdAt: Number(t.createdAt) || 0,
+    updatedAt: Number(t.updatedAt) || 0,
+  };
 }
 
 function ensureDataDir() {
@@ -29,7 +46,10 @@ function readTemplates(): Template[] {
   try {
     if (fs.existsSync(TEMPLATES_FILE)) {
       const data = fs.readFileSync(TEMPLATES_FILE, 'utf-8');
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (!Array.isArray(parsed)) return [];
+      // 规范化：为旧数据补 scene 字段
+      return parsed.map((t: Partial<Template>) => normalizeTemplate(t));
     }
   } catch {
     // ignore
@@ -63,12 +83,13 @@ export async function POST(request: NextRequest) {
 
   if (action === 'save') {
     const { template } = body;
+    const normalized = normalizeTemplate(template);
     const templates = readTemplates();
-    const existing = templates.findIndex((t: Template) => t.id === template.id);
+    const existing = templates.findIndex((t: Template) => t.id === normalized.id);
     if (existing >= 0) {
-      templates[existing] = template;
+      templates[existing] = normalized;
     } else {
-      templates.push(template);
+      templates.push(normalized);
     }
     writeTemplates(templates);
     return NextResponse.json({ success: true, data: templates });
@@ -88,11 +109,12 @@ export async function POST(request: NextRequest) {
     }
     const templates = readTemplates();
     for (const tpl of newTemplates) {
-      const existing = templates.findIndex((t: Template) => t.id === tpl.id);
+      const normalized = normalizeTemplate(tpl);
+      const existing = templates.findIndex((t: Template) => t.id === normalized.id);
       if (existing >= 0) {
-        templates[existing] = tpl;
+        templates[existing] = normalized;
       } else {
-        templates.push(tpl);
+        templates.push(normalized);
       }
     }
     writeTemplates(templates);

@@ -66,7 +66,7 @@ export default function BtInfoCard({ connectionId, refreshTrigger }: BtInfoCardP
   // 一键复制所有宝塔信息，格式化输出方便直接发给客户
   const handleCopyAll = (panel: BtPanelInfo) => {
     const lines: string[] = ['=== 宝塔面板信息 ==='];
-    if (panel.url) lines.push(`外网面板地址: ${panel.url}`);
+    if (panel.url) lines.push(`公网面板地址: ${panel.url}`);
     if (panel.innerUrl) lines.push(`内网面板地址: ${panel.innerUrl}`);
     if (panel.username) lines.push(`面板账号: ${panel.username}`);
     if (panel.password) lines.push(`面板密码: ${panel.password}`);
@@ -133,12 +133,12 @@ export default function BtInfoCard({ connectionId, refreshTrigger }: BtInfoCardP
     <div className="space-y-2">
       {panels.map(panel => (
         <div key={panel.id} className="p-2 bg-muted/40 rounded border border-border/50 text-[11px]">
-          {/* 外网地址 */}
+          {/* 公网地址 */}
           {panel.url && (
             <div className="flex items-center gap-1 mb-1">
-              <span className="text-muted-foreground shrink-0 w-12">外网</span>
+              <span className="text-muted-foreground shrink-0 w-12">公网</span>
               <span className="flex-1 truncate text-success" title={panel.url}>{panel.url}</span>
-              <button onClick={() => handleCopy(panel.url!, '外网地址')} className="text-muted-foreground hover:text-foreground" title="复制">
+              <button onClick={() => handleCopy(panel.url!, '公网地址')} className="text-muted-foreground hover:text-foreground" title="复制">
                 <Copy className="w-3 h-3" />
               </button>
               <a href={panel.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground" title="打开">
