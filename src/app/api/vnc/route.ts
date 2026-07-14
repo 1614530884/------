@@ -92,14 +92,14 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json();
-    const { hostid } = body;
+    const { hostid, _loginUser } = body;
 
     if (!hostid) {
       return NextResponse.json({ success: false, message: '缺少hostid参数' });
     }
 
     const config = MfyService.readConfig();
-    const account = MfyService.resolveMfyAccount(config);
+    const account = MfyService.resolveMfyAccount(config, _loginUser);
     if (!account.mfyUrl || !account.mfyUsername || !account.mfyPassword) {
       return NextResponse.json({ success: false, message: '魔方云API未配置' });
     }
