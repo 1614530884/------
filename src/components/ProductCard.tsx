@@ -34,6 +34,9 @@ export interface ProductCardProps {
   onRecycleCheck: (svc: Record<string, unknown>) => void;
   onCopy: (text: string) => void;
   showNotification: (type: 'success' | 'error' | 'info', msg: string) => void;
+  os?: string;
+  osLoading?: boolean;
+  onQueryOs?: (hostid: number) => void;
 }
 
 const ProductCard = React.memo(function ProductCard({
@@ -54,6 +57,9 @@ const ProductCard = React.memo(function ProductCard({
   onRecycleCheck,
   onCopy,
   showNotification,
+  os,
+  osLoading,
+  onQueryOs,
 }: ProductCardProps) {
   const [pingLoading, setPingLoading] = useState(false);
   const [pingResult, setPingResult] = useState<PingResult | null>(null);
@@ -142,6 +148,22 @@ const ProductCard = React.memo(function ProductCard({
               {pkgLabel && <span className="text-xs px-1.5 py-0.5 rounded bg-info/15 text-info whitespace-nowrap">{pkgLabel}</span>}
               <span className={`text-xs px-1.5 py-0.5 rounded whitespace-nowrap ${sClass}`}>{sLabel}</span>
               <span className={`whitespace-nowrap ${sLabel === '已删除' || sLabel === '待开通' ? 'text-primary/50 font-medium text-xs' : 'text-primary font-bold text-sm'}`}>{amount}</span>
+              {os ? (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground whitespace-nowrap flex items-center gap-0.5 max-w-[160px]" title={os}>
+                  <Monitor className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{os}</span>
+                </span>
+              ) : onQueryOs && (
+                <button
+                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); onQueryOs(svcId); }}
+                  disabled={osLoading}
+                  className="text-xs px-1.5 py-0.5 rounded bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-accent whitespace-nowrap flex items-center gap-0.5 transition-colors disabled:opacity-50"
+                  title="查询操作系统"
+                >
+                  {osLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Monitor className="w-3 h-3" />}
+                  <span>系统</span>
+                </button>
+              )}
             </div>
           </div>
           {/* 第二行：详细信息 */}
@@ -204,7 +226,9 @@ const ProductCard = React.memo(function ProductCard({
     && prevProps.savedPackages === nextProps.savedPackages
     && prevProps.financeUrl === nextProps.financeUrl
     && prevProps.mfyUrl === nextProps.mfyUrl
-    && prevProps.isAdminUser === nextProps.isAdminUser;
+    && prevProps.isAdminUser === nextProps.isAdminUser
+    && prevProps.os === nextProps.os
+    && prevProps.osLoading === nextProps.osLoading;
 });
 
 export default ProductCard;

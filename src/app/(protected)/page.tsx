@@ -81,6 +81,36 @@ interface OsCategory {
   [key: string]: unknown;
 }
 
+// 从 getServiceDetail 响应中提取操作系统名称
+// 优先取 host_data.os；否则从 config_array + host_option_config 解析（option_type===5 为操作系统）
+function extractOsFromDetail(detail: Record<string, unknown> | undefined | null): string {
+  if (!detail) return '';
+  const hostData = (detail.data || {}) as Record<string, unknown>;
+  if (hostData.os) return String(hostData.os);
+  const configArray = Array.isArray(detail.config_array) ? detail.config_array as Array<Record<string, unknown>> : [];
+  const hostOptionConfig = Array.isArray(detail.host_option_config) ? detail.host_option_config as Array<Record<string, unknown>> : [];
+  if (configArray.length === 0 || hostOptionConfig.length === 0) return '';
+  // 当前选中值: configid -> optionid
+  const currentConfig: Record<string, string> = {};
+  for (const item of hostOptionConfig) {
+    const configId = String(item.configid || '');
+    const optionId = String(item.optionid || '');
+    if (configId && optionId) currentConfig[configId] = optionId;
+  }
+  // 找操作系统配置项（option_type===5 优先，否则按名称匹配）
+  const osItem = configArray.find(opt => Number(opt.option_type) === 5)
+    || configArray.find(opt => {
+      const name = String(opt.option_name || '').trim();
+      return name === '操作系统' || name === 'OS' || name === 'os';
+    });
+  if (!osItem) return '';
+  const selectedOptionId = currentConfig[String(osItem.id || '')];
+  if (!selectedOptionId) return '';
+  const subArr = Array.isArray(osItem.sub) ? osItem.sub as Array<Record<string, unknown>> : [];
+  const selected = subArr.find(s => String(s.id) === selectedOptionId);
+  return selected ? String(selected.option_name || '') : '';
+}
+
 // 可配置选项子项类型（来自 set_config API 的 sub 数组）
 interface ConfigSubItem {
   id: number;
@@ -514,6 +544,10 @@ export default function OneClickOrderPage() {
 
 
   const [isLoadingUserProducts, setIsLoadingUserProducts] = useState(false);
+  // 操作系统缓存：hostid -> OS名称（切换用户自动清空）
+  const [productOsMap, setProductOsMap] = useState<Record<number, string>>({});
+  const [osLoadingIds, setOsLoadingIds] = useState<Set<number>>(new Set());
+  const [isBatchLoadingOs, setIsBatchLoadingOs] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
   const [showRenewConfirm, setShowRenewConfirm] = useState(false);
   const [renewAsAnnually, setRenewAsAnnually] = useState<Set<number>>(new Set()); // 续费时转年付的产品ID集合
@@ -1462,6 +1496,7 @@ export default function OneClickOrderPage() {
   // ===== 用户产品管理 =====
   const fetchUserProducts = useCallback(async (uid: number) => {
     setIsLoadingUserProducts(true);
+    setProductOsMap({}); // 切换用户时清空OS缓存
     try {
       // 调用 GET /admin/host/list?uid=X 获取用户产品列表
       const res = await callIdcApi('getServiceInfo', { uid });
@@ -1491,6 +1526,69 @@ export default function OneClickOrderPage() {
       setIsLoadingUserProducts(false);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 查询单台产品操作系统
+  const fetchSingleOs = useCallback(async (hostid: number) => {
+    if (!selectedUser || osLoadingIds.has(hostid)) return;
+    const uid = selectedUser.id;
+    setOsLoadingIds(prev => new Set(prev).add(hostid));
+    try {
+      const detail = await callIdcApi('getServiceDetail', { hostid, uid });
+      const osName = extractOsFromDetail(detail);
+      if (osName) {
+        setProductOsMap(prev => ({ ...prev, [hostid]: osName }));
+      } else {
+        showNotification('info', '未获取到操作系统信息');
+      }
+    } catch {
+      showNotification('error', '查询系统失败');
+    } finally {
+      setOsLoadingIds(prev => {
+        const next = new Set(prev);
+        next.delete(hostid);
+        return next;
+      });
+    }
+  }, [selectedUser, osLoadingIds, callIdcApi, showNotification]);
+
+  // 批量查询所有已过滤产品的操作系统（6并发，逐步更新）
+  const fetchBatchOs = useCallback(async () => {
+    if (!selectedUser || isBatchLoadingOs) return;
+    const uid = selectedUser.id;
+    const toFetch = filteredProducts.filter(p => {
+      const id = Number(p.id);
+      return id && !productOsMap[id];
+    });
+    if (toFetch.length === 0) {
+      showNotification('info', '所有产品系统信息已加载');
+      return;
+    }
+    setIsBatchLoadingOs(true);
+    const concurrency = 6;
+    for (let i = 0; i < toFetch.length; i += concurrency) {
+      const batch = toFetch.slice(i, i + concurrency);
+      const results = await Promise.allSettled(
+        batch.map(async (p) => {
+          const hostid = Number(p.id);
+          try {
+            const detail = await callIdcApi('getServiceDetail', { hostid, uid });
+            return { hostid, os: extractOsFromDetail(detail) };
+          } catch {
+            return { hostid, os: '' };
+          }
+        })
+      );
+      setProductOsMap(prev => {
+        const next = { ...prev };
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value.os) next[r.value.hostid] = r.value.os;
+        }
+        return next;
+      });
+    }
+    setIsBatchLoadingOs(false);
+    showNotification('success', `系统查询完成（共 ${toFetch.length} 台）`);
+  }, [selectedUser, isBatchLoadingOs, filteredProducts, productOsMap, callIdcApi, showNotification]);
 
   const toggleRenewSelect = useCallback((id: number) => {
     setSelectedRenewIds(prev => {
@@ -5985,6 +6083,10 @@ export default function OneClickOrderPage() {
                   <Button variant="outline" size="sm" onClick={() => fetchUserProducts(selectedUser.id)} className="border-border bg-muted/50 text-foreground/80 hover:bg-accent hover:text-foreground h-7 text-xs px-2">
                     <RefreshCw className="w-3 h-3 mr-1" />刷新
                   </Button>
+                  <Button variant="outline" size="sm" onClick={fetchBatchOs} disabled={isBatchLoadingOs || filteredProducts.length === 0} className="border-border bg-muted/50 text-foreground/80 hover:bg-accent hover:text-foreground h-7 text-xs px-2">
+                    {isBatchLoadingOs ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Monitor className="w-3 h-3 mr-1" />}
+                    <span className="hidden sm:inline ml-0.5">查询系统</span>
+                  </Button>
                 </div>
               </div>
               <div className="space-y-2">
@@ -6021,6 +6123,9 @@ export default function OneClickOrderPage() {
                       onRecycleCheck={handleRecycleCheck}
                       showNotification={showNotification}
                       onCopy={copyText}
+                      os={productOsMap[svc.id as number] || ''}
+                      osLoading={osLoadingIds.has(svc.id as number)}
+                      onQueryOs={fetchSingleOs}
                     />
                   ))}
               </div>
