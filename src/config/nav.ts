@@ -22,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   { label: '话术模板', href: '/templates', matchPaths: ['/templates'] },
+  { label: '实名认证', href: '/certification', matchPaths: ['/certification'], adminOnly: true },
   { label: '工单管理', href: '/tickets', matchPaths: ['/tickets'] },
   { label: '回收站', href: '/recycle-bin', matchPaths: ['/recycle-bin'] },
 ];

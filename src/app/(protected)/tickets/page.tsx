@@ -64,7 +64,7 @@ function TicketsListContent() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(10);
+  const [perPage, setPerPage] = useState(20);
   const [total, setTotal] = useState(0);
   const [maxPage, setMaxPage] = useState(1);
   const [statusList, setStatusList] = useState<TicketStatus[]>([]);

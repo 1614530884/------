@@ -28,9 +28,10 @@ import { logout } from '@/lib/auth-client';
 
 interface NavbarProps {
   username: string;
+  isAdmin?: boolean;
 }
 
-export function Navbar({ username }: NavbarProps) {
+export function Navbar({ username, isAdmin = false }: NavbarProps) {
   const pathname = usePathname() || '/';
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -68,7 +69,7 @@ export function Navbar({ username }: NavbarProps) {
           {/* 桌面端导航菜单 */}
           <NavigationMenu viewport={false} className="hidden md:flex items-center">
             <NavigationMenuList>
-              {NAV_ITEMS.map((item) => (
+              {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => (
                 <DesktopNavItem key={item.href} item={item} pathname={pathname} />
               ))}
             </NavigationMenuList>
@@ -109,7 +110,7 @@ export function Navbar({ username }: NavbarProps) {
             <div className="px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               导航菜单
             </div>
-            {NAV_ITEMS.map((item) => (
+            {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => (
               <MobileNavItem
                 key={item.href}
                 item={item}

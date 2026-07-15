@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { verifySessionToken, SESSION_COOKIE_NAME, getSessionUser } from '@/lib/auth-server';
-import { Navbar } from '@/components/layout/navbar';
-import { ScrollToTop } from '@/components/layout/scroll-to-top';
 
 const CONFIG_PATH = join(process.cwd(), 'idc-config.json');
 
@@ -18,7 +16,7 @@ function getAdminUsernames(): string[] {
   }
 }
 
-export default async function ProtectedLayout({
+export default async function CertificationLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -32,13 +30,10 @@ export default async function ProtectedLayout({
 
   const username = getSessionUser(sessionCookie) || '';
   const adminList = getAdminUsernames();
-  const isAdmin = adminList.includes(username);
 
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <ScrollToTop />
-      <Navbar username={username} isAdmin={isAdmin} />
-      <main>{children}</main>
-    </div>
-  );
+  if (!adminList.includes(username)) {
+    redirect('/?reason=no_permission');
+  }
+
+  return <>{children}</>;
 }
