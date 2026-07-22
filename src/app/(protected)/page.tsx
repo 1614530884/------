@@ -503,6 +503,12 @@ export default function OneClickOrderPage() {
   const [isAddingBalance, setIsAddingBalance] = useState(false);
   const [showRechargeArea, setShowRechargeArea] = useState(false);
 
+  // 余额扣减
+  const [deductAmount, setDeductAmount] = useState('');
+  const [deductDescription, setDeductDescription] = useState('后台扣减余额');
+  const [isDeductingBalance, setIsDeductingBalance] = useState(false);
+  const [showDeductArea, setShowDeductArea] = useState(false);
+
   // 产品 & 配置选项
   const [productGroups, setProductGroups] = useState<ProductFirstGroup[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
@@ -586,6 +592,15 @@ export default function OneClickOrderPage() {
   const [upgradeSubmitting, setUpgradeSubmitting] = useState(false);
   const [upgradeBillingCycle, setUpgradeBillingCycle] = useState<'monthly' | 'annually'>('monthly');
   const [upgradeCurrentConfig, setUpgradeCurrentConfig] = useState<Record<string, string>>({});
+  // 升级结果弹窗（成功/失败需手动关闭，提供详细信息）
+  const [upgradeResultModal, setUpgradeResultModal] = useState<{
+    status: 'success' | 'fail';
+    title: string;
+    packageName: string;
+    detail: string;
+    syncStatus: 'success' | 'fail' | 'uncertain'; // 财务同步状态
+    syncDetail: string;
+  } | null>(null);
 
   // ===== 套餐修改 =====
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
@@ -1936,7 +1951,14 @@ export default function OneClickOrderPage() {
       }
 
       if (Object.keys(configoption).length === 0) {
-        showNotification('error', '配置没有变化，无需升级');
+        setUpgradeResultModal({
+          status: 'fail',
+          title: '套餐升级失败',
+          packageName: targetPkg.name,
+          detail: '配置没有变化，无需升级。',
+          syncStatus: 'fail',
+          syncDetail: '未执行财务同步',
+        });
         setUpgradeSubmitting(false);
         return;
       }
@@ -1950,11 +1972,20 @@ export default function OneClickOrderPage() {
       const res = await callIdcApi('adminUpgradeConfig', upgradeParams);
 
       if (!res || !(res.status === 200 || res.status === 1 || res.msg === '请求成功' || res.success === true)) {
-        showNotification('error', `套餐升级失败: ${res?.msg || '未知错误'}`);
+        setUpgradeResultModal({
+          status: 'fail',
+          title: '套餐升级失败',
+          packageName: targetPkg.name,
+          detail: `修改配置失败：${res?.msg || '未知错误'}`,
+          syncStatus: 'fail',
+          syncDetail: '配置未修改成功，未执行财务同步',
+        });
         return;
       }
 
       // Step 2: 更新续费价格和计费周期
+      let priceUpdateOk = true;
+      let priceUpdateMsg = '';
       try {
         const newPrice = targetPkg.renewPrice;
         const priceParams: Record<string, unknown> = {
@@ -1970,27 +2001,53 @@ export default function OneClickOrderPage() {
         const priceRes = await callIdcApi('updateHostAmount', priceParams);
 
         if (priceRes && (priceRes.status === 200 || priceRes.success === true || priceRes.msg === '更改保存成功！')) {
+          // 价格更新成功
         } else {
+          priceUpdateOk = false;
+          priceUpdateMsg = priceRes?.msg || '未确认';
           console.warn('[升级套餐-更新价格] 可能失败:', priceRes);
         }
       } catch (priceErr) {
+        priceUpdateOk = false;
+        priceUpdateMsg = priceErr instanceof Error ? priceErr.message : String(priceErr);
         console.warn('[升级套餐-更新价格] 异常:', priceErr);
       }
 
       // Step 3: 升级成功后拉取信息，同步财务侧配置
+      let syncStatus: 'success' | 'fail' | 'uncertain' = 'uncertain';
+      let syncDetail = '';
       try {
-        showNotification('success', `套餐升级成功！已升级到「${targetPkg.name}」，正在拉取信息...`);
         const syncRes = await callIdcApi('provisionSync', { hostid });
         console.log('[拉取信息] 结果:', JSON.stringify(syncRes));
         if (syncRes && (syncRes.status === 200 || syncRes.status === 1 || syncRes.msg === '请求成功' || syncRes.success === true)) {
-          showNotification('success', `套餐升级成功！已升级到「${targetPkg.name}」，信息同步完成`);
+          syncStatus = 'success';
+          syncDetail = '财务系统信息同步完成。';
         } else {
-          showNotification('success', `套餐升级成功！已升级到「${targetPkg.name}」，拉取信息未确认，请手动拉取`);
+          syncStatus = 'uncertain';
+          syncDetail = `拉取信息未确认：${syncRes?.msg || '未知响应'}，建议手动拉取。`;
         }
       } catch (syncErr) {
+        syncStatus = 'fail';
+        syncDetail = `拉取信息异常：${syncErr instanceof Error ? syncErr.message : String(syncErr)}，建议手动拉取。`;
         console.warn('[拉取信息] 异常:', syncErr);
-        showNotification('success', `套餐升级成功！已升级到「${targetPkg.name}」，拉取信息异常，请手动拉取`);
       }
+
+      // 构建升级结果详情
+      const detailParts: string[] = ['配置修改成功。'];
+      if (priceUpdateOk) {
+        detailParts.push('续费价格更新成功。');
+      } else {
+        detailParts.push(`续费价格更新可能失败：${priceUpdateMsg}，请检查。`);
+      }
+
+      setUpgradeResultModal({
+        status: 'success',
+        title: '套餐升级成功',
+        packageName: targetPkg.name,
+        detail: detailParts.join(''),
+        syncStatus,
+        syncDetail,
+      });
 
       setUpgradeDialogOpen(false);
       setUpgradeProduct(null);
@@ -1998,11 +2055,18 @@ export default function OneClickOrderPage() {
       // 刷新产品列表
       if (selectedUser) fetchUserProducts(selectedUser.id);
     } catch (err) {
-      showNotification('error', `套餐升级异常: ${err instanceof Error ? err.message : String(err)}`);
+      setUpgradeResultModal({
+        status: 'fail',
+        title: '套餐升级异常',
+        packageName: '',
+        detail: `升级过程中发生异常：${err instanceof Error ? err.message : String(err)}`,
+        syncStatus: 'fail',
+        syncDetail: '未执行财务同步',
+      });
     } finally {
       setUpgradeSubmitting(false);
     }
-  }, [upgradeProduct, targetPackageId, upgradePackages, upgradeConfigOptions, upgradeCurrentConfig, callIdcApi, selectedUser, showNotification, fetchUserProducts]);
+  }, [upgradeProduct, targetPackageId, upgradePackages, upgradeConfigOptions, upgradeCurrentConfig, callIdcApi, selectedUser, fetchUserProducts]);
 
   // ===== 套餐修改 =====
   const openModifyDialog = useCallback(async (product: Record<string, unknown>) => {
@@ -2264,7 +2328,8 @@ export default function OneClickOrderPage() {
     matches: Array<Record<string, unknown>>;
     selectedInstanceId: number | null;
     copiedInstField: string | null;
-  }>({ open: false, loading: false, svc: null, matches: [], selectedInstanceId: null, copiedInstField: null });
+    renewMethod: 'autoRecharge' | 'deductBalance';
+  }>({ open: false, loading: false, svc: null, matches: [], selectedInstanceId: null, copiedInstField: null, renewMethod: 'autoRecharge' });
 
   // 魔方云实例状态 → 中文
   const formatCloudStatus = (status: string): string => {
@@ -2296,7 +2361,7 @@ export default function OneClickOrderPage() {
       return;
     }
     const reqId = ++recycleCheckReqIdRef.current;
-    setRecycleCheckState({ open: true, loading: true, svc, matches: [], selectedInstanceId: null, copiedInstField: null });
+    setRecycleCheckState({ open: true, loading: true, svc, matches: [], selectedInstanceId: null, copiedInstField: null, renewMethod: 'autoRecharge' });
     setRecycleSteps([]);
     try {
       // 第一步：用 hostname 参数让 API 服务端搜索（快速，一次请求）
@@ -2337,6 +2402,7 @@ export default function OneClickOrderPage() {
         matches: exact,
         selectedInstanceId: exact[0]?.id != null ? Number(exact[0].id) : null,
         copiedInstField: null,
+        renewMethod: 'autoRecharge',
       });
     } catch (e) {
       if (reqId !== recycleCheckReqIdRef.current) return;
@@ -2346,6 +2412,7 @@ export default function OneClickOrderPage() {
   }, [callMfyApi, showNotification, isRecycleProcessing]);
 
   // 恢复实例 + 续费完整流程（4步顺序执行，失败即中断）
+  // renewMethod: 'autoRecharge' 自动充值余额后支付 | 'deductBalance' 直接用余额支付
   const doRestoreAndRenew = useCallback(async (svc: Record<string, unknown>, instanceId: number) => {
     if (isRecycleProcessing) return; // 防重复提交
     const hostid = Number(svc.id);
@@ -2353,6 +2420,8 @@ export default function OneClickOrderPage() {
     const productName = String(svc.productname || svc.product_name || svc.name || '产品');
     const billingcycle = String(svc.billingcycle || 'monthly');
     const amount = parseFloat(String(svc.amount || svc.firstpaymentamount || '0').replace(/[^\d.]/g, '')) || 0;
+    const renewMethod = recycleCheckState.renewMethod;
+    const userCredit = parseFloat(String(selectedUser?.credit || '0')) || 0;
     const steps: typeof recycleSteps = [];
     const pushStep = (name: string) => {
       steps.push({ id: String(steps.length), name, status: 'processing' });
@@ -2392,8 +2461,9 @@ export default function OneClickOrderPage() {
       }
       updStep(i2, 'completed');
 
-      // 3. 续费1周期（renewService → addBalance → invoicePaid）
-      const i3 = pushStep(`续费 ${productName} (${billingcycle})`);
+      // 3. 续费1周期
+      const renewMethodLabel = renewMethod === 'autoRecharge' ? '自动充值余额' : '扣除余额续费';
+      const i3 = pushStep(`续费 ${productName} (${billingcycle}) - ${renewMethodLabel}`);
       const renewRes = await callIdcApi('renewService', { hostid, billingcycles: billingcycle });
       if (!(renewRes?.status === 200)) {
         updStep(i3, 'failed', String(renewRes?.msg || '续费失败'));
@@ -2403,20 +2473,47 @@ export default function OneClickOrderPage() {
       const invId = renewRes.data?.invoice_id || renewRes.data?.invoiceid || renewRes.data?.id;
       const invIdStr = invId ? String(invId) : '';
       if (amount > 0 && invIdStr) {
-        try {
-          await callIdcApi('addBalance', {
-            uid,
-            amount,
-            type: 'recharge',
-            description: `回收站恢复续费 - ${productName}`,
-          });
-        } catch (e) {
-          console.warn('回收站续费充值余额失败:', e);
-        }
-        try {
-          await callIdcApi('invoicePaid', { invoiceid: invId, uid });
-        } catch (e) {
-          console.warn('回收站续费支付账单失败:', e);
+        if (renewMethod === 'autoRecharge') {
+          // 自动充值余额方式：先充值全额，再用余额支付账单
+          try {
+            await callIdcApi('addBalance', {
+              uid,
+              amount,
+              type: 'recharge',
+              description: `回收站恢复续费 - ${productName}`,
+            });
+          } catch (e) {
+            console.warn('回收站续费充值余额失败:', e);
+          }
+          try {
+            await callIdcApi('invoicePaid', { invoiceid: invId, uid });
+          } catch (e) {
+            console.warn('回收站续费支付账单失败:', e);
+          }
+        } else {
+          // 扣除余额续费方式：不充值，直接用现有余额支付
+          // 前端余额信息仅作参考，实际扣款由后端处理
+          try {
+            const payRes = await callIdcApi('invoicePaid', { invoiceid: invId, uid });
+            // apply_credit API 返回格式不标准，只有明确包含失败关键词时才判断为失败
+            const failKeywords = ['失败', '错误', '不足', 'error', 'fail', '余额不够'];
+            const payMsg = String(payRes?.msg || '');
+            const isFail = payRes && payMsg && failKeywords.some(kw => payMsg.toLowerCase().includes(kw.toLowerCase()));
+            if (isFail) {
+              updStep(i3, 'failed', `支付失败：${payMsg}`);
+              if (payMsg.includes('余额') || payMsg.includes('不足') || payMsg.includes('credit')) {
+                showNotification('error', `${productName} 续费失败：余额不足（当前 ¥${userCredit.toFixed(2)}，需 ¥${amount.toFixed(2)}），请充值后重试`);
+              } else {
+                showNotification('error', `${productName} 续费失败：${payMsg}`);
+              }
+              return;
+            }
+          } catch (e) {
+            const errMsg = e instanceof Error ? e.message : String(e);
+            updStep(i3, 'failed', `支付异常：${errMsg}`);
+            showNotification('error', `${productName} 续费失败：余额支付异常 - ${errMsg}`);
+            return;
+          }
         }
       }
       updStep(i3, 'completed', invIdStr ? `账单ID: ${invIdStr}` : '续费成功');
@@ -2431,12 +2528,12 @@ export default function OneClickOrderPage() {
       }
       updStep(i4, 'completed');
 
-      showNotification('success', `${productName} 已恢复并续费成功`);
+      showNotification('success', `${productName} 已恢复并续费成功（${renewMethodLabel}）`);
       if (selectedUser) fetchUserProducts(selectedUser.id);
     } finally {
       setIsRecycleProcessing(false);
     }
-  }, [callMfyApi, callIdcApi, selectedUser, fetchUserProducts, showNotification, isRecycleProcessing]);
+  }, [callMfyApi, callIdcApi, selectedUser, fetchUserProducts, showNotification, isRecycleProcessing, recycleCheckState.renewMethod]);
 
   // 打开退款确认对话框
   const handleRefundDelete = useCallback(async (product: Record<string, unknown>) => {
@@ -3529,6 +3626,29 @@ export default function OneClickOrderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlSearchParams, authToken]);
 
+  // 静默刷新当前选中用户（不弹"请输入搜索关键词"，不污染搜索框状态）
+  // 复用于：充值/扣减成功后刷新余额、卡片刷新按钮
+  const refreshSelectedUser = async (showToast = false): Promise<void> => {
+    if (!selectedUser) return;
+    try {
+      const keyword = selectedUser.phonenumber || selectedUser.phone || String(selectedUser.username);
+      if (!keyword) return;
+      const res = await callIdcApi('searchUser', { keyword });
+      const list = res.data?.list || res.list || [];
+      const matched = list.find((u: Record<string, unknown>) =>
+        String(u.phonenumber || u.phone) === keyword
+        || String(u.username) === String(selectedUser.username)
+      );
+      if (matched) {
+        setSelectedUser(matched as typeof selectedUser);
+      }
+      fetchUserProducts(Number(selectedUser.id));
+      if (showToast) showNotification('success', '用户信息已刷新');
+    } catch {
+      if (showToast) showNotification('error', '刷新失败');
+    }
+  };
+
   // 添加余额
   const handleAddBalance = async () => {
     if (!selectedUser) { showNotification('error', '请先选择用户'); return; }
@@ -3551,7 +3671,8 @@ export default function OneClickOrderPage() {
         setAddAmount('');
         const currentCredit = parseFloat(selectedUser.credit || '0');
         setSelectedUser({ ...selectedUser, credit: (currentCredit + amount).toFixed(2) });
-        handleSearchUsers();
+        // 静默刷新服务端最新数据（不触发"请输入搜索关键词"提示）
+        void refreshSelectedUser();
       } else {
         showNotification('error', data.msg || '添加余额失败');
       }
@@ -3559,6 +3680,45 @@ export default function OneClickOrderPage() {
       showNotification('error', '添加余额请求失败');
     } finally {
       setIsAddingBalance(false);
+    }
+  };
+
+  // 扣减余额 (POST /admin/credit/reduce)
+  const handleDeductBalance = async () => {
+    if (!selectedUser) { showNotification('error', '请先选择用户'); return; }
+    const amount = parseFloat(deductAmount);
+    if (isNaN(amount) || amount <= 0) {
+      showNotification('error', '请输入有效的扣减金额');
+      return;
+    }
+    const currentCredit = parseFloat(selectedUser.credit || '0');
+    if (amount > currentCredit) {
+      showNotification('error', `扣减金额不能超过当前余额 ¥${currentCredit.toFixed(2)}`);
+      return;
+    }
+
+    setIsDeductingBalance(true);
+    try {
+      const data = await callIdcApi('deductBalance', {
+        uid: selectedUser.id,
+        amount,
+        description: deductDescription || '后台扣减余额',
+      });
+      if (data && (data.success || data.status === 200 || data.status === 1 || data.msg === '请求成功')) {
+        showNotification('success', `成功扣减用户 ${selectedUser.username} 余额 ¥${amount.toFixed(2)}`);
+        setDeductAmount('');
+        // 实时更新本地余额显示（乐观更新），同时静默刷新服务端数据
+        const newCredit = Math.max(0, currentCredit - amount);
+        setSelectedUser({ ...selectedUser, credit: newCredit.toFixed(2) });
+        void refreshSelectedUser();
+      } else {
+        const errMsg = (data && (data.msg || data.message)) || '扣减余额失败';
+        showNotification('error', String(errMsg));
+      }
+    } catch {
+      showNotification('error', '扣减余额请求失败，请检查网络后重试');
+    } finally {
+      setIsDeductingBalance(false);
     }
   };
 
@@ -4080,9 +4240,9 @@ export default function OneClickOrderPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-foreground text-lg flex items-center gap-2">
               <Users className="w-5 h-5 text-primary" />
-              用户管理 - 余额充值
+              用户管理 - 余额管理
             </CardTitle>
-            <CardDescription className="text-muted-foreground">搜索用户并为指定用户添加余额</CardDescription>
+            <CardDescription className="text-muted-foreground">搜索用户并为指定用户充值或扣减余额</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-2">
@@ -4214,20 +4374,7 @@ export default function OneClickOrderPage() {
                     </div>
                   </div>
                   <div className="flex flex-col items-center gap-0 shrink-0">
-                    <Button variant="ghost" size="sm" onClick={async () => {
-                      if (!selectedUser) return;
-                      try {
-                        const keyword = selectedUser.phonenumber || selectedUser.phone || String(selectedUser.username);
-                        const res = await callIdcApi('searchUser', { keyword });
-                        const list = res.data?.list || res.list || [];
-                        const matched = list.find((u: Record<string, unknown>) => String(u.phonenumber || u.phone) === keyword || String(u.username) === String(selectedUser.username));
-                        if (matched) {
-                          setSelectedUser(matched as typeof selectedUser);
-                        }
-                        fetchUserProducts(Number(selectedUser.id));
-                        showNotification('success', '用户信息已刷新');
-                      } catch { showNotification('error', '刷新失败'); }
-                    }} className="text-muted-foreground hover:text-primary h-7 w-7 p-0" title="刷新用户信息">
+                    <Button variant="ghost" size="sm" onClick={() => refreshSelectedUser(true)} className="text-muted-foreground hover:text-primary h-7 w-7 p-0" title="刷新用户信息">
                       <RefreshCw className="w-3.5 h-3.5" />
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => { resetCycleOnUserChange(); setSelectedUser(null); }} className="text-muted-foreground hover:text-foreground h-7 w-7 p-0">
@@ -4236,12 +4383,20 @@ export default function OneClickOrderPage() {
                   </div>
                 </div>
                 {isAdminUser && (
-                <button type="button" onClick={() => setShowRechargeArea(!showRechargeArea)}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mt-1">
-                  <CreditCard className="w-3.5 h-3.5" />
-                  <span>余额充值</span>
-                  {showRechargeArea ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                </button>
+                <div className="flex items-center gap-4 mt-1">
+                  <button type="button" onClick={() => { setShowRechargeArea(!showRechargeArea); if (!showRechargeArea) setShowDeductArea(false); }}
+                    className={`flex items-center gap-1 text-sm transition-colors ${showRechargeArea ? 'text-success' : 'text-muted-foreground hover:text-success'}`}>
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>余额充值</span>
+                    {showRechargeArea ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  </button>
+                  <button type="button" onClick={() => { setShowDeductArea(!showDeductArea); if (!showDeductArea) setShowRechargeArea(false); }}
+                    className={`flex items-center gap-1 text-sm transition-colors ${showDeductArea ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'}`}>
+                    <Minus className="w-3.5 h-3.5" />
+                    <span>余额扣减</span>
+                    {showDeductArea ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
                 )}
                 {isAdminUser && showRechargeArea && (
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
@@ -4259,6 +4414,31 @@ export default function OneClickOrderPage() {
                     <Button onClick={handleAddBalance} disabled={isAddingBalance} className="bg-success text-success-foreground hover:bg-success/90 whitespace-nowrap w-full sm:w-auto">
                       {isAddingBalance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                       <span className="ml-1">确认充值</span>
+                    </Button>
+                  </div>
+                </div>
+                )}
+                {isAdminUser && showDeductArea && (
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <div className="flex-1">
+                    <label className="text-muted-foreground text-sm mb-1 block">
+                      扣减金额 (元) <span className="text-destructive/80 text-xs">当前余额 ¥{parseFloat(selectedUser?.credit || '0').toFixed(2)}</span>
+                    </label>
+                    <Input type="number" min="0" step="0.01" max={selectedUser?.credit || undefined}
+                      placeholder="输入扣减金额" value={deductAmount}
+                      onChange={(e) => setDeductAmount(e.target.value)}
+                      className="bg-muted border-border text-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-muted-foreground text-sm mb-1 block">备注 (可选)</label>
+                    <Input placeholder="扣减备注" value={deductDescription}
+                      onChange={(e) => setDeductDescription(e.target.value)} className="bg-muted border-border text-foreground" />
+                  </div>
+                  <div className="flex items-end sm:self-end">
+                    <Button onClick={handleDeductBalance} disabled={isDeductingBalance}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90 whitespace-nowrap w-full sm:w-auto">
+                      {isDeductingBalance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Minus className="w-4 h-4" />}
+                      <span className="ml-1">确认扣减</span>
                     </Button>
                   </div>
                 </div>
@@ -4676,6 +4856,76 @@ export default function OneClickOrderPage() {
                 ) : (
                   <><Package className="w-4 h-4 mr-1" />确认升级</>
                 )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 升级结果弹窗（成功/失败需手动关闭） */}
+        <Dialog open={!!upgradeResultModal} onOpenChange={(open) => { if (!open) setUpgradeResultModal(null); }}>
+          <DialogContent className="border-border bg-card text-foreground max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                {upgradeResultModal?.status === 'success' ? (
+                  <><CheckCircle className="w-5 h-5 text-success" />{upgradeResultModal?.title}</>
+                ) : (
+                  <><XCircle className="w-5 h-5 text-destructive" />{upgradeResultModal?.title}</>
+                )}
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                {upgradeResultModal?.packageName ? `目标套餐：${upgradeResultModal.packageName}` : '请查看以下详细信息'}
+              </DialogDescription>
+            </DialogHeader>
+
+            {upgradeResultModal && (
+              <div className="space-y-3 py-1">
+                {/* 主结果详情 */}
+                <div className={`rounded-lg p-3 border text-sm ${
+                  upgradeResultModal.status === 'success'
+                    ? 'bg-success/10 border-success/20 text-foreground/80'
+                    : 'bg-destructive/10 border-destructive/20 text-foreground/80'
+                }`}>
+                  {upgradeResultModal.detail}
+                </div>
+
+                {/* 财务同步状态 */}
+                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {upgradeResultModal.syncStatus === 'success' ? (
+                      <><CheckCircle className="w-4 h-4 text-success" /><span className="text-sm font-medium text-foreground">财务同步：成功</span></>
+                    ) : upgradeResultModal.syncStatus === 'fail' ? (
+                      <><XCircle className="w-4 h-4 text-destructive" /><span className="text-sm font-medium text-foreground">财务同步：失败</span></>
+                    ) : (
+                      <><AlertCircle className="w-4 h-4 text-warning" /><span className="text-sm font-medium text-foreground">财务同步：未确认</span></>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{upgradeResultModal.syncDetail}</p>
+                </div>
+
+                {/* 失败时的建议 */}
+                {upgradeResultModal.status === 'fail' && (
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>建议：请检查配置项是否符合要求，或稍后重试。如问题持续，可联系管理员检查后台日志。</span>
+                  </div>
+                )}
+                {upgradeResultModal.status === 'success' && upgradeResultModal.syncStatus !== 'success' && (
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>建议：升级已成功，但财务信息同步异常。可稍后手动点击「拉取信息」重新同步。</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                onClick={() => setUpgradeResultModal(null)}
+                className={upgradeResultModal?.status === 'success'
+                  ? 'bg-success/15 hover:bg-success/25 text-success'
+                  : 'bg-destructive/15 hover:bg-destructive/25 text-destructive'}
+              >
+                我知道了
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -6264,6 +6514,98 @@ export default function OneClickOrderPage() {
                       </div>
                     </div>
                   )}
+                  {!recycleCheckState.loading && recycleCheckState.matches.length > 0 && (() => {
+                    const amount = parseFloat(String(recycleCheckState.svc?.amount || recycleCheckState.svc?.firstpaymentamount || '0').replace(/[^\d.]/g, '')) || 0;
+                    const userCredit = parseFloat(String(selectedUser?.credit || '0')) || 0;
+                    const userPhone = String(selectedUser?.phonenumber || selectedUser?.phone || '');
+                    const userEmail = String(selectedUser?.email || '');
+                    const userName = String(selectedUser?.username || '');
+                    return (
+                      <>
+                        {/* 用户信息区域 */}
+                        <div className="bg-muted/40 rounded-lg p-3 space-y-1.5 text-sm border border-border">
+                          <div className="text-xs text-muted-foreground mb-1">用户信息</div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground shrink-0">用户姓名:</span>
+                            <span className="text-foreground truncate ml-2 text-right">{userName || '无'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground shrink-0">联系方式:</span>
+                            <span className="text-foreground/80 truncate ml-2 text-right">{userPhone || userEmail || '无'}</span>
+                          </div>
+                          {userPhone && userEmail && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-muted-foreground shrink-0">邮箱:</span>
+                              <span className="text-foreground/80 truncate ml-2 text-right">{userEmail}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground shrink-0">可用余额:</span>
+                            <span className={`font-medium ${userCredit >= amount ? 'text-success' : 'text-warning'}`}>
+                              ¥{userCredit.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 续费方式选择 */}
+                        <div className="bg-muted/40 rounded-lg p-3 space-y-2 text-sm border border-border">
+                          <div className="text-xs text-muted-foreground mb-1">续费方式</div>
+                          <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                            recycleCheckState.renewMethod === 'autoRecharge'
+                              ? 'border-info bg-info/10'
+                              : 'border-border hover:bg-muted/60'
+                          }`}>
+                            <input
+                              type="radio"
+                              name="recycleRenewMethod"
+                              checked={recycleCheckState.renewMethod === 'autoRecharge'}
+                              onChange={() => setRecycleCheckState(prev => ({ ...prev, renewMethod: 'autoRecharge' }))}
+                              className="mt-0.5 accent-info"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-foreground font-medium">自动充值余额</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                系统自动充值 ¥{amount.toFixed(2)}，再用余额支付。用户原有余额不受影响。
+                              </div>
+                            </div>
+                          </label>
+                          <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                            recycleCheckState.renewMethod === 'deductBalance'
+                              ? 'border-info bg-info/10'
+                              : 'border-border hover:bg-muted/60'
+                          }`}>
+                            <input
+                              type="radio"
+                              name="recycleRenewMethod"
+                              checked={recycleCheckState.renewMethod === 'deductBalance'}
+                              onChange={() => setRecycleCheckState(prev => ({ ...prev, renewMethod: 'deductBalance' }))}
+                              className="mt-0.5 accent-info"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-foreground font-medium">扣除余额续费</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                直接使用用户当前余额支付，不执行充值操作。
+                              </div>
+                              {recycleCheckState.renewMethod === 'deductBalance' && userCredit > 0 && (
+                                <div className={`text-xs mt-1.5 flex items-center gap-1 ${
+                                  userCredit >= amount ? 'text-success' : 'text-warning'
+                                }`}>
+                                  {userCredit >= amount
+                                    ? <><CheckCircle className="w-3 h-3" />余额充足（¥{userCredit.toFixed(2)} ≥ ¥{amount.toFixed(2)}）</>
+                                    : <><AlertCircle className="w-3 h-3" />余额可能不足（¥{userCredit.toFixed(2)} &lt; ¥{amount.toFixed(2)}），支付时若不足将自动报错</>}
+                                </div>
+                              )}
+                              {recycleCheckState.renewMethod === 'deductBalance' && userCredit === 0 && (
+                                <div className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />未获取到余额信息，将直接尝试扣款，若余额不足后端会返回错误
+                                </div>
+                              )}
+                            </div>
+                          </label>
+                        </div>
+                      </>
+                    );
+                  })()}
                   {!recycleCheckState.loading && (
                     <DialogFooter className="gap-2 mt-3">
                       <Button type="button" variant="outline" size="sm" onClick={() => setRecycleCheckState(prev => ({ ...prev, open: false }))}
@@ -6280,7 +6622,8 @@ export default function OneClickOrderPage() {
                           }
                         }}
                         className="bg-info hover:bg-info/90 text-info-foreground disabled:opacity-50">
-                        <RotateCcw className="w-4 h-4 mr-1" />恢复并续费
+                        <RotateCcw className="w-4 h-4 mr-1" />
+                        {recycleCheckState.renewMethod === 'autoRecharge' ? '恢复并续费' : '扣除余额续费'}
                       </Button>
                     </DialogFooter>
                   )}

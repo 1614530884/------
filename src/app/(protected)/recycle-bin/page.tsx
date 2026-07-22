@@ -87,9 +87,12 @@ export default function RecycleBinPage() {
     open: boolean;
     instance: RecycleInstance | null;
     searching: boolean;
-    hostInfo: { hostid: number; uid: number; amount: number; billingcycle: string; productname: string; domainstatus: string } | null;
+    hostInfo: { hostid: number; uid: number; amount: number; billingcycle: string; productname: string; domainstatus: string; username: string } | null;
+    userInfo: { username: string; phone: string; email: string; credit: number } | null;
+    searchingUser: boolean;
     searchError: string;
-  }>({ open: false, instance: null, searching: false, hostInfo: null, searchError: '' });
+    renewMethod: 'autoRecharge' | 'deductBalance';
+  }>({ open: false, instance: null, searching: false, hostInfo: null, userInfo: null, searchingUser: false, searchError: '', renewMethod: 'autoRecharge' });
   const [renewSteps, setRenewSteps] = useState<Array<{ id: string; name: string; status: 'processing' | 'completed' | 'failed'; message?: string }>>([]);
   const [isRenewProcessing, setIsRenewProcessing] = useState(false);
 
@@ -220,10 +223,10 @@ export default function RecycleBinPage() {
 
   // 竞态保护：连续点击多个实例恢复按钮时，只保留最后一次请求的结果
   const restoreReqIdRef = useRef(0);
-  // 点击恢复按钮 → 打开确认弹窗 + 异步反查财务产品
+  // 点击恢复按钮 → 打开确认弹窗 + 异步反查财务产品 + 获取用户信息
   const handleRestore = useCallback((inst: RecycleInstance) => {
     const reqId = ++restoreReqIdRef.current;
-    setConfirmModal({ open: true, instance: inst, searching: true, hostInfo: null, searchError: '' });
+    setConfirmModal({ open: true, instance: inst, searching: true, hostInfo: null, userInfo: null, searchingUser: false, searchError: '', renewMethod: 'autoRecharge' });
     setRestoreMsg(null);
     // 异步反查财务产品
     (async () => {
@@ -247,18 +250,95 @@ export default function RecycleBinPage() {
         const statusName = typeof rawStatus === 'object' && rawStatus !== null
           ? String((rawStatus as Record<string, unknown>).name || '未知')
           : typeof rawStatus === 'string' ? rawStatus : '-';
+        const hostUsername = String(host.username || '');
+        const hostUid = Number(host.uid || host.userid || 0);
+        // host 数据可能直接包含用户联系信息（取决于后台版本）
+        const hostEmail = String(host.email || '');
+        const hostPhone = String(host.phonenumber || host.phone || '');
+        const hostCredit = parseFloat(String(host.credit || '0')) || 0;
+
         setConfirmModal(prev => ({
           ...prev,
           searching: false,
           hostInfo: {
             hostid: Number(host.id),
-            uid: Number(host.uid || host.userid || 0),
+            uid: hostUid,
             amount: parseFloat(String(host.amount || host.firstpaymentamount || '0').replace(/[^\d.]/g, '')) || 0,
             billingcycle: String(host.billingcycle || 'monthly'),
             productname: String(host.productname || host.name || '-'),
             domainstatus: statusName,
+            username: hostUsername,
           },
         }));
+
+        // 如果 host 数据已包含用户信息且有余额，直接使用
+        if (hostUsername && hostCredit > 0) {
+          setConfirmModal(prev => ({
+            ...prev,
+            userInfo: {
+              username: hostUsername,
+              phone: hostPhone,
+              email: hostEmail,
+              credit: hostCredit,
+            },
+          }));
+          return;
+        }
+
+        // 异步获取用户信息（用户名/手机号/邮箱/余额）
+        // 用 searchParams.username 精确搜索，避免 keyword 将纯数字用户名误判为 qq/phone
+        if (hostUsername || hostUid) {
+          setConfirmModal(prev => ({ ...prev, searchingUser: true }));
+          try {
+            // 优先用 username 精确搜索
+            const userRes = hostUsername
+              ? await callIdcApi('searchUser', { searchParams: { username: hostUsername, limit: 50 } })
+              : await callIdcApi('searchUser', { searchParams: { id: hostUid, limit: 50 } });
+            if (reqId !== restoreReqIdRef.current) return;
+            const userList = (userRes?.data?.list || userRes?.list || []) as Array<Record<string, any>>;
+            // 按 uid 精确匹配（避免同名用户）
+            const matched = hostUid
+              ? userList.find((u) => Number(u.id) === hostUid) || userList[0]
+              : userList[0];
+            if (matched) {
+              setConfirmModal(prev => ({
+                ...prev,
+                searchingUser: false,
+                userInfo: {
+                  username: String(matched.username || hostUsername || ''),
+                  phone: String(matched.phonenumber || matched.phone || hostPhone || ''),
+                  email: String(matched.email || hostEmail || ''),
+                  credit: parseFloat(String(matched.credit || '0')) || 0,
+                },
+              }));
+            } else {
+              // searchUser 没查到，退回使用 host 数据中的用户信息
+              setConfirmModal(prev => ({
+                ...prev,
+                searchingUser: false,
+                userInfo: hostUsername || hostPhone || hostEmail ? {
+                  username: hostUsername,
+                  phone: hostPhone,
+                  email: hostEmail,
+                  credit: hostCredit,
+                } : null,
+              }));
+            }
+          } catch {
+            if (reqId !== restoreReqIdRef.current) return;
+            // 查询失败，退回使用 host 数据中的用户信息
+            setConfirmModal(prev => ({
+              ...prev,
+              searchingUser: false,
+              userInfo: hostUsername || hostPhone || hostEmail ? {
+                username: hostUsername,
+                phone: hostPhone,
+                email: hostEmail,
+                credit: hostCredit,
+              } : null,
+            }));
+          }
+        }
       } catch (e) {
         if (reqId !== restoreReqIdRef.current) return;
         setConfirmModal(prev => ({ ...prev, searching: false, searchError: '反查失败: ' + (e instanceof Error ? e.message : String(e)) }));
@@ -271,7 +351,7 @@ export default function RecycleBinPage() {
     const inst = confirmModal.instance;
     if (!inst || isRenewProcessing) return;
     const instanceId = inst.id;
-    setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, searchError: '' });
+    setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, userInfo: null, searchingUser: false, searchError: '', renewMethod: 'autoRecharge' });
     setRestoringIds(prev => new Set(prev).add(instanceId));
     setRestoreMsg(null);
     try {
@@ -294,12 +374,15 @@ export default function RecycleBinPage() {
   }, [confirmModal.instance, callMfyApi, isRenewProcessing]);
 
   // 关联财务产品并续费：恢复 + 反查财务 + saveServiceInfo + provisionSync + 续费
+  // renewMethod: 'autoRecharge' 自动充值余额后支付 | 'deductBalance' 直接用余额支付
   const doRestoreWithRenew = useCallback(async () => {
     const inst = confirmModal.instance;
     if (!inst || isRenewProcessing) return;
     const instanceId = inst.id;
     const hostname = inst.hostname;
-    setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, searchError: '' });
+    const renewMethod = confirmModal.renewMethod;
+    const userInfo = confirmModal.userInfo;
+    setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, userInfo: null, searchingUser: false, searchError: '', renewMethod: 'autoRecharge' });
     setRenewSteps([]);
     setIsRenewProcessing(true);
 
@@ -351,7 +434,8 @@ export default function RecycleBinPage() {
       updStep(i3, 'completed');
 
       // 4. 续费1周期
-      const i4 = pushStep(`续费 ${productName} (${billingcycle})`);
+      const renewMethodLabel = renewMethod === 'autoRecharge' ? '自动充值余额' : '扣除余额续费';
+      const i4 = pushStep(`续费 ${productName} (${billingcycle}) - ${renewMethodLabel}`);
       const renewRes = await callIdcApi('renewService', { hostid, billingcycles: billingcycle });
       if (!(renewRes?.status === 200)) {
         updStep(i4, 'failed', String(renewRes?.msg || '续费失败'));
@@ -359,13 +443,43 @@ export default function RecycleBinPage() {
       }
       const invId = renewRes.data?.invoice_id || renewRes.data?.invoiceid || renewRes.data?.id;
       const invIdStr = invId ? String(invId) : '';
+
       if (amount > 0 && invIdStr) {
-        try {
-          await callIdcApi('addBalance', { uid, amount, type: 'recharge', description: `回收站恢复续费 - ${productName}` });
-        } catch (e) { console.warn('充值余额失败:', e); }
-        try {
-          await callIdcApi('invoicePaid', { invoiceid: invId, uid });
-        } catch (e) { console.warn('支付账单失败:', e); }
+        if (renewMethod === 'autoRecharge') {
+          // 自动充值余额方式：先充值全额，再用余额支付账单
+          try {
+            await callIdcApi('addBalance', { uid, amount, type: 'recharge', description: `回收站恢复续费 - ${productName}` });
+          } catch (e) { console.warn('充值余额失败:', e); }
+          try {
+            await callIdcApi('invoicePaid', { invoiceid: invId, uid });
+          } catch (e) { console.warn('支付账单失败:', e); }
+        } else {
+          // 扣除余额续费方式：不充值，直接用现有余额支付
+          // 前端余额信息仅作参考，实际扣款由后端处理，余额不足时后端返回错误
+          try {
+            const payRes = await callIdcApi('invoicePaid', { invoiceid: invId, uid });
+            // apply_credit API 返回格式不标准（msg 可能是"支付完成"等），
+            // 只有明确包含失败关键词时才判断为失败
+            const failKeywords = ['失败', '错误', '不足', 'error', 'fail', '余额不够'];
+            const payMsg = String(payRes?.msg || '');
+            const isFail = payRes && payMsg && failKeywords.some(kw => payMsg.toLowerCase().includes(kw.toLowerCase()));
+            if (isFail) {
+              updStep(i4, 'failed', `支付失败：${payMsg}`);
+              if (payMsg.includes('余额') || payMsg.includes('不足') || payMsg.includes('credit')) {
+                const creditHint = userInfo ? `当前余额 ¥${userInfo.credit.toFixed(2)}` : '未能获取余额信息';
+                setRestoreMsg({ id: instanceId, type: 'error', text: `${productName} 续费失败：余额不足（${creditHint}，需 ¥${amount.toFixed(2)}），请充值后重试` });
+              } else {
+                setRestoreMsg({ id: instanceId, type: 'error', text: `${productName} 续费失败：${payMsg}` });
+              }
+              return;
+            }
+          } catch (e) {
+            const errMsg = e instanceof Error ? e.message : String(e);
+            updStep(i4, 'failed', `支付异常：${errMsg}`);
+            setRestoreMsg({ id: instanceId, type: 'error', text: `${productName} 续费失败：余额支付异常 - ${errMsg}` });
+            return;
+          }
+        }
       }
       updStep(i4, 'completed', invIdStr ? `账单ID: ${invIdStr}` : '续费成功');
 
@@ -379,11 +493,11 @@ export default function RecycleBinPage() {
       updStep(i5, 'completed');
 
       setAllInstances(prev => prev.filter(i => i.id !== instanceId));
-      setRestoreMsg({ id: instanceId, type: 'success', text: `${productName} 已恢复并续费成功` });
+      setRestoreMsg({ id: instanceId, type: 'success', text: `${productName} 已恢复并续费成功（${renewMethodLabel}）` });
     } finally {
       setIsRenewProcessing(false);
     }
-  }, [confirmModal.instance, confirmModal.hostInfo, confirmModal.searchError, callMfyApi, callIdcApi, isRenewProcessing]);
+  }, [confirmModal.instance, confirmModal.hostInfo, confirmModal.searchError, confirmModal.renewMethod, confirmModal.userInfo, callMfyApi, callIdcApi, isRenewProcessing]);
 
   // 复制到剪贴板（timer ref 防泄漏）
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -568,14 +682,14 @@ export default function RecycleBinPage() {
 
       {/* 恢复确认弹窗 */}
       {confirmModal.open && confirmModal.instance && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, searchError: '' })}>
-          <div className="bg-card border border-border rounded-xl p-5 max-w-md w-full space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, userInfo: null, searchingUser: false, searchError: '', renewMethod: 'autoRecharge' })}>
+          <div className="bg-card border border-border rounded-xl p-5 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-foreground text-base font-semibold flex items-center gap-2">
                 <RotateCcw className="w-4 h-4 text-info" />
                 恢复实例确认
               </h3>
-              <button onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, searchError: '' })} className="text-muted-foreground hover:text-foreground">
+              <button onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, userInfo: null, searchingUser: false, searchError: '', renewMethod: 'autoRecharge' })} className="text-muted-foreground hover:text-foreground">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -623,14 +737,123 @@ export default function RecycleBinPage() {
               )}
             </div>
 
+            {/* 用户信息区域 */}
+            {confirmModal.hostInfo && (
+              <div className="bg-muted/40 rounded-lg p-3 space-y-1.5 text-sm select-text">
+                <div className="text-xs text-muted-foreground mb-1 flex items-center justify-between">
+                  <span>用户信息</span>
+                  {confirmModal.searchingUser && <span className="flex items-center gap-1 text-info"><Loader2 className="w-3 h-3 animate-spin" />查询中...</span>}
+                </div>
+                {confirmModal.searchingUser ? (
+                  <div className="text-xs text-muted-foreground py-1">正在查询用户信息...</div>
+                ) : confirmModal.userInfo ? (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground shrink-0">用户姓名:</span>
+                      <span className="text-foreground truncate ml-2 text-right">{confirmModal.userInfo.username || '无'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground shrink-0">联系方式:</span>
+                      <span className="text-foreground/80 truncate ml-2 text-right">
+                        {confirmModal.userInfo.phone || confirmModal.userInfo.email || '无'}
+                      </span>
+                      {(confirmModal.userInfo.phone || confirmModal.userInfo.email) && (
+                        <button onClick={() => copyToClipboard(confirmModal.userInfo!.phone || confirmModal.userInfo!.email, 'contact')} className="ml-1.5 p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制联系方式">
+                          {copiedField === 'contact' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                        </button>
+                      )}
+                    </div>
+                    {confirmModal.userInfo.phone && confirmModal.userInfo.email && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground shrink-0">邮箱:</span>
+                        <span className="text-foreground/80 truncate ml-2 text-right">{confirmModal.userInfo.email}</span>
+                        <button onClick={() => copyToClipboard(confirmModal.userInfo!.email, 'email')} className="ml-1.5 p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制邮箱">
+                          {copiedField === 'email' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground shrink-0">可用余额:</span>
+                      <span className={`font-medium ${confirmModal.userInfo.credit >= confirmModal.hostInfo.amount ? 'text-success' : 'text-warning'}`}>
+                        ¥{confirmModal.userInfo.credit.toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-xs text-muted-foreground py-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />未获取到用户详细信息（不影响扣除余额续费，后端会自动处理）
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 续费方式选择（仅在找到财务产品时显示） */}
+            {confirmModal.hostInfo && (
+              <div className="bg-muted/40 rounded-lg p-3 space-y-2 text-sm">
+                <div className="text-xs text-muted-foreground mb-1">续费方式</div>
+                <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                  confirmModal.renewMethod === 'autoRecharge'
+                    ? 'border-info bg-info/10'
+                    : 'border-border hover:bg-muted/60'
+                }`}>
+                  <input
+                    type="radio"
+                    name="renewMethod"
+                    checked={confirmModal.renewMethod === 'autoRecharge'}
+                    onChange={() => setConfirmModal(prev => ({ ...prev, renewMethod: 'autoRecharge' }))}
+                    className="mt-0.5 accent-info"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-foreground font-medium">自动充值余额</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      系统自动为用户充值 ¥{confirmModal.hostInfo.amount.toFixed(2)}，再用余额支付续费账单。用户原有余额不受影响。
+                    </div>
+                  </div>
+                </label>
+                <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                  confirmModal.renewMethod === 'deductBalance'
+                    ? 'border-info bg-info/10'
+                    : 'border-border hover:bg-muted/60'
+                }`}>
+                  <input
+                    type="radio"
+                    name="renewMethod"
+                    checked={confirmModal.renewMethod === 'deductBalance'}
+                    onChange={() => setConfirmModal(prev => ({ ...prev, renewMethod: 'deductBalance' }))}
+                    className="mt-0.5 accent-info"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-foreground font-medium">扣除余额续费</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      直接使用用户当前余额支付续费账单，不执行充值操作。
+                    </div>
+                    {confirmModal.renewMethod === 'deductBalance' && confirmModal.userInfo && confirmModal.userInfo.credit > 0 && (
+                      <div className={`text-xs mt-1.5 flex items-center gap-1 ${
+                        confirmModal.userInfo.credit >= confirmModal.hostInfo.amount ? 'text-success' : 'text-warning'
+                      }`}>
+                        {confirmModal.userInfo.credit >= confirmModal.hostInfo.amount
+                          ? <><CheckCircle className="w-3 h-3" />余额充足（¥{confirmModal.userInfo.credit.toFixed(2)} ≥ ¥{confirmModal.hostInfo.amount.toFixed(2)}）</>
+                          : <><AlertCircle className="w-3 h-3" />余额可能不足（¥{confirmModal.userInfo.credit.toFixed(2)} &lt; ¥{confirmModal.hostInfo.amount.toFixed(2)}），支付时若不足将自动报错</>}
+                      </div>
+                    )}
+                    {confirmModal.renewMethod === 'deductBalance' && (!confirmModal.userInfo || confirmModal.userInfo.credit === 0) && !confirmModal.searchingUser && (
+                      <div className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />未获取到余额信息，将直接尝试扣款，若余额不足后端会返回错误
+                      </div>
+                    )}
+                  </div>
+                </label>
+              </div>
+            )}
+
             <div className="space-y-2">
               <button
                 onClick={doRestoreWithRenew}
                 disabled={!confirmModal.hostInfo}
-                className="w-full flex items-center justify-center gap-1.5 py-2 bg-info text-info-foreground hover:bg-info/90 disabled:bg-accent disabled:text-muted-foreground rounded-lg text-sm font-medium transition-colors"
+                className="w-full flex items-center justify-center gap-1.5 py-2 bg-info text-info-foreground hover:bg-info/90 disabled:bg-accent disabled:text-muted-foreground disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
               >
                 <Link2 className="w-4 h-4" />
-                关联财务产品并续费
+                {confirmModal.renewMethod === 'autoRecharge' ? '关联财务产品并续费' : '扣除余额续费'}
               </button>
               <button
                 onClick={doRestoreOnly}
@@ -640,7 +863,7 @@ export default function RecycleBinPage() {
                 仅恢复魔方云实例
               </button>
               <button
-                onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, searchError: '' })}
+                onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, userInfo: null, searchingUser: false, searchError: '', renewMethod: 'autoRecharge' })}
                 className="w-full py-2 text-muted-foreground hover:text-foreground text-sm transition-colors"
               >
                 取消

@@ -33,6 +33,20 @@ export function transformAddBalanceParams(params: Record<string, unknown>): Reco
   };
 }
 
+export function transformDeductBalanceParams(params: Record<string, unknown>): Record<string, unknown> {
+  // API: POST /admin/credit/reduce
+  // 必需参数: uid (客户ID), amount (金额)
+  // description 非文档要求，但作为备注一并传递（后台若不识别会忽略）
+  const result: Record<string, unknown> = {
+    uid: params.uid,
+    amount: params.amount,
+  };
+  if (params.description) {
+    result.description = params.description;
+  }
+  return result;
+}
+
 export function filterSearchResultByUid(result: Record<string, unknown>, params: Record<string, unknown>): Record<string, unknown> {
   const searchParams = params.searchParams as Record<string, unknown> | undefined;
   const uid = searchParams?.id;

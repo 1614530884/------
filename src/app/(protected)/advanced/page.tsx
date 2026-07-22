@@ -51,6 +51,13 @@ function AdvancedContent() {
     const timer = setTimeout(() => setMsg(null), 4000);
     return () => clearTimeout(timer);
   }, [msg]);
+
+  // 财务同步结果弹窗（成功/失败需手动关闭，确保用户了解同步状态）
+  const [syncResultModal, setSyncResultModal] = useState<{
+    status: 'success' | 'fail';
+    operation: string;   // 触发同步的操作名（中文，如"重装系统"）
+    detail: string;      // 同步结果详情
+  } | null>(null);
   const [disks, setDisks] = useState<Array<Record<string, any>>>([]);
   const [ipv4List, setIpv4List] = useState<Array<Record<string, any>>>([]);
   const [ipv6List, setIpv6List] = useState<Array<Record<string, any>>>([]);
@@ -382,6 +389,8 @@ function AdvancedContent() {
 
               let shouldRefresh = false;
               let shouldSync = false;
+              // 记录触发同步的任务描述（取第一个需要同步的成功任务）
+              let syncTaskDesc = '';
 
               for (const t of newlyCompleted) {
                 handledTaskIds.current.add(Number(t.id));
@@ -395,6 +404,9 @@ function AdvancedContent() {
                   }
                   if (needSyncTypes.includes(taskType)) {
                     shouldSync = true;
+                    if (!syncTaskDesc) {
+                      syncTaskDesc = String(t.type_desc || typeLabels[taskType] || taskType);
+                    }
                   }
                 }
               }
@@ -416,11 +428,31 @@ function AdvancedContent() {
               }
 
               // 特定任务完成 → 立即触发 provisionSync（不等待所有任务完成）
+              // 同步结果通过弹窗反馈给用户（成功/失败需手动关闭）
               if (shouldSync || pendingProvisionSync.current) {
                 pendingProvisionSync.current = false;
                 const syncHostid = idcHostidRef.current;
                 if (syncHostid) {
-                  callIdcApi('provisionSync', { hostid: syncHostid }).catch(() => {});
+                  const opDesc = syncTaskDesc || '实例操作';
+                  setMsg({ type: 'info', text: `「${opDesc}」已完成，正在同步财务信息...` });
+                  callIdcApi('provisionSync', { hostid: syncHostid }).then(syncRes => {
+                    setMsg(null);
+                    const isSuccess = syncRes && (syncRes.status === 200 || syncRes.status === 1 || syncRes.msg === '请求成功' || syncRes.success === true);
+                    setSyncResultModal({
+                      status: isSuccess ? 'success' : 'fail',
+                      operation: opDesc,
+                      detail: isSuccess
+                        ? `「${opDesc}」操作已完成，财务系统信息同步成功。`
+                        : `「${opDesc}」操作已完成，但财务信息同步失败：${syncRes?.msg || '未知错误'}`,
+                    });
+                  }).catch(err => {
+                    setMsg(null);
+                    setSyncResultModal({
+                      status: 'fail',
+                      operation: opDesc,
+                      detail: `「${opDesc}」操作已完成，但财务信息同步异常：${err instanceof Error ? err.message : String(err)}`,
+                    });
+                  });
                 }
               }
             } else if (!hasRunning && pendingProvisionSync.current) {
@@ -428,7 +460,25 @@ function AdvancedContent() {
               pendingProvisionSync.current = false;
               const syncHostid = idcHostidRef.current;
               if (syncHostid) {
-                callIdcApi('provisionSync', { hostid: syncHostid }).catch(() => {});
+                setMsg({ type: 'info', text: '正在同步财务信息...' });
+                callIdcApi('provisionSync', { hostid: syncHostid }).then(syncRes => {
+                  setMsg(null);
+                  const isSuccess = syncRes && (syncRes.status === 200 || syncRes.status === 1 || syncRes.msg === '请求成功' || syncRes.success === true);
+                  setSyncResultModal({
+                    status: isSuccess ? 'success' : 'fail',
+                    operation: '实例操作',
+                    detail: isSuccess
+                      ? '财务系统信息同步成功。'
+                      : `财务信息同步失败：${syncRes?.msg || '未知错误'}`,
+                  });
+                }).catch(err => {
+                  setMsg(null);
+                  setSyncResultModal({
+                    status: 'fail',
+                    operation: '实例操作',
+                    detail: `财务信息同步异常：${err instanceof Error ? err.message : String(err)}`,
+                  });
+                });
               }
             }
             prevHasRunningTask.current = hasRunning;
@@ -3461,6 +3511,71 @@ function AdvancedContent() {
               >
                 {actionLoading === `diskResize_${resizeDiskTarget.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit3 className="w-4 h-4" />}
                 确认扩容
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 财务同步结果弹窗（成功/失败需手动关闭） */}
+      {syncResultModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3" onClick={() => setSyncResultModal(null)}>
+          <div
+            className="bg-card border border-border rounded-xl p-6 w-[90vw] max-w-md shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+                syncResultModal.status === 'success' ? 'bg-success/15' : 'bg-destructive/15'
+              }`}>
+                {syncResultModal.status === 'success'
+                  ? <CheckCircle className="w-7 h-7 text-success" />
+                  : <XCircle className="w-7 h-7 text-destructive" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className={`text-lg font-semibold ${
+                  syncResultModal.status === 'success' ? 'text-success' : 'text-destructive'
+                }`}>
+                  {syncResultModal.status === 'success' ? '财务同步成功' : '财务同步失败'}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  触发操作：{syncResultModal.operation}
+                </p>
+              </div>
+              <button
+                onClick={() => setSyncResultModal(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                aria-label="关闭"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className={`mt-4 rounded-lg p-3 border text-sm ${
+              syncResultModal.status === 'success'
+                ? 'bg-success/10 border-success/20 text-foreground/80'
+                : 'bg-destructive/10 border-destructive/20 text-foreground/80'
+            }`}>
+              {syncResultModal.detail}
+            </div>
+
+            {syncResultModal.status === 'fail' && (
+              <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>建议：财务信息同步失败，可稍后重试或检查财务系统后台数据是否一致。实例侧操作已完成，不影响云服务器运行。</span>
+              </div>
+            )}
+
+            <div className="flex justify-end mt-5">
+              <button
+                onClick={() => setSyncResultModal(null)}
+                className={`px-5 py-2 text-sm rounded-lg transition-colors ${
+                  syncResultModal.status === 'success'
+                    ? 'bg-success/15 text-success hover:bg-success/25'
+                    : 'bg-destructive/15 text-destructive hover:bg-destructive/25'
+                }`}
+              >
+                我知道了
               </button>
             </div>
           </div>

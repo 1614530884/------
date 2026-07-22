@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ModuleHandler, IdcRequestContext } from '../../shared/types';
 import { userActions } from './actions';
-import { transformSearchParams, transformAddBalanceParams, filterSearchResultByUid } from './transformers';
+import { transformSearchParams, transformAddBalanceParams, transformDeductBalanceParams, filterSearchResultByUid } from './transformers';
 
 export class UserModule implements ModuleHandler {
   getActions() {
@@ -14,6 +14,8 @@ export class UserModule implements ModuleHandler {
         return transformSearchParams(params);
       case 'addBalance':
         return transformAddBalanceParams(params);
+      case 'deductBalance':
+        return transformDeductBalanceParams(params);
       default:
         return params;
     }
