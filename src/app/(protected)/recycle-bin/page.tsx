@@ -683,7 +683,7 @@ export default function RecycleBinPage() {
       {/* 恢复确认弹窗 */}
       {confirmModal.open && confirmModal.instance && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setConfirmModal({ open: false, instance: null, searching: false, hostInfo: null, userInfo: null, searchingUser: false, searchError: '', renewMethod: 'autoRecharge' })}>
-          <div className="bg-card border border-border rounded-xl p-5 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-foreground text-base font-semibold flex items-center gap-2">
                 <RotateCcw className="w-4 h-4 text-info" />
@@ -693,160 +693,131 @@ export default function RecycleBinPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="bg-muted/40 rounded-lg p-3 space-y-1.5 text-sm select-text">
-              <div className="text-xs text-muted-foreground mb-1">魔方云实例</div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground shrink-0">主机名:</span>
-                <span className="text-foreground truncate ml-2 flex-1 text-right">{confirmModal.instance.hostname}</span>
-                <button onClick={() => copyToClipboard(confirmModal.instance!.hostname, 'hostname')} className="ml-1.5 p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制主机名">
-                  {copiedField === 'hostname' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
-                </button>
+
+            {/* 魔方云实例信息（紧凑：2行） */}
+            <div className="bg-muted/40 rounded-lg p-2.5 text-xs space-y-1">
+              <div className="text-muted-foreground mb-0.5">魔方云实例</div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-foreground font-medium truncate flex items-center gap-1 min-w-0">
+                  {confirmModal.instance.hostname}
+                  <button onClick={() => copyToClipboard(confirmModal.instance!.hostname, 'hostname')} className="p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制主机名">
+                    {copiedField === 'hostname' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </span>
+                <span className="text-muted-foreground shrink-0">#{confirmModal.instance.id}</span>
               </div>
-              <div className="flex justify-between"><span className="text-muted-foreground">实例ID:</span><span className="text-foreground/80 font-mono">#{confirmModal.instance.id}</span></div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground shrink-0">主IP:</span>
-                <span className="text-foreground font-mono truncate ml-2 flex-1 text-right">{confirmModal.instance.mainip}</span>
-                <button onClick={() => copyToClipboard(confirmModal.instance!.mainip, 'mainip')} className="ml-1.5 p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制IP">
-                  {copiedField === 'mainip' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
-                </button>
+              <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                <span className="flex items-center gap-0.5 truncate">IP: <span className="text-foreground font-mono">{confirmModal.instance.mainip}</span>
+                  <button onClick={() => copyToClipboard(confirmModal.instance!.mainip, 'mainip')} className="p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制IP">
+                    {copiedField === 'mainip' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </span>
+                <span className="shrink-0">{confirmModal.instance.cpu}核/{formatMemory(confirmModal.instance.memory)}</span>
               </div>
-              <div className="flex justify-between"><span className="text-muted-foreground">配置:</span><span className="text-foreground/80">{confirmModal.instance.cpu}核 / {formatMemory(confirmModal.instance.memory)}</span></div>
               {(() => { const d = formatDaysUntil(confirmModal.instance.delete_time); return (
-                <div className="flex justify-between"><span className="text-muted-foreground">剩余时间:</span><span className="text-primary" title={d.title}>{d.text}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>剩余:</span><span className="text-primary" title={d.title}>{d.text}</span></div>
               ); })()}
             </div>
 
-            {/* 财务产品信息（反查结果） */}
-            <div className="bg-muted/40 rounded-lg p-3 space-y-1.5 text-sm select-text">
-              <div className="text-xs text-muted-foreground mb-1 flex items-center justify-between">
+            {/* 财务产品信息（紧凑：2-3行） */}
+            <div className="bg-muted/40 rounded-lg p-2.5 text-xs space-y-1">
+              <div className="text-muted-foreground mb-0.5 flex items-center justify-between">
                 <span>关联财务产品</span>
-                {confirmModal.searching && <span className="flex items-center gap-1 text-info"><Loader2 className="w-3 h-3 animate-spin" />反查中...</span>}
+                {confirmModal.searching && <span className="flex items-center gap-1 text-info"><Loader2 className="w-3 h-3 animate-spin" />反查中</span>}
               </div>
               {confirmModal.searching ? (
-                <div className="text-xs text-muted-foreground py-2">正在查询财务产品信息...</div>
+                <div className="text-muted-foreground py-1">正在查询财务产品信息...</div>
               ) : confirmModal.hostInfo ? (
                 <>
-                  <div className="flex justify-between"><span className="text-muted-foreground">产品名:</span><span className="text-foreground truncate ml-2">{confirmModal.hostInfo.productname}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">产品ID:</span><span className="text-foreground/80 font-mono">#{confirmModal.hostInfo.hostid}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">当前状态:</span><span className="text-foreground/80">{formatDomainStatus(confirmModal.hostInfo.domainstatus)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">续费金额:</span><span className="text-success font-medium">¥{confirmModal.hostInfo.amount.toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">续费周期:</span><span className="text-foreground/80">{formatBillingCycle(confirmModal.hostInfo.billingcycle)}</span></div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-foreground truncate">{confirmModal.hostInfo.productname}</span>
+                    <span className="text-muted-foreground shrink-0">#{confirmModal.hostInfo.hostid}</span>
+                  </div>
+                  <div className="flex justify-between gap-2 text-muted-foreground">
+                    <span>状态: <span className="text-foreground/80">{formatDomainStatus(confirmModal.hostInfo.domainstatus)}</span></span>
+                    <span className="text-success font-medium">¥{confirmModal.hostInfo.amount.toFixed(2)}/{formatBillingCycle(confirmModal.hostInfo.billingcycle)}</span>
+                  </div>
                 </>
               ) : (
-                <div className="text-xs text-warning py-1">{confirmModal.searchError || '未找到关联的财务产品'}</div>
+                <div className="text-warning py-0.5">{confirmModal.searchError || '未找到关联的财务产品'}</div>
               )}
             </div>
 
-            {/* 用户信息区域 */}
+            {/* 用户信息（紧凑：2行） */}
             {confirmModal.hostInfo && (
-              <div className="bg-muted/40 rounded-lg p-3 space-y-1.5 text-sm select-text">
-                <div className="text-xs text-muted-foreground mb-1 flex items-center justify-between">
+              <div className="bg-muted/40 rounded-lg p-2.5 text-xs space-y-1">
+                <div className="text-muted-foreground mb-0.5 flex items-center justify-between">
                   <span>用户信息</span>
-                  {confirmModal.searchingUser && <span className="flex items-center gap-1 text-info"><Loader2 className="w-3 h-3 animate-spin" />查询中...</span>}
+                  {confirmModal.searchingUser && <span className="flex items-center gap-1 text-info"><Loader2 className="w-3 h-3 animate-spin" />查询中</span>}
                 </div>
                 {confirmModal.searchingUser ? (
-                  <div className="text-xs text-muted-foreground py-1">正在查询用户信息...</div>
+                  <div className="text-muted-foreground py-0.5">正在查询用户信息...</div>
                 ) : confirmModal.userInfo ? (
                   <>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground shrink-0">用户姓名:</span>
-                      <span className="text-foreground truncate ml-2 text-right">{confirmModal.userInfo.username || '无'}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground shrink-0">联系方式:</span>
-                      <span className="text-foreground/80 truncate ml-2 text-right">
-                        {confirmModal.userInfo.phone || confirmModal.userInfo.email || '无'}
+                      <span className="text-foreground font-medium">{confirmModal.userInfo.username || '未知'}</span>
+                      <span className={confirmModal.userInfo.credit >= confirmModal.hostInfo.amount ? 'text-success' : 'text-warning'}>
+                        余额: ¥{confirmModal.userInfo.credit.toFixed(2)}
                       </span>
-                      {(confirmModal.userInfo.phone || confirmModal.userInfo.email) && (
-                        <button onClick={() => copyToClipboard(confirmModal.userInfo!.phone || confirmModal.userInfo!.email, 'contact')} className="ml-1.5 p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制联系方式">
-                          {copiedField === 'contact' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
-                        </button>
-                      )}
                     </div>
-                    {confirmModal.userInfo.phone && confirmModal.userInfo.email && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground shrink-0">邮箱:</span>
-                        <span className="text-foreground/80 truncate ml-2 text-right">{confirmModal.userInfo.email}</span>
-                        <button onClick={() => copyToClipboard(confirmModal.userInfo!.email, 'email')} className="ml-1.5 p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制邮箱">
-                          {copiedField === 'email' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                    {(confirmModal.userInfo.phone || confirmModal.userInfo.email) && (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <span className="truncate">{confirmModal.userInfo.phone || confirmModal.userInfo.email}</span>
+                        <button onClick={() => copyToClipboard(confirmModal.userInfo!.phone || confirmModal.userInfo!.email, 'contact')} className="p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0" title="复制联系方式">
+                          {copiedField === 'contact' ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
                         </button>
                       </div>
                     )}
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground shrink-0">可用余额:</span>
-                      <span className={`font-medium ${confirmModal.userInfo.credit >= confirmModal.hostInfo.amount ? 'text-success' : 'text-warning'}`}>
-                        ¥{confirmModal.userInfo.credit.toFixed(2)}
-                      </span>
-                    </div>
                   </>
                 ) : (
-                  <div className="text-xs text-muted-foreground py-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />未获取到用户详细信息（不影响扣除余额续费，后端会自动处理）
+                  <div className="text-muted-foreground py-0.5 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />未获取到用户信息（不影响扣余额续费）
                   </div>
                 )}
               </div>
             )}
 
-            {/* 续费方式选择（仅在找到财务产品时显示） */}
+            {/* 续费方式选择（扣除余额在左，自动充值在右） */}
             {confirmModal.hostInfo && (
-              <div className="bg-muted/40 rounded-lg p-3 space-y-2 text-sm">
-                <div className="text-xs text-muted-foreground mb-1">续费方式</div>
-                <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                  confirmModal.renewMethod === 'autoRecharge'
-                    ? 'border-info bg-info/10'
-                    : 'border-border hover:bg-muted/60'
-                }`}>
-                  <input
-                    type="radio"
-                    name="renewMethod"
-                    checked={confirmModal.renewMethod === 'autoRecharge'}
-                    onChange={() => setConfirmModal(prev => ({ ...prev, renewMethod: 'autoRecharge' }))}
-                    className="mt-0.5 accent-info"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-foreground font-medium">自动充值余额</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      系统自动为用户充值 ¥{confirmModal.hostInfo.amount.toFixed(2)}，再用余额支付续费账单。用户原有余额不受影响。
-                    </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmModal(prev => ({ ...prev, renewMethod: 'deductBalance' }))}
+                  className={`p-2 rounded-lg border text-left transition-colors ${
+                    confirmModal.renewMethod === 'deductBalance'
+                      ? 'border-info bg-info/10'
+                      : 'border-border hover:bg-muted/60'
+                  }`}>
+                  <div className="flex items-center gap-1.5">
+                    <input type="radio" checked={confirmModal.renewMethod === 'deductBalance'} readOnly className="accent-info w-3 h-3" />
+                    <span className="text-foreground text-sm font-medium">扣除余额</span>
                   </div>
-                </label>
-                <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                  confirmModal.renewMethod === 'deductBalance'
-                    ? 'border-info bg-info/10'
-                    : 'border-border hover:bg-muted/60'
-                }`}>
-                  <input
-                    type="radio"
-                    name="renewMethod"
-                    checked={confirmModal.renewMethod === 'deductBalance'}
-                    onChange={() => setConfirmModal(prev => ({ ...prev, renewMethod: 'deductBalance' }))}
-                    className="mt-0.5 accent-info"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-foreground font-medium">扣除余额续费</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      直接使用用户当前余额支付续费账单，不执行充值操作。
-                    </div>
-                    {confirmModal.renewMethod === 'deductBalance' && confirmModal.userInfo && confirmModal.userInfo.credit > 0 && (
-                      <div className={`text-xs mt-1.5 flex items-center gap-1 ${
-                        confirmModal.userInfo.credit >= confirmModal.hostInfo.amount ? 'text-success' : 'text-warning'
-                      }`}>
-                        {confirmModal.userInfo.credit >= confirmModal.hostInfo.amount
-                          ? <><CheckCircle className="w-3 h-3" />余额充足（¥{confirmModal.userInfo.credit.toFixed(2)} ≥ ¥{confirmModal.hostInfo.amount.toFixed(2)}）</>
-                          : <><AlertCircle className="w-3 h-3" />余额可能不足（¥{confirmModal.userInfo.credit.toFixed(2)} &lt; ¥{confirmModal.hostInfo.amount.toFixed(2)}），支付时若不足将自动报错</>}
-                      </div>
-                    )}
-                    {confirmModal.renewMethod === 'deductBalance' && (!confirmModal.userInfo || confirmModal.userInfo.credit === 0) && !confirmModal.searchingUser && (
-                      <div className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />未获取到余额信息，将直接尝试扣款，若余额不足后端会返回错误
-                      </div>
-                    )}
+                  <p className="text-xs mt-0.5">
+                    {confirmModal.userInfo && confirmModal.userInfo.credit > 0
+                      ? <span className={confirmModal.userInfo.credit >= confirmModal.hostInfo.amount ? 'text-success' : 'text-warning'}>
+                          ¥{confirmModal.userInfo.credit.toFixed(2)} {confirmModal.userInfo.credit >= confirmModal.hostInfo.amount ? '≥' : '<'} ¥{confirmModal.hostInfo.amount.toFixed(2)}
+                        </span>
+                      : <span className="text-muted-foreground">直接用余额支付</span>}
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmModal(prev => ({ ...prev, renewMethod: 'autoRecharge' }))}
+                  className={`p-2 rounded-lg border text-left transition-colors ${
+                    confirmModal.renewMethod === 'autoRecharge'
+                      ? 'border-info bg-info/10'
+                      : 'border-border hover:bg-muted/60'
+                  }`}>
+                  <div className="flex items-center gap-1.5">
+                    <input type="radio" checked={confirmModal.renewMethod === 'autoRecharge'} readOnly className="accent-info w-3 h-3" />
+                    <span className="text-foreground text-sm font-medium">自动充值</span>
                   </div>
-                </label>
+                  <p className="text-xs text-muted-foreground mt-0.5">充值后支付，余额不变</p>
+                </button>
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-2 pt-1">
               <button
                 onClick={doRestoreWithRenew}
                 disabled={!confirmModal.hostInfo}

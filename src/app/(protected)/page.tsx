@@ -6429,7 +6429,7 @@ export default function OneClickOrderPage() {
                 }
               }}>
                 <DialogContent className="sm:!max-w-lg bg-card border-border p-4 sm:p-5 w-[calc(100vw-1.5rem)] sm:w-full max-h-[85vh] flex flex-col">
-                  <DialogHeader>
+                  <DialogHeader className="shrink-0">
                     <DialogTitle className="flex items-center gap-2 text-foreground text-base font-semibold">
                       <RotateCcw className="w-4 h-4 text-info" />
                       回收站检查
@@ -6444,170 +6444,139 @@ export default function OneClickOrderPage() {
                         const amount = parseFloat(String(svc.amount || svc.firstpaymentamount || '0').replace(/[^\d.]/g, '')) || 0;
                         return (
                           <span className="flex flex-wrap gap-x-3 gap-y-0.5">
-                            <span>产品名: <span className="text-foreground">{productName}</span></span>
-                            <span>套餐周期: <span className="text-foreground">{cycleText}</span></span>
-                            <span>续费价格: <span className="text-primary">¥{amount.toFixed(2)}</span></span>
+                            <span>产品: <span className="text-foreground">{productName}</span></span>
+                            <span>周期: <span className="text-foreground">{cycleText}</span></span>
+                            <span>价格: <span className="text-primary">¥{amount.toFixed(2)}</span></span>
                           </span>
                         );
                       })() : ''}
                     </DialogDescription>
                   </DialogHeader>
-                  {recycleCheckState.loading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="w-6 h-6 text-info animate-spin" />
-                      <span className="ml-2 text-muted-foreground text-sm">正在查询回收站...</span>
-                    </div>
-                  ) : recycleCheckState.matches.length === 0 ? (
-                    <div className="py-6 text-center">
-                      <AlertCircle className="w-10 h-10 mx-auto mb-2 text-warning" />
-                      <p className="text-foreground/80 text-sm">回收站未找到该主机</p>
-                      <p className="text-muted-foreground text-xs mt-1">可能实例已被彻底删除，无法恢复</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-sm text-muted-foreground">找到 {recycleCheckState.matches.length} 个匹配实例，请选择要恢复的实例：</p>
-                      <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-                        {recycleCheckState.matches.map((c) => {
-                          const instId = Number(c.id);
-                          const isSelected = recycleCheckState.selectedInstanceId === instId;
-                          const hostname = String(c.hostname || '-');
-                          const mainip = String(c.mainip || (Array.isArray(c.ip) && c.ip[0]?.ip) || c.ip || '-');
-                          return (
-                            <div
-                              key={instId}
-                              onClick={() => setRecycleCheckState(prev => ({ ...prev, selectedInstanceId: instId }))}
-                              className={`w-full text-left p-3 rounded-lg border transition-colors cursor-pointer select-text ${
-                                isSelected ? 'border-info bg-info/10' : 'border-border bg-muted/40 hover:border-border'
-                              }`}>
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-foreground text-sm font-medium flex items-center gap-1 min-w-0">
-                                  <span className="truncate">{hostname}</span>
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); copyInstField(hostname, `hostname-${instId}`); }}
-                                    className="p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0"
-                                    title="复制主机名"
-                                  >
-                                    {recycleCheckState.copiedInstField === `hostname-${instId}` ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
-                                  </button>
-                                </span>
-                                <span className="text-xs text-muted-foreground shrink-0">ID: {instId}</span>
-                              </div>
-                              <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-0.5">IP: <span className="text-foreground">{mainip}</span>
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); copyInstField(mainip, `ip-${instId}`); }}
-                                    className="p-0.5 text-muted-foreground hover:text-info transition-colors"
-                                    title="复制IP"
-                                  >
-                                    {recycleCheckState.copiedInstField === `ip-${instId}` ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
-                                  </button>
-                                </span>
-                                <span>状态: <span className="text-foreground">{formatCloudStatus(String(c.status || '-'))}</span></span>
-                                {String(c.node_name || '') !== '' && <span>节点: <span className="text-foreground">{String(c.node_name)}</span></span>}
-                                {c.cpu != null && <span>CPU: <span className="text-foreground">{String(c.cpu)}</span></span>}
-                                {c.memory != null && <span>内存: <span className="text-foreground">{String(c.memory)}</span></span>}
-                                {String(c.recycle_time || '') !== '' && <span>回收时间: <span className="text-foreground">{String(c.recycle_time)}</span></span>}
-                              </div>
-                            </div>
-                          );
-                        })}
+                  <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
+                    {recycleCheckState.loading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 text-info animate-spin" />
+                        <span className="ml-2 text-muted-foreground text-sm">正在查询回收站...</span>
                       </div>
-                    </div>
-                  )}
-                  {!recycleCheckState.loading && recycleCheckState.matches.length > 0 && (() => {
-                    const amount = parseFloat(String(recycleCheckState.svc?.amount || recycleCheckState.svc?.firstpaymentamount || '0').replace(/[^\d.]/g, '')) || 0;
-                    const userCredit = parseFloat(String(selectedUser?.credit || '0')) || 0;
-                    const userPhone = String(selectedUser?.phonenumber || selectedUser?.phone || '');
-                    const userEmail = String(selectedUser?.email || '');
-                    const userName = String(selectedUser?.username || '');
-                    return (
+                    ) : recycleCheckState.matches.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <AlertCircle className="w-10 h-10 mx-auto mb-2 text-warning" />
+                        <p className="text-foreground/80 text-sm">回收站未找到该主机</p>
+                        <p className="text-muted-foreground text-xs mt-1">可能实例已被彻底删除，无法恢复</p>
+                      </div>
+                    ) : (
                       <>
-                        {/* 用户信息区域 */}
-                        <div className="bg-muted/40 rounded-lg p-3 space-y-1.5 text-sm border border-border">
-                          <div className="text-xs text-muted-foreground mb-1">用户信息</div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground shrink-0">用户姓名:</span>
-                            <span className="text-foreground truncate ml-2 text-right">{userName || '无'}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground shrink-0">联系方式:</span>
-                            <span className="text-foreground/80 truncate ml-2 text-right">{userPhone || userEmail || '无'}</span>
-                          </div>
-                          {userPhone && userEmail && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-muted-foreground shrink-0">邮箱:</span>
-                              <span className="text-foreground/80 truncate ml-2 text-right">{userEmail}</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground shrink-0">可用余额:</span>
-                            <span className={`font-medium ${userCredit >= amount ? 'text-success' : 'text-warning'}`}>
-                              ¥{userCredit.toFixed(2)}
-                            </span>
-                          </div>
+                        {/* 实例列表（精简：主机名+ID / IP+状态+回收时间） */}
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">找到 {recycleCheckState.matches.length} 个匹配实例，点击选择：</p>
+                          {recycleCheckState.matches.map((c) => {
+                            const instId = Number(c.id);
+                            const isSelected = recycleCheckState.selectedInstanceId === instId;
+                            const hostname = String(c.hostname || '-');
+                            const mainip = String(c.mainip || (Array.isArray(c.ip) && c.ip[0]?.ip) || c.ip || '-');
+                            const recycleTime = String(c.recycle_time || '');
+                            return (
+                              <div
+                                key={instId}
+                                onClick={() => setRecycleCheckState(prev => ({ ...prev, selectedInstanceId: instId }))}
+                                className={`w-full text-left p-2.5 rounded-lg border transition-colors cursor-pointer ${
+                                  isSelected ? 'border-info bg-info/10' : 'border-border bg-muted/40 hover:border-border'
+                                }`}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-foreground text-sm font-medium flex items-center gap-1 min-w-0">
+                                    <span className="truncate">{hostname}</span>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); copyInstField(hostname, `hostname-${instId}`); }}
+                                      className="p-0.5 text-muted-foreground hover:text-info transition-colors shrink-0"
+                                      title="复制主机名"
+                                    >
+                                      {recycleCheckState.copiedInstField === `hostname-${instId}` ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                                    </button>
+                                  </span>
+                                  <span className="text-xs text-muted-foreground shrink-0">ID: {instId}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                                  <span className="flex items-center gap-0.5">IP: <span className="text-foreground">{mainip}</span>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); copyInstField(mainip, `ip-${instId}`); }}
+                                      className="p-0.5 text-muted-foreground hover:text-info transition-colors"
+                                      title="复制IP"
+                                    >
+                                      {recycleCheckState.copiedInstField === `ip-${instId}` ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                                    </button>
+                                  </span>
+                                  <span>状态: <span className="text-foreground">{formatCloudStatus(String(c.status || '-'))}</span></span>
+                                  {recycleTime && <span>回收: <span className="text-foreground">{recycleTime}</span></span>}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
 
-                        {/* 续费方式选择 */}
-                        <div className="bg-muted/40 rounded-lg p-3 space-y-2 text-sm border border-border">
-                          <div className="text-xs text-muted-foreground mb-1">续费方式</div>
-                          <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                            recycleCheckState.renewMethod === 'autoRecharge'
-                              ? 'border-info bg-info/10'
-                              : 'border-border hover:bg-muted/60'
-                          }`}>
-                            <input
-                              type="radio"
-                              name="recycleRenewMethod"
-                              checked={recycleCheckState.renewMethod === 'autoRecharge'}
-                              onChange={() => setRecycleCheckState(prev => ({ ...prev, renewMethod: 'autoRecharge' }))}
-                              className="mt-0.5 accent-info"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="text-foreground font-medium">自动充值余额</div>
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                系统自动充值 ¥{amount.toFixed(2)}，再用余额支付。用户原有余额不受影响。
-                              </div>
-                            </div>
-                          </label>
-                          <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                            recycleCheckState.renewMethod === 'deductBalance'
-                              ? 'border-info bg-info/10'
-                              : 'border-border hover:bg-muted/60'
-                          }`}>
-                            <input
-                              type="radio"
-                              name="recycleRenewMethod"
-                              checked={recycleCheckState.renewMethod === 'deductBalance'}
-                              onChange={() => setRecycleCheckState(prev => ({ ...prev, renewMethod: 'deductBalance' }))}
-                              className="mt-0.5 accent-info"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="text-foreground font-medium">扣除余额续费</div>
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                直接使用用户当前余额支付，不执行充值操作。
-                              </div>
-                              {recycleCheckState.renewMethod === 'deductBalance' && userCredit > 0 && (
-                                <div className={`text-xs mt-1.5 flex items-center gap-1 ${
-                                  userCredit >= amount ? 'text-success' : 'text-warning'
-                                }`}>
-                                  {userCredit >= amount
-                                    ? <><CheckCircle className="w-3 h-3" />余额充足（¥{userCredit.toFixed(2)} ≥ ¥{amount.toFixed(2)}）</>
-                                    : <><AlertCircle className="w-3 h-3" />余额可能不足（¥{userCredit.toFixed(2)} &lt; ¥{amount.toFixed(2)}），支付时若不足将自动报错</>}
+                        {/* 用户信息 + 续费方式选择 */}
+                        {(() => {
+                          const amount = parseFloat(String(recycleCheckState.svc?.amount || recycleCheckState.svc?.firstpaymentamount || '0').replace(/[^\d.]/g, '')) || 0;
+                          const userCredit = parseFloat(String(selectedUser?.credit || '0')) || 0;
+                          const userPhone = String(selectedUser?.phonenumber || selectedUser?.phone || '');
+                          const userEmail = String(selectedUser?.email || '');
+                          const userName = String(selectedUser?.username || '');
+                          return (
+                            <>
+                              <div className="bg-muted/40 rounded-lg p-2.5 text-xs border border-border space-y-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-foreground font-medium">{userName || '未知用户'}</span>
+                                  <span className={userCredit >= amount ? 'text-success' : 'text-warning'}>
+                                    余额: ¥{userCredit.toFixed(2)}
+                                  </span>
                                 </div>
-                              )}
-                              {recycleCheckState.renewMethod === 'deductBalance' && userCredit === 0 && (
-                                <div className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
-                                  <AlertCircle className="w-3 h-3" />未获取到余额信息，将直接尝试扣款，若余额不足后端会返回错误
-                                </div>
-                              )}
-                            </div>
-                          </label>
-                        </div>
+                                {(userPhone || userEmail) && (
+                                  <div className="text-muted-foreground truncate">{userPhone || userEmail}</div>
+                                )}
+                              </div>
+
+                              {/* 续费方式选择（扣除余额在左，自动充值在右） */}
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setRecycleCheckState(prev => ({ ...prev, renewMethod: 'deductBalance' }))}
+                                  className={`p-2.5 rounded-lg border text-left transition-colors ${
+                                    recycleCheckState.renewMethod === 'deductBalance'
+                                      ? 'border-info bg-info/10'
+                                      : 'border-border hover:bg-muted/60'
+                                  }`}>
+                                  <div className="flex items-center gap-1.5">
+                                    <input type="radio" checked={recycleCheckState.renewMethod === 'deductBalance'} readOnly className="accent-info w-3 h-3" />
+                                    <span className="text-foreground text-sm font-medium">扣除余额</span>
+                                  </div>
+                                  <p className="text-xs mt-0.5">
+                                    {userCredit > 0
+                                      ? <span className={userCredit >= amount ? 'text-success' : 'text-warning'}>¥{userCredit.toFixed(2)} {userCredit >= amount ? '≥' : '<'} ¥{amount.toFixed(2)}</span>
+                                      : <span className="text-muted-foreground">直接用余额支付</span>}
+                                  </p>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setRecycleCheckState(prev => ({ ...prev, renewMethod: 'autoRecharge' }))}
+                                  className={`p-2.5 rounded-lg border text-left transition-colors ${
+                                    recycleCheckState.renewMethod === 'autoRecharge'
+                                      ? 'border-info bg-info/10'
+                                      : 'border-border hover:bg-muted/60'
+                                  }`}>
+                                  <div className="flex items-center gap-1.5">
+                                    <input type="radio" checked={recycleCheckState.renewMethod === 'autoRecharge'} readOnly className="accent-info w-3 h-3" />
+                                    <span className="text-foreground text-sm font-medium">自动充值</span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-0.5">充值后支付，余额不变</p>
+                                </button>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </>
-                    );
-                  })()}
+                    )}
+                  </div>
                   {!recycleCheckState.loading && (
-                    <DialogFooter className="gap-2 mt-3">
+                    <DialogFooter className="gap-2 mt-3 shrink-0">
                       <Button type="button" variant="outline" size="sm" onClick={() => setRecycleCheckState(prev => ({ ...prev, open: false }))}
                         className="border-border text-muted-foreground">
                         取消
