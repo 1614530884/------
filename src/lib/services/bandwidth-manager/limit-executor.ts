@@ -25,7 +25,7 @@ import type {
  * 魔方云 temp_bw_expire_time 到期后，API 状态同步可能有延迟，
  * 增加此缓冲确保在魔方云完全解除限速前不会重复限速同一台机器。
  */
-const COOLDOWN_BUFFER_MS = 120 * 1000; // 2 分钟
+export const COOLDOWN_BUFFER_MS = 120 * 1000; // 2 分钟
 
 /** 提取魔方云 API 返回中的 data 层 */
 function extractData(raw: unknown): Record<string, unknown> {
@@ -369,10 +369,9 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
     const realtimeMap = await getInstancesRealtimeBandwidth(account, cloudIds);
 
     const now = Date.now();
-    const cooldownMs = rule.durationMin * 60 * 1000;
-    const effectiveCooldownMs = cooldownMs + COOLDOWN_BUFFER_MS;
 
     // 3. 按触发方向分别排序 + 冷却过滤 + Top N + 持续监控
+    // 注意：machineLimitTime 存储的是限速到期时间戳（含缓冲），而非限速时间戳
     type Candidate = { inst: typeof instances[0]; bwBps: number };
     const processDirection = async (
       isUp: boolean,
@@ -390,11 +389,11 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
         .filter(x => x.bwBps > 0)
         .sort((a, b) => b.bwBps - a.bwBps);
 
-      // 冷却过滤
+      // 冷却过滤：machineLimitTime 存储到期时间戳，now < expireTs 表示仍在限速有效期内
       const available: Candidate[] = [];
       for (const item of sorted) {
-        const limitTs = machineLimitTime?.get(item.inst.id) ?? 0;
-        if (limitTs && now - limitTs < effectiveCooldownMs) {
+        const expireTs = machineLimitTime?.get(item.inst.id) ?? 0;
+        if (expireTs && now < expireTs) {
           const configBw = isUp ? item.inst.outBw : item.inst.inBw;
           skipped.push({
             cloudId: item.inst.id,

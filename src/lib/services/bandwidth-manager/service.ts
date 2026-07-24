@@ -11,7 +11,7 @@
 import { MfyService } from '@/lib/services/mfy-service';
 import { asyncPool } from '@/lib/async-pool';
 import { bandwidthRuleStore, bandwidthLogStore } from './store';
-import { executeBandwidthLimit } from './limit-executor';
+import { executeBandwidthLimit, COOLDOWN_BUFFER_MS } from './limit-executor';
 import type { BandwidthRule, BandwidthServiceStatus, BandwidthMetric } from './types';
 
 class BandwidthManagerService {
@@ -269,13 +269,15 @@ class BandwidthManagerService {
       });
 
       // 限速成功的机器记录到 per-machine 冷却表
+      // 存储限速到期时间戳（含缓冲），而非限速时间戳，确保不同规则 durationMin 不同时也能正确防止重复限速
       for (const inst of output.instances) {
         if (inst.limited) {
-          this.machineLimitTime.set(inst.cloudId, now);
+          const expireTs = now + rule.durationMin * 60 * 1000 + COOLDOWN_BUFFER_MS;
+          this.machineLimitTime.set(inst.cloudId, expireTs);
         }
       }
-      // 清理过期条目（超过 durationMin 的），避免内存无限增长
-      this.cleanupExpiredMachineLimits(rule.durationMin);
+      // 清理已过期的到期时间记录，避免内存无限增长
+      this.cleanupExpiredMachineLimits();
 
       bandwidthLogStore.append({
         ruleId: rule.id,
@@ -312,13 +314,11 @@ class BandwidthManagerService {
     }
   }
 
-  /** 清理已过期的 per-machine 冷却记录（含缓冲时间） */
-  private cleanupExpiredMachineLimits(durationMin: number): void {
-    // 缓冲 2 分钟，与 limit-executor 的 COOLDOWN_BUFFER_MS 保持一致
-    const expireMs = (durationMin + 2) * 60 * 1000;
+  /** 清理已过期的 per-machine 冷却记录（machineLimitTime 存储的是到期时间戳） */
+  private cleanupExpiredMachineLimits(): void {
     const now = Date.now();
-    for (const [cloudId, ts] of this.machineLimitTime) {
-      if (now - ts >= expireMs) {
+    for (const [cloudId, expireTs] of this.machineLimitTime) {
+      if (now >= expireTs) {
         this.machineLimitTime.delete(cloudId);
       }
     }

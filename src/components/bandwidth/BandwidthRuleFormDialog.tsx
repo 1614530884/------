@@ -35,13 +35,7 @@ const COOLDOWN_OPTIONS = [
   { value: 1800, label: '30分钟' },
 ];
 
-const DURATION_OPTIONS = [
-  { value: 10, label: '10分钟' },
-  { value: 30, label: '30分钟' },
-  { value: 60, label: '1小时' },
-  { value: 120, label: '2小时' },
-  { value: 360, label: '6小时' },
-];
+
 
 export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeIds, onSaved }: BandwidthRuleFormDialogProps) {
   const isEdit = !!rule;
@@ -63,7 +57,7 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
   const [continuousEnabled, setContinuousEnabled] = useState(false);
   const [continuousWindowMin, setContinuousWindowMin] = useState('120');
   const [continuousPercent, setContinuousPercent] = useState('80');
-  const [durationMin, setDurationMin] = useState(30);
+  const [durationMin, setDurationMin] = useState('30');
   const [interval, setIntervalVal] = useState(60);
   const [cooldown, setCooldown] = useState(300);
   const [triggerCount, setTriggerCount] = useState('1');
@@ -87,7 +81,7 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
         setContinuousEnabled(rule.continuousEnabled);
         setContinuousWindowMin(String(rule.continuousWindowMin ?? 120));
         setContinuousPercent(String(rule.continuousPercent ?? 80));
-        setDurationMin(rule.durationMin);
+        setDurationMin(String(rule.durationMin));
         setIntervalVal(rule.interval);
         setCooldown(rule.cooldown);
         setTriggerCount(String(rule.triggerCount));
@@ -106,7 +100,7 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
         setContinuousEnabled(false);
         setContinuousWindowMin('120');
         setContinuousPercent('80');
-        setDurationMin(30);
+        setDurationMin('30');
         setIntervalVal(60);
         setCooldown(300);
         setTriggerCount('1');
@@ -148,6 +142,7 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
     const continuousWindowNum = Number(continuousWindowMin);
     const continuousPercentNum = Number(continuousPercent);
     const triggerCountNum = Number(triggerCount);
+    const durationMinNum = Number(durationMin);
 
     if (thresholdUpEnabled && (!thresholdUpMbps.trim() || isNaN(upMbps) || upMbps <= 0)) {
       setError('上行带宽阈值必须大于0'); return;
@@ -167,6 +162,9 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
       if (isNaN(continuousPercentNum) || continuousPercentNum < 1 || continuousPercentNum > 100) { setError('持续监控带宽使用率须在1-100之间'); return; }
     }
     if (!triggerCount.trim() || isNaN(triggerCountNum) || triggerCountNum < 1) { setError('连续触发次数必须≥1'); return; }
+    if (!durationMin.trim() || isNaN(durationMinNum) || durationMinNum < 1) {
+      setError('限速持续时间必须≥1分钟'); return;
+    }
 
     setSaving(true);
     try {
@@ -183,7 +181,7 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
         continuousEnabled,
         continuousWindowMin: continuousEnabled ? continuousWindowNum : undefined,
         continuousPercent: continuousEnabled ? continuousPercentNum : undefined,
-        durationMin,
+        durationMin: durationMinNum,
         interval,
         cooldown,
         triggerCount: triggerCountNum,
@@ -313,10 +311,11 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
             </div>
             <div className="space-y-1.5">
               <Label className="text-foreground">限速持续时间</Label>
-              <select value={durationMin} onChange={e => setDurationMin(Number(e.target.value))}
-                className="w-full h-9 rounded-md bg-background border border-border text-foreground px-3 text-sm">
-                {DURATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <div className="flex items-center gap-2">
+                <Input type="number" value={durationMin} onChange={e => setDurationMin(e.target.value)}
+                  min={1} className="bg-background border-border text-foreground flex-1" />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">分钟 (≥1)</span>
+              </div>
             </div>
           </div>
 
