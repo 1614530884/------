@@ -62,15 +62,16 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
   const [nodeIds, setNodeIds] = useState<number[]>([]);
   const [metric, setMetric] = useState<MonitorMetric>('cpu');
   const [operator, setOperator] = useState<MonitorOperator>('above');
-  const [threshold, setThreshold] = useState(80);
+  // 数值输入用 string 存储，允许自由删除/清空/编辑，保存时再 Number() 转换
+  const [threshold, setThreshold] = useState('80');
   // 区间模式低位
-  const [thresholdLow, setThresholdLow] = useState(20);
+  const [thresholdLow, setThresholdLow] = useState('20');
   const [actionLow, setActionLow] = useState<MonitorAction>('enable');
   // 高位
   const [action, setAction] = useState<MonitorAction>('disable');
   const [interval, setInterval_] = useState(300);
   const [cooldown, setCooldown] = useState(600);
-  const [triggerCount, setTriggerCount] = useState(1);
+  const [triggerCount, setTriggerCount] = useState('1');
   const [nodeSearch, setNodeSearch] = useState('');
 
   useEffect(() => {
@@ -81,25 +82,25 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
         setNodeIds(rule.nodeIds);
         setMetric(rule.metric);
         setOperator(rule.operator || 'above');
-        setThreshold(rule.threshold);
+        setThreshold(String(rule.threshold));
         setAction(rule.action);
-        setThresholdLow(rule.thresholdLow ?? 20);
+        setThresholdLow(String(rule.thresholdLow ?? 20));
         setActionLow(rule.actionLow ?? 'enable');
         setInterval_(rule.interval);
         setCooldown(rule.cooldown);
-        setTriggerCount(rule.triggerCount || 1);
+        setTriggerCount(String(rule.triggerCount || 1));
       } else {
         setName('');
         setNodeIds([...selectedNodeIds]);
         setMetric('cpu');
         setOperator('above');
-        setThreshold(80);
+        setThreshold('80');
         setAction('disable');
-        setThresholdLow(20);
+        setThresholdLow('20');
         setActionLow('enable');
         setInterval_(300);
         setCooldown(600);
-        setTriggerCount(1);
+        setTriggerCount('1');
       }
       setNodeSearch('');
     }
@@ -109,8 +110,21 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
     setError('');
     if (!name.trim()) { setError('请输入规则名称'); return; }
     if (nodeIds.length === 0) { setError('请选择至少一个节点'); return; }
+    // string -> number 转换并校验
+    const thresholdNum = Number(threshold);
+    const thresholdLowNum = Number(thresholdLow);
+    const triggerCountNum = Number(triggerCount);
+    if (!threshold.trim() || isNaN(thresholdNum) || thresholdNum < 0 || thresholdNum > 100) {
+      setError('阈值必须在0-100之间'); return;
+    }
+    if (!triggerCount.trim() || isNaN(triggerCountNum) || triggerCountNum < 1) {
+      setError('触发次数必须≥1'); return;
+    }
     if (operator === 'range') {
-      if (threshold <= thresholdLow) { setError('高位阈值必须大于低位阈值'); return; }
+      if (!thresholdLow.trim() || isNaN(thresholdLowNum) || thresholdLowNum < 0 || thresholdLowNum > 99) {
+        setError('低位阈值必须在0-99之间'); return;
+      }
+      if (thresholdNum <= thresholdLowNum) { setError('高位阈值必须大于低位阈值'); return; }
     }
 
     setSaving(true);
@@ -126,12 +140,12 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
             nodeIds,
             metric,
             operator,
-            threshold,
+            threshold: thresholdNum,
             action,
-            ...(operator === 'range' ? { thresholdLow, actionLow } : {}),
+            ...(operator === 'range' ? { thresholdLow: thresholdLowNum, actionLow } : {}),
             interval,
             cooldown,
-            triggerCount,
+            triggerCount: triggerCountNum,
             enabled: rule?.enabled ?? true,
             createdAt: rule?.createdAt || 0,
           },
@@ -252,7 +266,7 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
                   <Input
                     type="number" min={1} max={100}
                     value={threshold}
-                    onChange={e => setThreshold(Number(e.target.value))}
+                    onChange={e => setThreshold(e.target.value)}
                     className="mt-1 bg-input border-border text-foreground text-xs"
                   />
                 </div>
@@ -280,7 +294,7 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
                   <Input
                     type="number" min={0} max={99}
                     value={thresholdLow}
-                    onChange={e => setThresholdLow(Number(e.target.value))}
+                    onChange={e => setThresholdLow(e.target.value)}
                     className="mt-1 bg-input border-border text-foreground text-xs"
                   />
                 </div>
@@ -316,7 +330,7 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
                   min={0}
                   max={100}
                   value={threshold}
-                  onChange={e => setThreshold(Number(e.target.value))}
+                  onChange={e => setThreshold(e.target.value)}
                   className="mt-1 bg-input border-border text-foreground"
                 />
               </div>
@@ -355,7 +369,7 @@ export function RuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeId
                 min={1}
                 max={100}
                 value={triggerCount}
-                onChange={e => setTriggerCount(Math.max(1, Number(e.target.value)))}
+                onChange={e => setTriggerCount(e.target.value)}
                 className="mt-1 bg-input border-border text-foreground"
               />
               <span className="text-[10px] text-muted-foreground mt-0.5 block">连续满足后执行</span>

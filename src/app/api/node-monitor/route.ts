@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { readConfig, writeConfig, readLogs, clearLogs } from '@/lib/services/node-monitor-store';
+import { readConfig, writeConfig, readLogsFiltered, clearLogs } from '@/lib/services/node-monitor-store';
 import { nodeMonitorService } from '@/lib/services/node-monitor-service';
 import type { MonitorRule } from '@/lib/services/node-monitor-types';
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
       case 'listLogs': {
         const page = Math.max(1, Number(searchParams.get('page')) || 1);
         const perPage = Math.min(100, Math.max(1, Number(searchParams.get('perPage')) || 50));
-        const logs = readLogs();
+        const resultFilter = searchParams.get('result') || undefined;
+        const logs = readLogsFiltered({ result: resultFilter });
         const total = logs.length;
         const start = (page - 1) * perPage;
         const items = logs.slice(start, start + perPage);

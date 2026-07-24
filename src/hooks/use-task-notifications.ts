@@ -47,7 +47,8 @@ export function useTaskNotifications(): {
   const refresh = useCallback(async () => {
     if (!lastReadAt) return;
     try {
-      const url = `/api/server-tools/tasks?status=success,failed,cancelled,interrupted&finishedAfter=${encodeURIComponent(lastReadAt)}&limit=5`;
+      // onlyOwn=1 强制仅查询当前用户自己创建的任务通知（管理员也只看自己的）
+      const url = `/api/server-tools/tasks?status=success,failed,cancelled,interrupted&finishedAfter=${encodeURIComponent(lastReadAt)}&limit=5&onlyOwn=1`;
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();

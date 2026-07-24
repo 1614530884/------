@@ -5,8 +5,9 @@ import { WebSocketServer } from 'ws';
 import type { IncomingMessage } from 'http';
 import type { Duplex } from 'stream';
 import { nodeMonitorService } from './lib/services/node-monitor-service';
-import { flushLogs } from './lib/services/node-monitor-store';
+import { flushLogs, migrateLogsFromJson } from './lib/services/node-monitor-store';
 import { serverToolsService } from './lib/services/server-tools/service';
+import { bandwidthManagerService } from './lib/services/bandwidth-manager';
 import { setupSshHandler } from './ws-handlers/ssh';
 import { setupSftpHandler } from './ws-handlers/sftp';
 import { setupTasksHandler } from './ws-handlers/tasks';
@@ -105,12 +106,19 @@ app.prepare().then(() => {
   // 启动节点监控后台服务
   nodeMonitorService.start();
 
+  // 迁移旧 JSON 日志到 SQLite（仅执行一次，导入后重命名为 .bak）
+  migrateLogsFromJson();
+
   // 启动服务器管理工具服务（含 DB 初始化、Token 管理、任务恢复）
   serverToolsService.start();
+
+  // 启动智能带宽管理服务
+  bandwidthManagerService.start();
 
   // 优雅关闭
   const shutdown = () => {
     nodeMonitorService.stop();
+    bandwidthManagerService.stop();
     serverToolsService.stop();
     flushLogs();
     server.close();

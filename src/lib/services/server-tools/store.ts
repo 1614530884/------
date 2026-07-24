@@ -293,11 +293,14 @@ export const taskStore = {
     connectionId?: string;
     limit?: number;
     finishedAfter?: string;
+    /** 强制仅查询当前用户自己的任务（用于通知场景，管理员也只看自己的） */
+    onlyOwn?: boolean;
   }): ServerTask[] {
     const db = getDb();
     const conditions: string[] = [];
     const params: (string | number)[] = [];
-    if (!currentUser.isAdmin) {
+    // 管理员默认可查看全部任务；onlyOwn=true 时强制只看自己的（通知场景）
+    if (!currentUser.isAdmin || options?.onlyOwn) {
       conditions.push('owner = ?');
       params.push(currentUser.username);
     }

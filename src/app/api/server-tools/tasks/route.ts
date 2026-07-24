@@ -23,6 +23,8 @@ export const GET = withAuth(async (request, currentUser) => {
     : undefined;
   const connectionId = url.searchParams.get('connectionId');
   const finishedAfter = url.searchParams.get('finishedAfter') ?? undefined;
+  // onlyOwn=1 时强制按 owner 过滤（通知场景：仅展示当前用户自己创建的任务）
+  const onlyOwn = url.searchParams.get('onlyOwn') === '1';
   const limitParam = url.searchParams.get('limit');
   const limit = limitParam ? Math.min(200, Math.max(1, Number(limitParam) || 200)) : undefined;
   const list = taskStore.list(currentUser, {
@@ -31,6 +33,7 @@ export const GET = withAuth(async (request, currentUser) => {
     connectionId: connectionId ?? undefined,
     finishedAfter,
     limit,
+    onlyOwn,
   });
   // 标注运行中状态（内存中真实状态）
   const annotated = list.map(t => ({

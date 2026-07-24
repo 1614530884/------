@@ -7,10 +7,11 @@ import {
   ChevronLeft, ChevronRight,
   Monitor, HardDrive, Wifi, Cpu, MemoryStick,
   Copy, AlertCircle, CheckCircle, XCircle,
-  MoreVertical, Shield,
+  MoreVertical, Shield, Gauge,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MonitorSheet } from '@/components/node-monitor/MonitorSheet';
+import { BandwidthSheet } from '@/components/bandwidth/BandwidthSheet';
 import { getLoginUser } from '@/lib/auth-client';
 import { PageHeader } from '@/components/layout/page-header';
 
@@ -217,6 +218,7 @@ function NodesContent() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<number>>(new Set());
   const [monitorSheetOpen, setMonitorSheetOpen] = useState(false);
+  const [bandwidthSheetOpen, setBandwidthSheetOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const callMfyApi = useCallback(async (action: string, params: Record<string, unknown> = {}, signal?: AbortSignal): Promise<Record<string, unknown>> => {
@@ -627,6 +629,13 @@ function NodesContent() {
                 <span className="ml-1 text-xs font-semibold">{selectedNodeIds.size}</span>
               )}
             </button>
+            <button
+              onClick={() => setBandwidthSheetOpen(true)}
+              className={`p-2 rounded-lg hover:bg-accent transition-colors ${selectedNodeIds.size > 0 ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+              title="智能带宽管理"
+            >
+              <Gauge className="w-4 h-4" />
+            </button>
           </>
         }
       />
@@ -1026,6 +1035,14 @@ function NodesContent() {
       <MonitorSheet
         open={monitorSheetOpen}
         onOpenChange={setMonitorSheetOpen}
+        nodes={nodes.map(n => ({ id: n.id, name: n.name, ip: n.ip }))}
+        selectedNodeIds={selectedNodeIds}
+      />
+
+      {/* 智能带宽管理 Sheet */}
+      <BandwidthSheet
+        open={bandwidthSheetOpen}
+        onOpenChange={setBandwidthSheetOpen}
         nodes={nodes.map(n => ({ id: n.id, name: n.name, ip: n.ip }))}
         selectedNodeIds={selectedNodeIds}
       />

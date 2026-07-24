@@ -5,7 +5,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Loader2, Trash2, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import type { MonitorLog } from '@/lib/services/node-monitor-types';
 
 interface LogViewerDialogProps {
@@ -13,17 +16,27 @@ interface LogViewerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const RESULT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'all', label: '全部结果' },
+  { value: 'success', label: '成功' },
+  { value: 'failed', label: '失败' },
+  { value: 'skipped', label: '跳过' },
+];
+
 export function LogViewerDialog({ open, onOpenChange }: LogViewerDialogProps) {
   const [logs, setLogs] = useState<MonitorLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [filterResult, setFilterResult] = useState<string>('all');
   const perPage = 20;
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/node-monitor?action=listLogs&page=${page}&perPage=${perPage}`);
+      const params = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+      if (filterResult !== 'all') params.set('result', filterResult);
+      const res = await fetch(`/api/node-monitor?action=listLogs&${params}`);
       const data = await res.json();
       if (data.success) {
         setLogs(data.data.items);
@@ -31,7 +44,7 @@ export function LogViewerDialog({ open, onOpenChange }: LogViewerDialogProps) {
       }
     } catch { /* ignore */ }
     setLoading(false);
-  }, [page]);
+  }, [page, filterResult]);
 
   useEffect(() => {
     if (open) fetchLogs();
@@ -71,12 +84,25 @@ export function LogViewerDialog({ open, onOpenChange }: LogViewerDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center gap-3 pr-8">
+          <div className="flex items-center gap-3 pr-8 flex-wrap">
             <DialogTitle className="flex-shrink-0">操作日志</DialogTitle>
             <Button size="sm" variant="outline" onClick={handleClear}
               className="border-border text-destructive hover:text-destructive/80 text-xs flex-shrink-0">
               <Trash2 className="w-3 h-3 mr-1" />清空
             </Button>
+            <div className="flex items-center gap-1.5 ml-auto">
+              <Filter className="w-3 h-3 text-muted-foreground" />
+              <Select value={filterResult} onValueChange={(v) => { setFilterResult(v); setPage(1); }}>
+                <SelectTrigger className="h-7 w-[100px] text-xs border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESULT_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </DialogHeader>
 

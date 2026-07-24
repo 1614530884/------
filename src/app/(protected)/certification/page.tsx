@@ -418,7 +418,7 @@ function CertificationListContent() {
                         <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground text-xs">{formatTime(item.create_time)}</td>
                         <td className="px-3 py-2.5 whitespace-nowrap text-right">
                           <div className="inline-flex items-center gap-1">
-                            {(item.status === 2 || item.status === 3) && (
+                            {(item.status === 2 || item.status === 3 || item.status === 4) && (
                               <button
                                 onClick={() => setApproveTarget(item)}
                                 className="inline-flex items-center gap-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 text-xs font-medium hover:bg-emerald-500/20 transition-colors"
@@ -428,7 +428,7 @@ function CertificationListContent() {
                                 通过
                               </button>
                             )}
-                            {(item.status === 1 || item.status === 2 || item.status === 3) && (
+                            {(item.status === 1 || item.status === 2 || item.status === 3 || item.status === 4) && (
                               <button
                                 onClick={() => { setRejectTarget(item); setRejectReason(''); }}
                                 className="inline-flex items-center gap-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 px-2 py-1 text-xs font-medium hover:bg-red-500/20 transition-colors"
@@ -490,7 +490,7 @@ function CertificationListContent() {
                   <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
                     <span className="text-xs text-muted-foreground">{formatTime(item.create_time)}</span>
                     <div className="inline-flex items-center gap-1">
-                      {(item.status === 2 || item.status === 3) && (
+                      {(item.status === 2 || item.status === 3 || item.status === 4) && (
                         <button
                           onClick={() => setApproveTarget(item)}
                           className="inline-flex items-center gap-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 text-xs font-medium"
@@ -499,7 +499,7 @@ function CertificationListContent() {
                           通过
                         </button>
                       )}
-                      {(item.status === 1 || item.status === 2 || item.status === 3) && (
+                      {(item.status === 1 || item.status === 2 || item.status === 3 || item.status === 4) && (
                         <button
                           onClick={() => { setRejectTarget(item); setRejectReason(''); }}
                           className="inline-flex items-center gap-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 px-2 py-1 text-xs font-medium"

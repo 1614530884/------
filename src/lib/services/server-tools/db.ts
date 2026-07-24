@@ -122,6 +122,133 @@ function initSchema(db: Database.Database): void {
       retain_days INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_cleanup_owner ON cleanup_rules(owner);
+
+    -- 智能带宽规则（双阈值模型：threshold_up/threshold_down）
+    CREATE TABLE IF NOT EXISTS bandwidth_rules (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      node_ids TEXT NOT NULL,
+      threshold_up BIGINT,
+      threshold_down BIGINT,
+      top_n INTEGER NOT NULL DEFAULT 5,
+      limit_mode TEXT NOT NULL,
+      limit_value INTEGER NOT NULL,
+      continuous_enabled INTEGER DEFAULT 0,
+      continuous_window_min INTEGER,
+      continuous_percent INTEGER,
+      duration_min INTEGER NOT NULL,
+      reduce_percent INTEGER NOT NULL,
+      interval INTEGER NOT NULL DEFAULT 60,
+      cooldown INTEGER NOT NULL DEFAULT 300,
+      trigger_count INTEGER NOT NULL DEFAULT 1,
+      enabled INTEGER DEFAULT 1,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_bw_rules_enabled ON bandwidth_rules(enabled);
+
+    -- 智能带宽管理日志
+    CREATE TABLE IF NOT EXISTS bandwidth_logs (
+      id TEXT PRIMARY KEY,
+      ts INTEGER NOT NULL,
+      rule_id TEXT NOT NULL,
+      rule_name TEXT NOT NULL,
+      node_id INTEGER NOT NULL,
+      node_name TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      metric_value BIGINT,
+      top_n INTEGER,
+      affected_count INTEGER,
+      details TEXT,
+      result TEXT NOT NULL,
+      error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_bw_logs_ts ON bandwidth_logs(ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_bw_logs_rule ON bandwidth_logs(rule_id);
+    CREATE INDEX IF NOT EXISTS idx_bw_logs_node ON bandwidth_logs(node_id);
+  `);
+
+  // 增量迁移：bandwidth_rules 添加 threshold_up / threshold_down 列（旧表可能没有）
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN threshold_up BIGINT'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN threshold_down BIGINT'); } catch { /* 列已存在 */ }
+  // 迁移旧数据：metric=bandwidth_up → threshold_up，metric=bandwidth_down → threshold_down
+  try {
+    db.exec(`UPDATE bandwidth_rules SET threshold_up = threshold WHERE metric = 'bandwidth_up' AND threshold_up IS NULL`);
+    db.exec(`UPDATE bandwidth_rules SET threshold_down = threshold WHERE metric = 'bandwidth_down' AND threshold_down IS NULL`);
+  } catch { /* 旧列不存在，跳过迁移 */ }
+
+  // 重建表：删除废弃的 metric/threshold 列（SQLite 不支持 ALTER 修改列约束，用重建表方式）
+  // 仅当旧表存在 metric 或 threshold 列时执行，新表/已迁移表不触发
+  const legacyCols = db.prepare(
+    `SELECT COUNT(*) as cnt FROM pragma_table_info('bandwidth_rules') WHERE name IN ('metric', 'threshold')`
+  ).get() as { cnt: number };
+  if (legacyCols.cnt > 0) {
+    const rebuildRulesTable = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE bandwidth_rules_new (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          node_ids TEXT NOT NULL,
+          threshold_up BIGINT,
+          threshold_down BIGINT,
+          top_n INTEGER NOT NULL DEFAULT 5,
+          limit_mode TEXT NOT NULL,
+          limit_value INTEGER NOT NULL,
+          continuous_enabled INTEGER DEFAULT 0,
+          continuous_window_min INTEGER,
+          continuous_percent INTEGER,
+          duration_min INTEGER NOT NULL,
+          reduce_percent INTEGER NOT NULL,
+          interval INTEGER NOT NULL DEFAULT 60,
+          cooldown INTEGER NOT NULL DEFAULT 300,
+          trigger_count INTEGER NOT NULL DEFAULT 1,
+          enabled INTEGER DEFAULT 1,
+          created_at INTEGER NOT NULL
+        );
+        INSERT INTO bandwidth_rules_new (
+          id, name, node_ids, threshold_up, threshold_down, top_n, limit_mode, limit_value,
+          continuous_enabled, continuous_window_min, continuous_percent,
+          duration_min, reduce_percent, interval, cooldown, trigger_count, enabled, created_at
+        )
+        SELECT
+          id, name, node_ids, threshold_up, threshold_down, top_n, limit_mode, limit_value,
+          continuous_enabled, continuous_window_min, continuous_percent,
+          duration_min, reduce_percent, interval, cooldown, trigger_count, enabled, created_at
+        FROM bandwidth_rules;
+        DROP TABLE bandwidth_rules;
+        ALTER TABLE bandwidth_rules_new RENAME TO bandwidth_rules;
+        CREATE INDEX IF NOT EXISTS idx_bw_rules_enabled ON bandwidth_rules(enabled);
+      `);
+    });
+    rebuildRulesTable();
+  }
+
+  // 增量迁移：bandwidth_logs 添加 metric_value_up / metric_value_down 列
+  try { db.exec('ALTER TABLE bandwidth_logs ADD COLUMN metric_value_up BIGINT'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_logs ADD COLUMN metric_value_down BIGINT'); } catch { /* 列已存在 */ }
+
+  db.exec(`
+    -- 现有节点监控日志（迁移自 node-monitor-logs.json）
+    CREATE TABLE IF NOT EXISTS monitor_logs (
+      id TEXT PRIMARY KEY,
+      ts INTEGER NOT NULL,
+      rule_id TEXT NOT NULL,
+      rule_name TEXT NOT NULL,
+      node_id INTEGER NOT NULL,
+      node_name TEXT NOT NULL,
+      metric TEXT NOT NULL,
+      metric_value REAL,
+      operator TEXT,
+      threshold REAL,
+      threshold_low REAL,
+      action TEXT,
+      trigger_count INTEGER,
+      consecutive_hits INTEGER,
+      trigger_side TEXT,
+      action_result TEXT NOT NULL,
+      action_error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_monitor_logs_ts ON monitor_logs(ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_monitor_logs_rule ON monitor_logs(rule_id);
   `);
 
   // 增量迁移：为已存在的 scripts 表补 sort_order 列
