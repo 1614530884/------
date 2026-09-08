@@ -526,6 +526,12 @@ export default function OneClickOrderPage() {
   // 产品配置缓存: key = "pid_billingcycle"，避免重复请求
   const configCacheRef = useRef<Record<string, { options: ConfigOption[]; customFields: Array<{ id: number; fieldname: string; description: string; fieldtype: string; required: number }>; cycles: Array<{ value: string; label: string }> }>>({});
 
+  // 选择竞态守卫：快速连点产品/套餐时，只有最新一次选择的响应才允许写状态
+  // （旧请求晚到的响应会被直接丢弃，防止覆盖成旧产品/默认配置）
+  // 两个计数器互相失效：点产品使进行中的套餐应用过期，点套餐使进行中的产品加载过期
+  const productSelectSeqRef = useRef(0);
+  const packageSelectSeqRef = useRef(0);
+
 
   // 使用余额
   const [useCredit, setUseCredit] = useState(false);
@@ -1375,14 +1381,19 @@ export default function OneClickOrderPage() {
   const handleSelectPackage = async (pkgId: string) => {
     const pkg = savedPackages.find(p => p.id === pkgId);
     if (!pkg) return;
+    // 竞态守卫：快速连点多个套餐时，只有最后一次点击能应用套餐值
+    const seq = ++packageSelectSeqRef.current;
     setSelectedPackageId(pkgId);
 
     const isSameProduct = pkg.productId === selectedProductId;
 
     // 选择产品（跨产品切换时重新加载configOptions，OS会随之重新初始化）
+    // invalidatePackage=false：不推进套餐守卫，等下面的检查统一裁决
     if (!isSameProduct) {
-      await handleSelectProduct(pkg.productId);
+      await handleSelectProduct(pkg.productId, false);
     }
+    // await 期间用户又点了其他套餐（推进 packageSeq）或直接点了其他产品（直点会推进 packageSeq）→ 放弃应用
+    if (packageSelectSeqRef.current !== seq) return;
 
     // 同产品内切换套餐时，保留用户当前已选择的操作系统选项
     // 仅跨产品切换时才使用套餐自身的OS默认值
@@ -3035,7 +3046,14 @@ export default function OneClickOrderPage() {
   }, [authToken, sessionCookie, showNotification]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 选择产品 → 加载配置选项
-  const handleSelectProduct = async (pid: number) => {
+  // invalidatePackage: 用户直接选择产品时应使进行中的套餐应用过期；
+  // 由 handleSelectPackage 内部调用时传 false，避免把套餐自己的守卫弄过期
+  const handleSelectProduct = async (pid: number, invalidatePackage = true) => {
+    // 竞态守卫：本次选择的序号；同时使进行中的套餐应用、周期重载过期
+    const seq = ++productSelectSeqRef.current;
+    if (invalidatePackage) packageSelectSeqRef.current++;
+    cycleChangeSeqRef.current++;
+
     setSelectedProductId(pid);
     setConfigOptions([]);
     setConfigValues({});
@@ -3086,6 +3104,7 @@ export default function OneClickOrderPage() {
       } else {
         try {
           const pageRes = await callIdcApi('getProductCycles', { uid: selectedUser?.id || 0, pid, flag: 1 });
+          if (productSelectSeqRef.current !== seq) return; // 已切换到其他产品/套餐，丢弃旧响应
           if (pageRes.success && pageRes.data?.product?.cycle) {
             const cycles: Array<{ value: string; label: string }> = pageRes.data.product.cycle;
             setProductCycles(cycles);
@@ -3127,6 +3146,7 @@ export default function OneClickOrderPage() {
         }
       } else {
         const res = await callIdcApi('getProductConfig', { pid, billingcycle: cycleToUse });
+        if (productSelectSeqRef.current !== seq) return; // 已切换到其他产品/套餐，丢弃旧响应
         if (res.success) {
           const options: ConfigOption[] = res.option || [];
           const cf: Array<{ id: number; fieldname: string; description: string; fieldtype: string; required: number }> = res.custom_fields || [];
@@ -3148,9 +3168,10 @@ export default function OneClickOrderPage() {
         }
       }
     } catch {
-      showNotification('error', '加载配置选项失败');
+      if (productSelectSeqRef.current === seq) showNotification('error', '加载配置选项失败');
     } finally {
-      setIsLoadingConfig(false);
+      // 只有最新一次选择才能结束loading（旧请求放弃时loading由新请求接管）
+      if (productSelectSeqRef.current === seq) setIsLoadingConfig(false);
     }
   };
 
@@ -3209,17 +3230,24 @@ export default function OneClickOrderPage() {
 
   // 切换计费周期时重新加载配置选项
   const [prevBillingCycle, setPrevBillingCycle] = useState('');
+  // 周期切换竞态守卫：快速来回切周期/切产品时，只有最新一次的响应才允许写状态
+  const cycleChangeSeqRef = useRef(0);
   useEffect(() => {
     if (selectedBillingCycle && selectedBillingCycle !== prevBillingCycle && selectedProductId) {
       setPrevBillingCycle(selectedBillingCycle);
       // 只有在初始化加载之后（configOptions已有数据）才重新加载
       if (configOptions.length > 0) {
+        // 本次周期重载的序号 + 触发时的产品选择世代（期间切了产品/套餐则整体放弃）
+        const seq = ++cycleChangeSeqRef.current;
+        const productSeqAtStart = productSelectSeqRef.current;
         (async () => {
           setIsLoadingConfig(true);
           try {
             const cacheKey = `${selectedProductId}_${selectedBillingCycle}`;
             const cached = configCacheRef.current[cacheKey];
             if (cached) {
+              // 从缓存加载（同步分支无竞态，但也校验一下周期是否又变了）
+              if (cycleChangeSeqRef.current !== seq || productSelectSeqRef.current !== productSeqAtStart) return;
               // 从缓存加载
               setConfigOptions(cached.options);
               const defaultValues = buildDefaultConfigValues(cached.options);
@@ -3250,6 +3278,8 @@ export default function OneClickOrderPage() {
               }
             } else {
               const res = await callIdcApi('getProductConfig', { pid: selectedProductId, billingcycle: selectedBillingCycle });
+              // 期间又切了周期或切了产品/套餐 → 丢弃旧响应
+              if (cycleChangeSeqRef.current !== seq || productSelectSeqRef.current !== productSeqAtStart) return;
               if (res.success) {
                 const options: ConfigOption[] = res.option || [];
                 const cf: Array<{ id: number; fieldname: string; description: string; fieldtype: string; required: number }> = res.custom_fields || [];
@@ -3287,7 +3317,8 @@ export default function OneClickOrderPage() {
           } catch {
             // ignore
           } finally {
-            setIsLoadingConfig(false);
+            // 只有最新一次重载才能结束loading（旧请求放弃时由新流程接管）
+            if (cycleChangeSeqRef.current === seq) setIsLoadingConfig(false);
           }
         })();
       }
@@ -3766,7 +3797,9 @@ export default function OneClickOrderPage() {
     await executeProvision();
   };
 
-  // 实际执行开通流程
+  // 实际执行开通流程（服务端一体化：充值/建单/轮询/取详情全部在服务端完成）
+  // 浏览器回退/刷新/关闭不影响流程执行；同用户重复提交由服务端幂等锁拦截；
+  // 充值成功但建单失败时服务端自动扣回充值金额（失败回滚）
   const executeProvision = async () => {
     if (!selectedUser || !selectedProductId || !selectedBillingCycle) return;
 
@@ -3790,37 +3823,7 @@ export default function OneClickOrderPage() {
       updateStep(2, 'processing');
       updateStep(2, 'completed', `用户: ${selectedUser.username} (ID: ${selectedUser.id})`);
 
-      // Step 3: 自动充余额（充值内部价格全额）
-      updateStep(3, 'processing');
-      // 充值金额 = 单价 × 数量（内部价格是单价，订单总额需乘以数量）
-      const rechargeAmount = firstPrice ? parseFloat(firstPrice) * productQty : 0;
-      if (autoRecharge && rechargeAmount > 0) {
-        const currentBalance = parseFloat(String(selectedUser.credit || '0'));
-        // 直接充值全额，不扣除现有余额，避免消耗用户原有余额
-        const addMoneyRes = await fetch('/api/idc', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'addBalance', token: authToken, cookie: sessionCookie,
-            uid: selectedUser.id, amount: rechargeAmount, description: `一键开通充值 - 产品ID:${selectedProductId} - ${selectedBillingCycle}`,
-          }),
-        });
-        const addMoneyResult = await addMoneyRes.json();
-        if (addMoneyResult.success || addMoneyResult.status === 200 || addMoneyResult.status === 1 || addMoneyResult.msg === '请求成功') {
-          setSelectedUser(prev => prev ? { ...prev, credit: (currentBalance + rechargeAmount).toFixed(2) } : prev);
-          updateStep(3, 'completed', `已充值 ¥${rechargeAmount.toFixed(2)} (原余额 ¥${currentBalance.toFixed(2)})`);
-        } else {
-          updateStep(3, 'failed', addMoneyResult.msg || '余额充值失败');
-          showNotification('error', addMoneyResult.msg || '余额充值失败');
-          return;
-        }
-      } else if (!autoRecharge) {
-        updateStep(3, 'completed', '未启用自动充值');
-      } else {
-        updateStep(3, 'completed', '无需充值');
-      }
-
-      // Step 4: 创建订单
+      // Step 4 前置: 构建配置参数
       // 关键: configoptions(复数)才能保存到host_configoptions表
       // 构建configoptions: 过滤掉os_cat_前缀的临时值和qty_前缀的数量值
       const configoptions: Record<string, unknown> = {};
@@ -3842,146 +3845,87 @@ export default function OneClickOrderPage() {
         if (value) customfield[key] = value;
       }
 
-      updateStep(4, 'processing');
-      const orderRes = await callIdcApi('createOrder', {
+      // 充值金额 = 单价 × 数量（内部价格是单价，订单总额需乘以数量）
+      const rechargeAmount = firstPrice ? parseFloat(firstPrice) * productQty : 0;
+
+      // Step 3-5: 服务端一体化执行（充值→建单→轮询开通→取详情）
+      updateStep(3, 'processing', '服务端执行中（充值/建单/开通），请耐心等待…');
+      const res = await callIdcApi('oneClickProvision', {
         uid: selectedUser.id,
-        payment: selectedGateway || 'E007alipay',
         pid: selectedProductId,
         billingcycle: selectedBillingCycle,
         qty: productQty,
+        payment: selectedGateway || 'E007alipay',
         use_credit: (autoRecharge || useCredit) ? 1 : 0,
         interior_price: firstPrice ? parseFloat(firstPrice) : 0,
         interior_price_renew: renewPrice ? parseFloat(renewPrice) : 0,
         configoptions,
         customfield,
+        autoRecharge,
+        rechargeAmount,
       });
+      const resData = (res.data || {}) as Record<string, unknown>;
 
-      if (!orderRes.success) {
-        updateStep(4, 'failed', orderRes.msg || '订单创建失败');
-        showNotification('error', orderRes.msg || '订单创建失败');
+      // 用服务端返回的步骤结果刷新本地步骤展示
+      const serverSteps = Array.isArray(resData.steps) ? resData.steps : [];
+      for (const raw of serverSteps) {
+        const st = raw as { id?: unknown; status?: unknown; message?: unknown };
+        if (typeof st.id !== 'number') continue;
+        updateStep(st.id, st.status === 'failed' ? 'failed' : 'completed', st.message !== undefined && st.message !== null ? String(st.message) : undefined);
+      }
+      // 兜底：服务端未覆盖到的步骤按最终结果收尾，避免界面停在"执行中"
+      const fallbackStatus: ProcessingStep['status'] = res.success ? 'completed' : 'failed';
+      setProcessingSteps(prev => prev.map(step =>
+        step.status === 'pending' || step.status === 'processing'
+          ? { ...step, status: fallbackStatus, message: step.message || (res.message ? String(res.message) : undefined) }
+          : step
+      ));
+
+      if (!res.success) {
+        showNotification('error', res.message || res.msg || '一键开通失败');
+        setOrderResult({ success: false, orderId: String(resData.orderId || ''), message: res.message || res.msg || '一键开通失败' });
         return;
       }
 
-      const orderId = orderRes.data?.orderid || orderRes.data?.order_id || orderRes.data?.id;
-      updateStep(4, 'completed', `订单号: ${orderId || '已创建'}`);
-
-      // Step 5: 开通服务
-      // adminorderconf=1 + status=Active 时，IDCSmart后台创建订单后已自动开通
-      updateStep(5, 'processing');
-
-      // 分阶段轮询获取产品信息：台数多时财务系统可能尚未处理完，需要等待重试
+      // 成功（含 partial：订单已创建并扣款，但服务信息获取超时，机器仍会自动开通）
       const currentProductName = productInfoMap.get(selectedProductId || 0)?.name || '';
-      const maxWaitMs = Math.min(3000 + productQty * 2000, 30000); // 基础3秒 + 每台2秒，上限30秒
-      const retryBudgetMs = Math.min(productQty * 3000, 30000); // 重试阶段独立时间预算：每台3秒，上限30秒
-      const pollInterval = 3000;
-      const startTime = Date.now();
-      let hostItems: Record<string, unknown>[] = [];
-
-      while (Date.now() - startTime < maxWaitMs) {
-        const serviceRes = await callIdcApi('getServiceInfo', { uid: selectedUser.id });
-        const hostList = serviceRes.data?.list || [];
-        hostItems = hostList.filter((h: Record<string, unknown>) => h.orderid === orderId);
-        if (hostItems.length === 0) {
-          const sorted = [...hostList].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.id as number) - (a.id as number));
-          hostItems = sorted.slice(0, productQty);
-        }
-        if (hostItems.length >= productQty) break;
-        updateStep(5, 'processing', `等待开通中 (${hostItems.length}/${productQty})...`);
-        await new Promise(r => setTimeout(r, pollInterval));
-      }
-      
-      if (hostItems.length === 0) {
-        updateStep(5, 'failed', '无法获取服务ID，请手动开通');
-        showNotification('error', '订单已创建但无法自动获取服务ID');
-        setOrderResult({ success: false, orderId: String(orderId || ''), message: '订单已创建，需手动开通' });
-        return;
-      }
-
-      // 逐个获取服务详情（IP、密码等）
-      const results: { orderId: string; ip: string; username: string; password: string; hostId: string; uid: string; dcimid: string; nextduedate?: string; amount?: string; billingcycle?: string; productName?: string }[] = [];
-      for (const hostItem of hostItems) {
-        const hid = hostItem.id;
-        try {
-          const detailRes = await callIdcApi('getHostDetail', { uid: selectedUser.id, hostselect: hid });
-          const hostData = detailRes.data?.host_data || {};
-          const dedicatedIp = hostData.dedicatedip || '';
-          const assignedIps = Array.isArray(hostData.assignedips) ? hostData.assignedips.filter((ip: string) => ip) : [];
-          const serverIp = dedicatedIp || (assignedIps.length > 0 ? assignedIps[0] : '');
-          results.push({
-            orderId: String(orderId || ''),
-            ip: serverIp || '',
-            username: hostData.username || '',
-            password: hostData.password || '',
-            hostId: String(hid),
-            uid: String(hostData.uid || selectedUser?.id || ''),
-            dcimid: String(hostData.dcimid || ''),
-            nextduedate: hostData.nextduedate || '',
-            amount: hostData.amount || '',
-            billingcycle: hostData.billingcycle || '',
-            productName: currentProductName,
-          });
-        } catch {
-          results.push({
-            orderId: String(orderId || ''),
-            ip: '',
-            username: '',
-            password: '',
-            hostId: String(hid),
-            uid: String(selectedUser?.id || ''),
-            dcimid: '',
-            nextduedate: '',
-            amount: '',
-            billingcycle: '',
-            productName: currentProductName,
-          });
-        }
-      }
-
-      // 对缺少IP或用户名的产品重试获取详情（财务系统可能还在处理）
-      const incompleteIndices = results.map((r, i) => ((!r.ip || !r.username) ? i : -1)).filter(i => i >= 0);
-      if (incompleteIndices.length > 0) {
-        const retryStart = Date.now();
-        updateStep(5, 'processing', `获取详情中 (${results.length - incompleteIndices.length}/${results.length})...`);
-        for (let retry = 0; retry < 4 && incompleteIndices.length > 0 && Date.now() - retryStart < retryBudgetMs; retry++) {
-          await new Promise(r => setTimeout(r, pollInterval));
-          const stillIncomplete: number[] = [];
-          for (const idx of incompleteIndices) {
-            const item = results[idx];
-            try {
-              const detailRes = await callIdcApi('getHostDetail', { uid: selectedUser.id, hostselect: item.hostId });
-              const hostData = detailRes.data?.host_data || {};
-              const dedicatedIp = hostData.dedicatedip || '';
-              const assignedIps = Array.isArray(hostData.assignedips) ? hostData.assignedips.filter((ip: string) => ip) : [];
-              const serverIp = dedicatedIp || (assignedIps.length > 0 ? assignedIps[0] : '');
-              if (serverIp && hostData.username) {
-                results[idx] = { ...item, ip: serverIp, username: hostData.username || item.username, password: hostData.password || item.password, nextduedate: hostData.nextduedate || item.nextduedate, amount: hostData.amount || item.amount, billingcycle: hostData.billingcycle || item.billingcycle, dcimid: String(hostData.dcimid || item.dcimid) };
-              } else {
-                stillIncomplete.push(idx);
-              }
-            } catch {
-              stillIncomplete.push(idx);
-            }
-          }
-          incompleteIndices.length = 0;
-          incompleteIndices.push(...stillIncomplete);
-        }
-      }
-
-      setResultData(results);
-      const ips = results.map(r => r.ip).filter(Boolean);
-      const incompleteCount = results.filter(r => !r.ip || !r.username).length;
-      if (incompleteCount > 0) {
-        updateStep(5, 'completed', `已获取 ${ips.length}/${results.length} 台信息，${incompleteCount}台仍在开通中`);
-        showNotification('info', `${incompleteCount}台服务器信息暂未就绪，可稍后在管理页查看`);
+      const rawResults = Array.isArray(resData.results) ? resData.results : [];
+      const results = rawResults.map((raw): {
+        orderId: string; ip: string; username: string; password: string; hostId: string;
+        uid: string; dcimid: string; nextduedate?: string; amount?: string; billingcycle?: string; productName?: string;
+      } => {
+        const r = raw as Record<string, unknown>;
+        return {
+          orderId: String(r.orderId ?? resData.orderId ?? ''),
+          ip: String(r.ip || ''),
+          username: String(r.username || ''),
+          password: String(r.password || ''),
+          hostId: String(r.hostId || ''),
+          uid: String(r.uid || selectedUser.id),
+          dcimid: String(r.dcimid || ''),
+          nextduedate: r.nextduedate === undefined || r.nextduedate === null ? '' : String(r.nextduedate),
+          amount: r.amount === undefined || r.amount === null ? '' : String(r.amount),
+          billingcycle: String(r.billingcycle || ''),
+          productName: currentProductName,
+        };
+      });
+      if (res.partial === true) {
+        // partial：服务信息未获取到，resultData 保持开头的 null（不渲染产品卡片/话术区，
+        // 空数组会导致话术预览 buildVars(items[0]) 取到 undefined 而渲染崩溃）
+        setOrderResult({ success: true, orderId: String(resData.orderId || ''), message: '订单已创建，服务信息获取超时，请稍后在管理页核对，切勿重复开通' });
+        showNotification('info', res.message || '订单已创建，请稍后在管理页核对开通结果，切勿重复开通');
       } else {
-        updateStep(5, 'completed', ips.length > 0 ? `服务已开通 IP:${ips.join(', ')}` : `服务已开通(${results.length}台)`);
+        setResultData(results);
+        setProgress(100);
+        setOrderResult({ success: true, orderId: String(resData.orderId || '') });
+        showNotification('success', '一键开通成功！云服务器已自动开通');
       }
-      setProgress(100);
-      setOrderResult({ success: true, orderId: String(orderId || ''), message: '一键开通成功！' });
-      showNotification('success', '一键开通成功！云服务器已自动开通');
       if (selectedUser) fetchUserProducts(selectedUser.id);
     } catch (error) {
-      showNotification('error', `处理过程出错: ${error instanceof Error ? error.message : '未知错误'}`);
+      // 请求本身异常（网络中断等）：服务端流程可能仍在执行，不能立即重试，先核对
+      setProcessingSteps(prev => prev.map(step => step.status === 'processing' ? { ...step, status: 'failed' } : step));
+      setOrderResult({ success: false, orderId: '', message: '请求异常，服务端可能仍在执行，请稍后在管理页核对' });
+      showNotification('error', `请求异常: ${error instanceof Error ? error.message : '未知错误'}。服务端可能仍在执行开通，请稍后到管理页核对结果，勿立即重试`);
     } finally {
       setIsProcessing(false);
     }
@@ -7402,6 +7346,11 @@ export default function OneClickOrderPage() {
                         {orderResult.success ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
                         {orderResult.success ? '开通成功' : '开通失败'}
                       </h3>
+                      {orderResult.message && (
+                        <p className={`text-[11px] sm:text-xs mt-1 leading-relaxed ${orderResult.success ? 'text-muted-foreground' : 'text-destructive'}`}>
+                          {orderResult.message}
+                        </p>
+                      )}
                     </div>
                     {/* 可滚动的产品信息区域 */}
                     {orderResult.success && resultData && (

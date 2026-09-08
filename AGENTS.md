@@ -11,13 +11,15 @@
 2. 搜索/选择用户（支持用户名、邮箱、手机号、QQ号、UID）
 3. 选择产品套餐（从后台 product_list_page API 获取）
 4. 加载产品配置选项（从后台 orders/set_config API 获取）
-5. 一键开通：创建订单 → 获取 host_id → 获取详情
+5. 一键开通：**服务端一体化编排**（action `oneClickProvision`，见下）创建订单 → 获取 host_id → 获取详情
 6. 产品续费：选择产品 → 续费 → 余额支付
 7. 退款删除：计算退款金额 → 退款至余额 → 删除产品 → 删除账单
 
 ### 关键技术发现
 
 - **configoptions vs configoption**: 创建订单时，`ops` 内部必须使用 `configoptions`（复数）而非 `configoption`（单数），否则配置不会保存到 `host_configoptions` 表
+- **一键开通服务端编排**: action `oneClickProvision`（`src/app/api/idc/modules/order/one-click.ts`，经 OrderModule.handleSpecialAction 短路分发）在服务端串联 充值(/credit)→建单(/order/create)→轮询host→取详情。带内存幂等锁：同 uid 运行中拒绝新请求、完成后 90 秒内重复提交返回上次结果（防浏览器回退/刷新导致重复充值开机器）。**失败回滚**：建单明确失败时自动调 /credit/reduce 扣回充值金额；订单创建成功后即使信息获取超时也不回滚（机器会自动开通），返回 `partial: true`
+- **扣减余额**: POST /admin/credit/reduce (uid, amount) 扣减用户余额，action 名 `deductBalance`
 - **ops 格式**: 必须作为 JSON 对象传递（非字符串），格式为 `ops: { "0": { pid, billingcycle, qty, configoptions, customfield } }`
 - **开通流程**: adminorderconf=1 时后台自动开通，无需再调 provision/default，直接获取详情
 - **退款计算**: 按天计算，退款金额 = 剩余天数 × (续费金额 / 周期天数)，月付按当月天数

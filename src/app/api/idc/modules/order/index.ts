@@ -1,6 +1,8 @@
-import { ModuleHandler } from '../../shared/types';
+import { NextResponse } from 'next/server';
+import { ModuleHandler, IdcRequestContext } from '../../shared/types';
 import { orderActions } from './actions';
 import { transformGetTotalParams, transformCreateOrderParams } from './transformers';
+import { handleOneClickProvision } from './one-click';
 
 export class OrderModule implements ModuleHandler {
   getActions() {
@@ -16,5 +18,12 @@ export class OrderModule implements ModuleHandler {
       default:
         return params;
     }
+  }
+
+  async handleSpecialAction(action: string, params: Record<string, unknown>, ctx: IdcRequestContext): Promise<NextResponse | null> {
+    if (action === 'oneClickProvision') {
+      return handleOneClickProvision(params, ctx);
+    }
+    return null;
   }
 }
