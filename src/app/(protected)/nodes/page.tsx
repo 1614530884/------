@@ -12,6 +12,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { MonitorSheet } from '@/components/node-monitor/MonitorSheet';
 import { BandwidthSheet } from '@/components/bandwidth/BandwidthSheet';
+import { CpuLimitSheet } from '@/components/cpu-limit/CpuLimitSheet';
 import { getLoginUser } from '@/lib/auth-client';
 import { PageHeader } from '@/components/layout/page-header';
 
@@ -198,6 +199,10 @@ function NodesContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [total, setTotal] = useState(0);
+  /** 节点在时间窗口内的限速次数（用于展示 badge）：key=nodeId, value=次数 */
+  const [nodeLimitCounts, setNodeLimitCounts] = useState<Record<number, number>>({});
+  /** 限速统计的时间窗口（分钟），从告警配置读取 */
+  const [limitWindowMin, setLimitWindowMin] = useState<number>(60);
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [enableFilter, setEnableFilter] = useState<string>('-1');
@@ -219,6 +224,7 @@ function NodesContent() {
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<number>>(new Set());
   const [monitorSheetOpen, setMonitorSheetOpen] = useState(false);
   const [bandwidthSheetOpen, setBandwidthSheetOpen] = useState(false);
+  const [cpuLimitSheetOpen, setCpuLimitSheetOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const callMfyApi = useCallback(async (action: string, params: Record<string, unknown> = {}, signal?: AbortSignal): Promise<Record<string, unknown>> => {
@@ -426,6 +432,18 @@ function NodesContent() {
         if (!controller.signal.aborted && Object.keys(batchMap).length > 0) {
           setNodeDataMap(batchMap);
         }
+
+        // 拉取节点限速次数（用于节点名旁 badge 显示）
+        try {
+          const countRes = await fetch(`/api/bandwidth?action=nodeEventCounts&nodeIds=${ids.join(',')}`);
+          if (countRes.ok) {
+            const countData = await countRes.json();
+            if (countData.success && countData.data) {
+              setNodeLimitCounts(countData.data.counts || {});
+              setLimitWindowMin(Number(countData.data.windowMin) || 60);
+            }
+          }
+        } catch { /* ignore 权限失败或后端未启用 */ }
       }
     } catch {
       /* ignore */
@@ -636,6 +654,13 @@ function NodesContent() {
             >
               <Gauge className="w-4 h-4" />
             </button>
+            <button
+              onClick={() => setCpuLimitSheetOpen(true)}
+              className={`p-2 rounded-lg hover:bg-accent transition-colors ${selectedNodeIds.size > 0 ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+              title="CPU 限制管理"
+            >
+              <Cpu className="w-4 h-4" />
+            </button>
           </>
         }
       />
@@ -738,7 +763,17 @@ function NodesContent() {
                         <td className="px-3 py-3">
                           {node.status === 1 ? <CheckCircle className="w-4 h-4 text-success" /> : <XCircle className="w-4 h-4 text-destructive" />}
                         </td>
-                        <td className="px-3 py-3 text-foreground font-medium">{node.name}</td>
+                        <td className="px-3 py-3 text-foreground font-medium">
+                          <span>{node.name}</span>
+                          {nodeLimitCounts[node.id] > 0 && (
+                            <span
+                              className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              title={`最近${limitWindowMin}分钟限速${nodeLimitCounts[node.id]}次`}
+                            >
+                              限速×{nodeLimitCounts[node.id]}
+                            </span>
+                          )}
+                        </td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-1">
                             <span className="text-foreground font-mono text-xs">{node.ip}</span>
@@ -881,6 +916,14 @@ function NodesContent() {
                       {node.status === 1 ? <CheckCircle className="w-4 h-4 text-success shrink-0" /> : <XCircle className="w-4 h-4 text-destructive shrink-0" />}
                       <span className="text-foreground font-medium truncate">{node.name}</span>
                       <span className="text-xs text-muted-foreground font-mono shrink-0">#{node.id}</span>
+                      {nodeLimitCounts[node.id] > 0 && (
+                        <span
+                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0"
+                          title={`最近${limitWindowMin}分钟限速${nodeLimitCounts[node.id]}次`}
+                        >
+                          限速×{nodeLimitCounts[node.id]}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
@@ -1043,6 +1086,14 @@ function NodesContent() {
       <BandwidthSheet
         open={bandwidthSheetOpen}
         onOpenChange={setBandwidthSheetOpen}
+        nodes={nodes.map(n => ({ id: n.id, name: n.name, ip: n.ip }))}
+        selectedNodeIds={selectedNodeIds}
+      />
+
+      {/* CPU 限制管理 Sheet */}
+      <CpuLimitSheet
+        open={cpuLimitSheetOpen}
+        onOpenChange={setCpuLimitSheetOpen}
         nodes={nodes.map(n => ({ id: n.id, name: n.name, ip: n.ip }))}
         selectedNodeIds={selectedNodeIds}
       />

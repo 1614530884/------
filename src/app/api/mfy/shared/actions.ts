@@ -38,6 +38,8 @@ export const actionMap: Record<string, MfyActionDef> = {
   'cloudUpdateIp': { path: 'clouds/{id}/ip', method: 'PUT', pathHasId: true },
   'cloudUpdateIpv6': { path: 'clouds/{id}/ipv6', method: 'PUT', pathHasId: true },
   'cloudSetMainIp': { path: 'clouds/{id}/mainip', method: 'POST', pathHasId: true },
+  // CPU 限制（独立接口，参数 cpu_limit 0-100，100=无限制）
+  'cloudUpdateCpuLimit': { path: 'clouds/{id}/cpu_limit', method: 'PUT', pathHasId: true },
 
   // 流量统计
   'cloudTraffic': { path: 'clouds/{id}/flow', method: 'GET', pathHasId: true },

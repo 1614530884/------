@@ -165,6 +165,139 @@ function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_bw_logs_ts ON bandwidth_logs(ts DESC);
     CREATE INDEX IF NOT EXISTS idx_bw_logs_rule ON bandwidth_logs(rule_id);
     CREATE INDEX IF NOT EXISTS idx_bw_logs_node ON bandwidth_logs(node_id);
+
+    -- 带宽告警配置（单行配置，id 固定为 'default'）
+    CREATE TABLE IF NOT EXISTS bandwidth_alert_config (
+      id TEXT PRIMARY KEY,
+      enabled INTEGER NOT NULL DEFAULT 0,
+      window_min INTEGER NOT NULL DEFAULT 60,
+      instance_threshold INTEGER NOT NULL DEFAULT 3,
+      node_threshold INTEGER NOT NULL DEFAULT 5
+    );
+
+    -- 带宽告警记录
+    CREATE TABLE IF NOT EXISTS bandwidth_alert_logs (
+      id TEXT PRIMARY KEY,
+      ts INTEGER NOT NULL,
+      level TEXT NOT NULL,
+      rule_name TEXT NOT NULL,
+      node_id INTEGER NOT NULL,
+      node_name TEXT NOT NULL,
+      cloud_id INTEGER,
+      cloud_name TEXT,
+      trigger_count INTEGER NOT NULL,
+      threshold INTEGER NOT NULL,
+      window_min INTEGER NOT NULL,
+      read INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_bw_alerts_ts ON bandwidth_alert_logs(ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_bw_alerts_read ON bandwidth_alert_logs(read);
+
+    -- 限速事件记录（每次限速成功后写入，用于统计时间窗口内次数）
+    CREATE TABLE IF NOT EXISTS bandwidth_limit_events (
+      id TEXT PRIMARY KEY,
+      ts INTEGER NOT NULL,
+      rule_id TEXT NOT NULL,
+      rule_name TEXT NOT NULL,
+      node_id INTEGER NOT NULL,
+      node_name TEXT NOT NULL,
+      cloud_id INTEGER NOT NULL,
+      cloud_name TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_bw_events_ts ON bandwidth_limit_events(ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_bw_events_node ON bandwidth_limit_events(node_id, ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_bw_events_cloud ON bandwidth_limit_events(cloud_id, ts DESC);
+
+    -- CPU 限制规则（节点指标超阈值时，对 Top N 实例实施 CPU 限制）
+    CREATE TABLE IF NOT EXISTS cpu_limit_rules (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      node_ids TEXT NOT NULL,
+      metric TEXT NOT NULL,                 -- cpu | memory | disk
+      threshold REAL NOT NULL,              -- 节点指标触发上限
+      top_n INTEGER NOT NULL DEFAULT 5,     -- 限制的实例数量
+      cpu_limit_percent INTEGER NOT NULL,   -- CPU 限制百分比(1-100)
+      duration_min INTEGER NOT NULL,        -- 限制持续时间(分钟)
+      interval INTEGER NOT NULL DEFAULT 60,
+      cooldown INTEGER NOT NULL DEFAULT 300,
+      trigger_count INTEGER NOT NULL DEFAULT 1,
+      enabled INTEGER DEFAULT 1,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_cpu_rules_enabled ON cpu_limit_rules(enabled);
+
+    -- CPU 限制活跃事件（用于到期自动解除）
+    CREATE TABLE IF NOT EXISTS cpu_limit_events (
+      id TEXT PRIMARY KEY,
+      rule_id TEXT NOT NULL,
+      rule_name TEXT NOT NULL,
+      node_id INTEGER NOT NULL,
+      node_name TEXT NOT NULL,
+      cloud_id INTEGER NOT NULL,
+      cloud_name TEXT NOT NULL,
+      cpu_limit_percent INTEGER NOT NULL,
+      start_time INTEGER NOT NULL,
+      expire_time INTEGER NOT NULL,
+      status TEXT NOT NULL,                 -- active | released | failed
+      released_at INTEGER,
+      release_error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_cpu_events_status ON cpu_limit_events(status);
+    CREATE INDEX IF NOT EXISTS idx_cpu_events_expire ON cpu_limit_events(expire_time);
+    CREATE INDEX IF NOT EXISTS idx_cpu_events_cloud ON cpu_limit_events(cloud_id, status);
+    -- 复合索引：支持节点并发限制上限统计（rule_id + node_id + status='active'）
+    CREATE INDEX IF NOT EXISTS idx_cpu_events_rule_node_status ON cpu_limit_events(rule_id, node_id, status);
+    -- 复合索引：支持实例在窗口内被限制次数统计（cloud_id + start_time），用于惩罚机制
+    CREATE INDEX IF NOT EXISTS idx_cpu_events_cloud_start ON cpu_limit_events(cloud_id, start_time);
+    -- 复合索引：支持节点在窗口内被限制次数统计（node_id + start_time），用于告警判断
+    CREATE INDEX IF NOT EXISTS idx_cpu_events_node_start ON cpu_limit_events(node_id, start_time);
+
+    -- CPU 限制操作日志
+    CREATE TABLE IF NOT EXISTS cpu_limit_logs (
+      id TEXT PRIMARY KEY,
+      ts INTEGER NOT NULL,
+      rule_id TEXT NOT NULL,
+      rule_name TEXT NOT NULL,
+      node_id INTEGER NOT NULL,
+      node_name TEXT NOT NULL,
+      event_type TEXT NOT NULL,             -- limit_trigger | limit_execute | limit_release | limit_skip
+      metric_value REAL,
+      threshold REAL,
+      top_n INTEGER,
+      affected_count INTEGER,
+      details TEXT,                         -- JSON: 实例列表、CPU 使用率等
+      result TEXT NOT NULL,                 -- success | failed | skipped
+      error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_cpu_logs_ts ON cpu_limit_logs(ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_cpu_logs_rule ON cpu_limit_logs(rule_id);
+
+    -- CPU 限制告警配置（单行配置，id 固定为 'default'）
+    CREATE TABLE IF NOT EXISTS cpu_limit_alert_config (
+      id TEXT PRIMARY KEY,
+      enabled INTEGER NOT NULL DEFAULT 0,
+      window_min INTEGER NOT NULL DEFAULT 60,
+      instance_threshold INTEGER NOT NULL DEFAULT 3,
+      node_threshold INTEGER NOT NULL DEFAULT 5
+    );
+
+    -- CPU 限制告警记录
+    CREATE TABLE IF NOT EXISTS cpu_limit_alert_logs (
+      id TEXT PRIMARY KEY,
+      ts INTEGER NOT NULL,
+      level TEXT NOT NULL,                 -- instance | node
+      rule_name TEXT NOT NULL,
+      node_id INTEGER NOT NULL,
+      node_name TEXT NOT NULL,
+      cloud_id INTEGER,
+      cloud_name TEXT,
+      trigger_count INTEGER NOT NULL,
+      threshold INTEGER NOT NULL,
+      window_min INTEGER NOT NULL,
+      read INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_cpu_alerts_ts ON cpu_limit_alert_logs(ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_cpu_alerts_read ON cpu_limit_alert_logs(read);
   `);
 
   // 增量迁移：bandwidth_rules 添加 threshold_up / threshold_down 列（旧表可能没有）
@@ -225,6 +358,65 @@ function initSchema(db: Database.Database): void {
   // 增量迁移：bandwidth_logs 添加 metric_value_up / metric_value_down 列
   try { db.exec('ALTER TABLE bandwidth_logs ADD COLUMN metric_value_up BIGINT'); } catch { /* 列已存在 */ }
   try { db.exec('ALTER TABLE bandwidth_logs ADD COLUMN metric_value_down BIGINT'); } catch { /* 列已存在 */ }
+
+  // 增量迁移：cpu_limit_rules 添加节点实例上限 + 惩罚机制字段
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN max_instances_per_window INTEGER NOT NULL DEFAULT 0'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN limit_window_min INTEGER NOT NULL DEFAULT 60'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN penalty_enabled INTEGER NOT NULL DEFAULT 0'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN penalty_window_min INTEGER NOT NULL DEFAULT 60'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN penalty_threshold INTEGER NOT NULL DEFAULT 2'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN penalty_mode TEXT NOT NULL DEFAULT \'multiply\''); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN penalty_value INTEGER NOT NULL DEFAULT 2'); } catch { /* 列已存在 */ }
+  // 增量迁移：cpu_limit_rules 新增 CPU 限制值惩罚字段（进一步降低 CPU 限制百分比）
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN penalty_cpu_limit_mode TEXT NOT NULL DEFAULT \'multiply\''); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN penalty_cpu_limit_value INTEGER NOT NULL DEFAULT 2'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN min_cpu_limit_percent INTEGER NOT NULL DEFAULT 5'); } catch { /* 列已存在 */ }
+
+  // 增量迁移：cpu_limit_rules 新增 max_active_instances（节点并发限制上限，统计当前活跃实例数）
+  // 语义修正：旧字段 max_instances_per_window 统计时间窗口内累计事件数（含已解除），新字段统计当前活跃实例数
+  try {
+    db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN max_active_instances INTEGER NOT NULL DEFAULT 0');
+    // 从旧字段迁移数据（保留用户已配置的值）
+    db.exec('UPDATE cpu_limit_rules SET max_active_instances = max_instances_per_window WHERE max_active_instances = 0 AND max_instances_per_window > 0');
+  } catch { /* 列已存在 */ }
+
+  // 增量迁移：bandwidth_rules 添加惩罚机制字段（时间翻倍 + 带宽降低比例翻倍，带最低下限保护）
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN penalty_enabled INTEGER NOT NULL DEFAULT 0'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN penalty_window_min INTEGER NOT NULL DEFAULT 60'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN penalty_threshold INTEGER NOT NULL DEFAULT 2'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN penalty_mode TEXT NOT NULL DEFAULT \'multiply\''); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN penalty_value INTEGER NOT NULL DEFAULT 2'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN min_bandwidth_percent INTEGER NOT NULL DEFAULT 10'); } catch { /* 列已存在 */ }
+  // 增量迁移：bandwidth_rules 新增带宽降低比例惩罚字段（独立于时间惩罚，避免带宽翻倍太激进）
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN penalty_bw_mode TEXT NOT NULL DEFAULT \'add_extra\''); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN penalty_bw_value INTEGER NOT NULL DEFAULT 10'); } catch { /* 列已存在 */ }
+  // 增量迁移：min_bandwidth_percent → min_bandwidth_mbps（最低带宽保留改为 Mbps 绝对值，更直观）
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN min_bandwidth_mbps INTEGER NOT NULL DEFAULT 10'); } catch { /* 列已存在 */ }
+
+  // 增量迁移：bandwidth_limit_events 扩展为完整事件结构（支持直接调控 + 到期自动恢复）
+  // 旧表仅用于告警统计（8字段），改造后需跟踪活跃限制、到期恢复、原始带宽记录
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN status TEXT NOT NULL DEFAULT \'active\''); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN start_time INTEGER NOT NULL DEFAULT 0'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN expire_time INTEGER NOT NULL DEFAULT 0'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN original_in_bw INTEGER'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN original_out_bw INTEGER'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN new_in_bw INTEGER'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN new_out_bw INTEGER'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN limit_direction TEXT'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN actual_duration_min INTEGER'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN penalized INTEGER NOT NULL DEFAULT 0'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN release_retry_count INTEGER NOT NULL DEFAULT 0'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN released_at INTEGER'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN release_error TEXT'); } catch { /* 列已存在 */ }
+  // 旧记录（expire_time=0）标记为 released，避免 release-scheduler 立即拾取后尝试恢复（无原始带宽可恢复）
+  db.exec('UPDATE bandwidth_limit_events SET status = \'released\' WHERE expire_time = 0 AND status = \'active\'');
+  // 新增索引：按状态+到期时间查询（release-scheduler 使用）
+  try { db.exec('CREATE INDEX IF NOT EXISTS idx_bw_events_release ON bandwidth_limit_events(status, expire_time)'); } catch { /* 索引已存在 */ }
+
+  // 增量迁移：cpu_limit_events 添加惩罚记录 + 解除重试字段
+  try { db.exec('ALTER TABLE cpu_limit_events ADD COLUMN actual_duration_min INTEGER'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_events ADD COLUMN penalized INTEGER DEFAULT 0'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_events ADD COLUMN release_retry_count INTEGER DEFAULT 0'); } catch { /* 列已存在 */ }
 
   db.exec(`
     -- 现有节点监控日志（迁移自 node-monitor-logs.json）

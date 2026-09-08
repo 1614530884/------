@@ -6,30 +6,27 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, FileText, Gauge, Trash2, Pencil, Play, AlertTriangle, Clock, Activity, Unlock } from 'lucide-react';
+import { Loader2, Plus, FileText, Cpu, Trash2, Pencil, Play, Clock, Activity, Unlock, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import type { BandwidthRule, BandwidthServiceStatus, BandwidthLimitEvent } from '@/lib/services/bandwidth-manager';
-import { BandwidthRuleFormDialog } from './BandwidthRuleFormDialog';
-import { BandwidthLogViewerDialog } from './BandwidthLogViewerDialog';
-import { BandwidthAlertConfigCard } from './BandwidthAlertConfigCard';
-import { BandwidthAlertHistoryDialog } from './BandwidthAlertHistoryDialog';
+import type { CpuLimitRule, CpuLimitServiceStatus, CpuLimitEvent } from '@/lib/services/cpu-limit-manager';
+import { CpuLimitRuleFormDialog } from './CpuLimitRuleFormDialog';
+import { CpuLimitLogViewerDialog } from './CpuLimitLogViewerDialog';
+import { CpuLimitAlertConfigCard } from './CpuLimitAlertConfigCard';
+import { CpuLimitAlertHistoryDialog } from './CpuLimitAlertHistoryDialog';
 
-interface BandwidthSheetProps {
+interface CpuLimitSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   nodes: Array<{ id: number; name: string; ip: string }>;
   selectedNodeIds: Set<number>;
 }
 
-/** bps 转 Mbps 显示（自动选择单位） */
-function formatBandwidth(bps: number): string {
-  const mbps = bps / 1_000_000;
-  if (mbps >= 1000) return `${(mbps / 1000).toFixed(2)} Gbps`;
-  if (mbps >= 1) return `${mbps.toFixed(1)} Mbps`;
-  return `${(bps / 1000).toFixed(0)} Kbps`;
-}
+const METRIC_LABEL: Record<string, string> = {
+  cpu: 'CPU',
+  memory: '内存',
+  disk: '磁盘',
+};
 
-/** 格式化剩余时间 */
 function formatRemaining(expireTime: number): string {
   const remainSec = Math.max(0, Math.floor((expireTime - Date.now()) / 1000));
   if (remainSec <= 0) return '即将解除';
@@ -43,31 +40,24 @@ function formatRemaining(expireTime: number): string {
   return `${min}分${sec}秒`;
 }
 
-/** 限速方向 → 中文标签 */
-function formatLimitDirection(dir?: 'in' | 'out' | 'both' | null): string {
-  if (!dir) return '';
-  const map: Record<string, string> = { in: '入站', out: '出站', both: '双向' };
-  return map[dir] ?? dir;
-}
-
-export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: BandwidthSheetProps) {
-  const [rules, setRules] = useState<BandwidthRule[]>([]);
-  const [status, setStatus] = useState<BandwidthServiceStatus | null>(null);
-  const [activeEvents, setActiveEvents] = useState<BandwidthLimitEvent[]>([]);
+export function CpuLimitSheet({ open, onOpenChange, nodes, selectedNodeIds }: CpuLimitSheetProps) {
+  const [rules, setRules] = useState<CpuLimitRule[]>([]);
+  const [status, setStatus] = useState<CpuLimitServiceStatus | null>(null);
+  const [activeEvents, setActiveEvents] = useState<CpuLimitEvent[]>([]);
   const [loading, setLoading] = useState(false);
-  const [releasingId, setReleasingId] = useState<string | null>(null);
 
   const [ruleFormOpen, setRuleFormOpen] = useState(false);
-  const [editingRule, setEditingRule] = useState<BandwidthRule | undefined>();
+  const [editingRule, setEditingRule] = useState<CpuLimitRule | undefined>();
   const [logViewerOpen, setLogViewerOpen] = useState(false);
   const [alertHistoryOpen, setAlertHistoryOpen] = useState(false);
+  const [releasingId, setReleasingId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       const [rulesRes, statusRes, activeRes] = await Promise.all([
-        fetch('/api/bandwidth?action=listRules'),
-        fetch('/api/bandwidth?action=status'),
-        fetch('/api/bandwidth?action=listActive'),
+        fetch('/api/cpu-limit?action=listRules'),
+        fetch('/api/cpu-limit?action=status'),
+        fetch('/api/cpu-limit?action=listActive'),
       ]);
       const rulesData = await rulesRes.json();
       const statusData = await statusRes.json();
@@ -82,37 +72,15 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
     if (open) fetchData();
   }, [open, fetchData]);
 
-  // 活跃事件实时刷新剩余时间（每 10 秒）
+  // 活跃事件列表实时刷新剩余时间（每 10 秒）
   useEffect(() => {
     if (!open || activeEvents.length === 0) return;
     const timer = setInterval(fetchData, 10 * 1000);
     return () => clearInterval(timer);
   }, [open, activeEvents.length, fetchData]);
 
-  const handleManualRelease = async (eventId: string, cloudName: string) => {
-    if (!confirm(`确认手动解除 ${cloudName} 的带宽限制？将恢复其原始带宽配置。`)) return;
-    setReleasingId(eventId);
-    try {
-      const res = await fetch('/api/bandwidth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'manualRelease', eventId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (data.success) {
-        toast.success(`已解除 ${cloudName} 的带宽限制`);
-        fetchData();
-      } else {
-        toast.error(data.message || '解除失败');
-      }
-    } catch {
-      toast.error('请求失败');
-    }
-    setReleasingId(null);
-  };
-
   const handleToggleRule = async (ruleId: string, enabled: boolean) => {
-    const res = await fetch('/api/bandwidth', {
+    const res = await fetch('/api/cpu-limit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'toggleRule', ruleId, enabled }),
@@ -127,7 +95,8 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
   };
 
   const handleDeleteRule = async (ruleId: string) => {
-    const res = await fetch('/api/bandwidth', {
+    if (!confirm('确认删除此规则？')) return;
+    const res = await fetch('/api/cpu-limit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'deleteRule', ruleId }),
@@ -143,7 +112,7 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
 
   const handleManualCheck = async () => {
     setLoading(true);
-    const res = await fetch('/api/bandwidth', {
+    const res = await fetch('/api/cpu-limit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'manualCheck' }),
@@ -151,7 +120,7 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
     const data = await res.json().catch(() => ({}));
     if (data.success) {
       toast.success('已触发检查');
-      fetchData();
+      setTimeout(fetchData, 1000);
     } else {
       toast.error(data.message || '触发检查失败');
     }
@@ -161,7 +130,7 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
   const handleToggleService = async () => {
     setLoading(true);
     const action = status?.running ? 'stopService' : 'startService';
-    const res = await fetch('/api/bandwidth', {
+    const res = await fetch('/api/cpu-limit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
@@ -175,28 +144,37 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
     setLoading(false);
   };
 
-  const getRuleDesc = (rule: BandwidthRule): string => {
-    // 构建触发条件描述（支持双阈值）
-    const conditions: string[] = [];
-    if (rule.thresholdUp) conditions.push(`上行>${formatBandwidth(rule.thresholdUp)}`);
-    if (rule.thresholdDown) conditions.push(`下行>${formatBandwidth(rule.thresholdDown)}`);
-    const condDesc = conditions.join(' 且 ');
-    const limitDesc = rule.limitMode === 'percent'
-      ? `限速至原带宽${100 - rule.reducePercent}%`
-      : `限速至${rule.limitValue}Mbps`;
-    const continuousDesc = rule.continuousEnabled
-      ? ` | 持续监控: 近${rule.continuousWindowMin}分钟超${rule.continuousPercent}%`
-      : '';
-    // 惩罚描述：启用惩罚时展示时间和带宽惩罚（含最低带宽保留）
+  const handleManualRelease = async (eventId: string, cloudName: string) => {
+    if (!confirm(`确认手动解除 ${cloudName} 的 CPU 限制？`)) return;
+    setReleasingId(eventId);
+    try {
+      const res = await fetch('/api/cpu-limit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'manualRelease', eventId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.success) {
+        toast.success(`已解除 ${cloudName} 的 CPU 限制`);
+        fetchData();
+      } else {
+        toast.error(data.message || '解除失败');
+      }
+    } catch {
+      toast.error('请求失败');
+    }
+    setReleasingId(null);
+  };
+
+  const getRuleDesc = (rule: CpuLimitRule): string => {
+    // 惩罚描述：启用惩罚时展示时间和 CPU 限制值惩罚（含最低下限）
     const penaltyDesc = rule.penaltyEnabled
       ? ` | 惩罚: 窗口${rule.penaltyWindowMin}分钟达${rule.penaltyThreshold}次后`
         + (rule.penaltyMode === 'multiply' ? `时长×${rule.penaltyValue}` : `时长+${rule.penaltyValue}分`)
-        + (rule.limitMode === 'percent' && rule.penaltyBwValue
-          ? `, 降低${rule.penaltyBwMode === 'multiply' ? `×${rule.penaltyBwValue}` : `+${rule.penaltyBwValue}%`}`
-          : '')
-        + `, 保底${rule.minBandwidthMbps}M`
+        + `, CPU限制${rule.penaltyCpuLimitMode === 'multiply' ? `÷${rule.penaltyCpuLimitValue}` : `-${rule.penaltyCpuLimitValue}%`}`
+        + `, 保底${rule.minCpuLimitPercent}%`
       : '';
-    return `当${condDesc} → 对Top${rule.topN}实例${limitDesc}，持续${rule.durationMin}分钟${continuousDesc}${penaltyDesc}`;
+    return `当${METRIC_LABEL[rule.metric]}>${rule.threshold}% → 对Top${rule.topN}实例CPU限制为${rule.cpuLimitPercent}%，持续${rule.durationMin}分钟后自动解除${penaltyDesc}`;
   };
 
   const getNodeNames = (nodeIds: number[]): string => {
@@ -212,8 +190,8 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
       <SheetContent className="w-full sm:max-w-lg bg-card border-border text-foreground overflow-y-auto overflow-x-hidden">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2 text-foreground">
-            <Gauge className="w-5 h-5 text-primary" />
-            智能带宽管理
+            <Cpu className="w-5 h-5 text-primary" />
+            CPU 限制管理
           </SheetTitle>
         </SheetHeader>
 
@@ -248,7 +226,7 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
             )}
             {status?.running && status.activeRuleCount === 0 && (
               <div className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
-                提示: 当前无启用的规则，服务将空转。请先添加并启用至少一条规则才能触发限速。
+                提示: 当前无启用的规则，服务将空转。请先添加并启用至少一条规则。
               </div>
             )}
           </div>
@@ -258,23 +236,12 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
             <div className="bg-card rounded-lg p-3 border border-border">
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="w-4 h-4 text-warning" />
-                <span className="text-sm font-medium text-foreground">活跃带宽限制 ({activeEvents.length})</span>
+                <span className="text-sm font-medium text-foreground">活跃 CPU 限制 ({activeEvents.length})</span>
               </div>
               <div className="space-y-1.5 max-h-60 overflow-y-auto">
                 {activeEvents.map(evt => {
                   const retryCount = evt.releaseRetryCount ?? 0;
                   const isRetrying = retryCount > 0;
-                  // 限速信息：根据 limitDirection 显示对应方向
-                  const dirLabel = formatLimitDirection(evt.limitDirection);
-                  const showIn = evt.limitDirection === 'in' || evt.limitDirection === 'both';
-                  const showOut = evt.limitDirection === 'out' || evt.limitDirection === 'both';
-                  const inBwStr = showIn && evt.originalInBw != null && evt.newInBw != null
-                    ? `入${evt.originalInBw}→${evt.newInBw}M`
-                    : null;
-                  const outBwStr = showOut && evt.originalOutBw != null && evt.newOutBw != null
-                    ? `出${evt.originalOutBw}→${evt.newOutBw}M`
-                    : null;
-                  const bwInfo = [dirLabel, inBwStr, outBwStr].filter(Boolean).join(' · ') || '限速中';
                   return (
                     <div key={evt.id} className="text-xs bg-background/50 rounded p-2 border border-border/50">
                       <div className="flex items-center justify-between gap-2 min-w-0">
@@ -293,13 +260,13 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
                           )}
                         </span>
                         <span className={`font-medium whitespace-nowrap shrink-0 ${isRetrying ? 'text-destructive' : 'text-warning'}`}>
-                          {isRetrying ? '解除中' : `剩余 ${formatRemaining(evt.expireTime ?? 0)}`}
+                          {isRetrying ? '解除中' : `剩余 ${formatRemaining(evt.expireTime)}`}
                         </span>
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center justify-between gap-2 min-w-0">
                         <span className="truncate min-w-0">
-                          {bwInfo}
-                          {evt.actualDurationMin ? ` · 时长 ${evt.actualDurationMin}分` : ''}
+                          限制 {evt.cpuLimitPercent}%
+                          {evt.actualDurationMin && evt.actualDurationMin !== undefined ? ` · 时长 ${evt.actualDurationMin}分` : ''}
                           {' · '}{evt.nodeName} · {evt.ruleName}
                         </span>
                         <button
@@ -323,9 +290,6 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
             </div>
           )}
 
-          {/* 告警配置 */}
-          <BandwidthAlertConfigCard />
-
           {/* 操作按钮 */}
           <div className="flex items-center gap-2 flex-wrap">
             <Button
@@ -343,15 +307,18 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
               className="bg-info hover:bg-info/90 text-info-foreground">
               <FileText className="w-4 h-4 mr-1" />操作日志
             </Button>
-            <Button size="sm" onClick={() => setAlertHistoryOpen(true)}
-              className="bg-warning hover:bg-warning/90 text-warning-foreground">
+            <Button size="sm" variant="outline" onClick={() => setAlertHistoryOpen(true)}
+              className="border-border text-foreground/80">
               <AlertTriangle className="w-4 h-4 mr-1" />告警历史
             </Button>
           </div>
 
+          {/* 告警配置 */}
+          <CpuLimitAlertConfigCard />
+
           {/* 规则列表 */}
           {rules.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">暂无带宽管理规则</div>
+            <div className="text-center py-8 text-muted-foreground text-sm">暂无 CPU 限制规则</div>
           ) : (
             <div className="space-y-2">
               {rules.map(rule => (
@@ -372,6 +339,13 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => handleToggleRule(rule.id, !rule.enabled)}
+                        className={`p-1.5 rounded hover:bg-accent text-xs font-medium ${rule.enabled ? 'text-success' : 'text-muted-foreground'}`}
+                        title={rule.enabled ? '点击禁用' : '点击启用'}
+                      >
+                        {rule.enabled ? '已启用' : '已禁用'}
+                      </button>
                       <button
                         onClick={() => { setEditingRule(rule); setRuleFormOpen(true); }}
                         className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
@@ -395,7 +369,7 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
         </div>
 
         {/* 规则表单 */}
-        <BandwidthRuleFormDialog
+        <CpuLimitRuleFormDialog
           open={ruleFormOpen}
           onOpenChange={setRuleFormOpen}
           rule={editingRule}
@@ -405,13 +379,13 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
         />
 
         {/* 日志查看 */}
-        <BandwidthLogViewerDialog
+        <CpuLimitLogViewerDialog
           open={logViewerOpen}
           onOpenChange={setLogViewerOpen}
         />
 
         {/* 告警历史 */}
-        <BandwidthAlertHistoryDialog
+        <CpuLimitAlertHistoryDialog
           open={alertHistoryOpen}
           onOpenChange={setAlertHistoryOpen}
         />

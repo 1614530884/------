@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Search } from 'lucide-react';
-import type { BandwidthRule, BandwidthLimitMode } from '@/lib/services/bandwidth-manager';
+import { Loader2, Search, AlertTriangle } from 'lucide-react';
+import type { BandwidthRule, BandwidthLimitMode, BandwidthPenaltyMode } from '@/lib/services/bandwidth-manager';
 
 interface BandwidthRuleFormDialogProps {
   open: boolean;
@@ -63,6 +63,18 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
   const [triggerCount, setTriggerCount] = useState('1');
   const [nodeSearch, setNodeSearch] = useState('');
 
+  // 惩罚机制
+  const [penaltyEnabled, setPenaltyEnabled] = useState(false);
+  const [penaltyWindowMin, setPenaltyWindowMin] = useState('60');
+  const [penaltyThreshold, setPenaltyThreshold] = useState('2');
+  // 时间惩罚
+  const [penaltyMode, setPenaltyMode] = useState<BandwidthPenaltyMode>('multiply');
+  const [penaltyValue, setPenaltyValue] = useState('2');
+  // 带宽降低比例惩罚（独立于时间惩罚）
+  const [penaltyBwMode, setPenaltyBwMode] = useState<BandwidthPenaltyMode>('add_extra');
+  const [penaltyBwValue, setPenaltyBwValue] = useState('10');
+  const [minBandwidthMbps, setMinBandwidthMbps] = useState('10');
+
   useEffect(() => {
     if (open) {
       setError('');
@@ -85,6 +97,14 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
         setIntervalVal(rule.interval);
         setCooldown(rule.cooldown);
         setTriggerCount(String(rule.triggerCount));
+        setPenaltyEnabled(!!rule.penaltyEnabled);
+        setPenaltyWindowMin(String(rule.penaltyWindowMin ?? 60));
+        setPenaltyThreshold(String(rule.penaltyThreshold ?? 2));
+        setPenaltyMode(rule.penaltyMode ?? 'multiply');
+        setPenaltyValue(String(rule.penaltyValue ?? 2));
+        setPenaltyBwMode(rule.penaltyBwMode ?? 'add_extra');
+        setPenaltyBwValue(String(rule.penaltyBwValue ?? 10));
+        setMinBandwidthMbps(String(rule.minBandwidthMbps ?? 10));
       } else {
         setName('');
         setNodeIds(selectedNodeIds.size > 0 ? [...selectedNodeIds] : []);
@@ -104,6 +124,14 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
         setIntervalVal(60);
         setCooldown(300);
         setTriggerCount('1');
+        setPenaltyEnabled(false);
+        setPenaltyWindowMin('60');
+        setPenaltyThreshold('2');
+        setPenaltyMode('multiply');
+        setPenaltyValue('2');
+        setPenaltyBwMode('add_extra');
+        setPenaltyBwValue('10');
+        setMinBandwidthMbps('10');
       }
       setNodeSearch('');
     }
@@ -166,6 +194,31 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
       setError('限速持续时间必须≥1分钟'); return;
     }
 
+    // 惩罚机制校验
+    const penaltyWindowNum = Number(penaltyWindowMin);
+    const penaltyThresholdNum = Number(penaltyThreshold);
+    const penaltyValueNum = Number(penaltyValue);
+    const minBwMbpsNum = Number(minBandwidthMbps);
+    if (penaltyEnabled) {
+      if (isNaN(penaltyWindowNum) || penaltyWindowNum < 1) {
+        setError('惩罚统计窗口必须≥1分钟'); return;
+      }
+      if (isNaN(penaltyThresholdNum) || penaltyThresholdNum < 1) {
+        setError('惩罚触发阈值必须≥1次'); return;
+      }
+      if (isNaN(penaltyValueNum) || penaltyValueNum < 1) {
+        setError(penaltyMode === 'multiply' ? '时间惩罚倍数必须≥1' : '时间惩罚值必须≥1'); return;
+      }
+      // 带宽惩罚校验
+      const penaltyBwValueNum = Number(penaltyBwValue);
+      if (isNaN(penaltyBwValueNum) || penaltyBwValueNum < 1) {
+        setError(penaltyBwMode === 'multiply' ? '带宽惩罚倍数必须≥1' : '带宽惩罚降低值（Mbps）必须≥1'); return;
+      }
+      if (isNaN(minBwMbpsNum) || minBwMbpsNum < 1) {
+        setError('最低带宽保留（Mbps）必须≥1'); return;
+      }
+    }
+
     setSaving(true);
     try {
       const ruleData: Partial<BandwidthRule> = {
@@ -186,6 +239,15 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
         cooldown,
         triggerCount: triggerCountNum,
         enabled: true,
+        penaltyEnabled,
+        penaltyWindowMin: penaltyWindowNum,
+        penaltyThreshold: penaltyThresholdNum,
+        penaltyMode,
+        penaltyValue: penaltyValueNum,
+        // 带宽降低比例惩罚
+        penaltyBwMode,
+        penaltyBwValue: Number(penaltyBwValue),
+        minBandwidthMbps: minBwMbpsNum,
       };
       if (isEdit) ruleData.id = rule!.id;
 
@@ -405,6 +467,185 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
               <Input type="number" value={triggerCount} onChange={e => setTriggerCount(e.target.value)}
                 min={1} max={10} className="bg-background border-border text-foreground h-9 text-xs" />
             </div>
+          </div>
+
+          {/* 惩罚机制 */}
+          <div className="border border-border rounded-md p-3 space-y-2 bg-background/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-warning" />
+                <span className="text-xs font-medium text-foreground">惩罚机制</span>
+              </div>
+              <Switch checked={penaltyEnabled} onCheckedChange={setPenaltyEnabled} />
+            </div>
+            <p className="text-[10px] text-muted-foreground -mt-1">
+              限速时间内再次触发或窗口内达阈值后，同时递增限制时长和降低带宽值，直至最低带宽保留值。到期后自动恢复原始带宽。
+            </p>
+            {penaltyEnabled && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">统计窗口（分钟）</Label>
+                    <Input type="number" value={penaltyWindowMin}
+                      onChange={e => setPenaltyWindowMin(e.target.value)}
+                      min={1} className="bg-background border-border text-foreground h-8 text-xs" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">触发阈值（次）</Label>
+                    <Input type="number" value={penaltyThreshold}
+                      onChange={e => setPenaltyThreshold(e.target.value)}
+                      min={1} className="bg-background border-border text-foreground h-8 text-xs" />
+                  </div>
+                </div>
+                {/* 时长惩罚 */}
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">时长惩罚模式</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setPenaltyMode('multiply')}
+                      className={`p-2 rounded-md border text-xs text-left ${
+                        penaltyMode === 'multiply'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground'
+                      }`}
+                    >
+                      <div className="font-medium">时长翻倍</div>
+                      <div className="text-[10px] mt-0.5 opacity-80">
+                        基础时长 × 倍数^超阈值次数
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setPenaltyMode('add_extra')}
+                      className={`p-2 rounded-md border text-xs text-left ${
+                        penaltyMode === 'add_extra'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground'
+                      }`}
+                    >
+                      <div className="font-medium">额外增加</div>
+                      <div className="text-[10px] mt-0.5 opacity-80">
+                        基础时长 + 额外分钟×超阈值次数
+                      </div>
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">
+                    {penaltyMode === 'multiply' ? '时长惩罚倍数' : '时长惩罚值（分钟）'}
+                  </Label>
+                  <Input type="number" value={penaltyValue}
+                    onChange={e => setPenaltyValue(e.target.value)}
+                    min={1} className="bg-background border-border text-foreground h-8 text-xs" />
+                </div>
+
+                {/* 带宽惩罚（所有模式通用） */}
+                <div className="border-t border-border/50 pt-2 mt-2">
+                  <div className="text-[10px] font-medium text-foreground mb-1.5">带宽惩罚</div>
+                  <p className="text-[9px] text-muted-foreground mb-1.5">
+                    独立于时间惩罚，基于当前实际带宽单步降低。带最低下限保护，防止限制到 0
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <button
+                      onClick={() => setPenaltyBwMode('multiply')}
+                      className={`p-1.5 rounded-md border text-xs text-left ${
+                        penaltyBwMode === 'multiply'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground'
+                      }`}
+                    >
+                      <div className="font-medium">按倍数降低</div>
+                      <div className="text-[10px] mt-0.5 opacity-80">
+                        当前 ÷ N（N=2 → 每次减半）
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setPenaltyBwMode('add_extra')}
+                      className={`p-1.5 rounded-md border text-xs text-left ${
+                        penaltyBwMode === 'add_extra'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground'
+                      }`}
+                    >
+                      <div className="font-medium">按 Mbps 降低</div>
+                      <div className="text-[10px] mt-0.5 opacity-80">
+                        当前 - N Mbps（N=10 → 每次降10M）
+                      </div>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">
+                        {penaltyBwMode === 'multiply' ? '带宽惩罚倍数' : '每次降低值（Mbps）'}
+                      </Label>
+                      <Input type="number" value={penaltyBwValue}
+                        onChange={e => setPenaltyBwValue(e.target.value)}
+                        min={1} className="bg-background border-border text-foreground h-8 text-xs" />
+                      <p className="text-[9px] text-muted-foreground">
+                        {penaltyBwMode === 'multiply' ? '每次惩罚：当前带宽 ÷ 此值' : '每次惩罚：当前带宽 - 此值（Mbps）'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">
+                        最低带宽保留（Mbps）<span className="text-destructive"> *</span>
+                      </Label>
+                      <Input type="number" value={minBandwidthMbps}
+                        onChange={e => setMinBandwidthMbps(e.target.value)}
+                        min={1}
+                        className="bg-background border-border text-foreground h-8 text-xs" />
+                      <p className="text-[9px] text-muted-foreground">惩罚后带宽不低于此值，达到后不再降低</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 惩罚预览 */}
+                <div className="bg-muted/30 rounded p-2 text-[10px] text-muted-foreground">
+                  {(() => {
+                    const baseDur = Number(durationMin) || 0;
+                    const threshold = Number(penaltyThreshold) || 0;
+                    const durVal = Number(penaltyValue) || 0;
+                    const bwVal = Number(penaltyBwValue) || 0;
+                    const minBw = Number(minBandwidthMbps) || 10;
+                    if (!baseDur || !threshold || !durVal || !bwVal) return '请先填写基础时长和惩罚参数';
+                    // 模拟用原始带宽 100M
+                    const sampleOriginal = 100;
+                    // 首次限速值
+                    let currentBw: number;
+                    if (limitMode === 'percent') {
+                      const reduce = Number(reducePercent) || 0;
+                      currentBw = Math.max(1, Math.round(sampleOriginal * (100 - reduce) / 100));
+                    } else {
+                      currentBw = Math.max(1, Number(fixedLimitMbps) || 0);
+                    }
+                    const lines: string[] = [];
+                    let currentDur = baseDur;
+                    for (let i = 1; i <= 4; i++) {
+                      if (i < threshold) {
+                        lines.push(`第${i}次：${currentDur}分/${currentBw}M`);
+                      } else {
+                        // 时间惩罚（单步叠加）
+                        if (penaltyMode === 'multiply') {
+                          currentDur = Math.min(Math.round(currentDur * durVal), 1440);
+                        } else {
+                          currentDur = Math.min(currentDur + durVal, 1440);
+                        }
+                        // 带宽惩罚（单步降低）
+                        let newBw: number;
+                        if (penaltyBwMode === 'multiply') {
+                          newBw = Math.round(currentBw / bwVal);
+                        } else {
+                          newBw = currentBw - bwVal;
+                        }
+                        newBw = Math.max(newBw, minBw);
+                        const atMin = newBw >= currentBw;
+                        lines.push(`第${i}次：${currentDur}分/${newBw}M${i === threshold ? ' ← 惩罚开始' : ''}${atMin ? '（已达下限）' : ''}`);
+                        currentBw = newBw;
+                      }
+                    }
+                    return lines.join('  ·  ');
+                  })()}
+                </div>
+              </>
+            )}
           </div>
 
           {error && <div className="text-sm text-destructive">{error}</div>}

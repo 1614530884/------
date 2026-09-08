@@ -24,6 +24,8 @@ import { NAV_ITEMS, isPathActive, type NavItem } from '@/config/nav';
 import { UserMenu } from '@/components/layout/user-menu';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { TicketNotification } from '@/components/layout/ticket-notification';
+import { BandwidthAlertNotification } from '@/components/layout/bandwidth-alert-notification';
+import { CpuLimitAlertNotification } from '@/components/layout/cpu-limit-alert-notification';
 import { logout } from '@/lib/auth-client';
 
 interface NavbarProps {
@@ -78,6 +80,8 @@ export function Navbar({ username, isAdmin = false }: NavbarProps) {
 
         {/* 右侧：用户区 */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <BandwidthAlertNotification enabled={isAdmin} />
+          <CpuLimitAlertNotification enabled={isAdmin} />
           <TicketNotification />
           <ThemeToggle />
           <UserMenu username={username} />

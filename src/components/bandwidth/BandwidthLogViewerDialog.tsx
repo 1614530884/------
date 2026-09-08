@@ -138,6 +138,7 @@ export function BandwidthLogViewerDialog({ open, onOpenChange }: BandwidthLogVie
       top_n: '已限速',
       continuous_filtered: '持续监控过滤',
       already_limited: '已限速跳过',
+      at_min_limit: '已达下限跳过',
       in_cooldown: '冷却中跳过',
       no_data: '无带宽数据',
     };
@@ -146,7 +147,7 @@ export function BandwidthLogViewerDialog({ open, onOpenChange }: BandwidthLogVie
 
   const reasonColor = (r: string): string => {
     if (r === 'top_n') return 'text-primary';
-    if (r === 'in_cooldown' || r === 'continuous_filtered' || r === 'already_limited') return 'text-warning';
+    if (r === 'in_cooldown' || r === 'continuous_filtered' || r === 'already_limited' || r === 'at_min_limit') return 'text-warning';
     if (r === 'error') return 'text-destructive';
     return 'text-muted-foreground';
   };
@@ -291,6 +292,20 @@ export function BandwidthLogViewerDialog({ open, onOpenChange }: BandwidthLogVie
                                 </>
                               )}
                             </div>
+                            {/* 惩罚信息行：触发惩罚时展示时长和降低比例变化 */}
+                            {inst.penalized && (
+                              <div className="mt-0.5 flex items-center gap-2 flex-wrap pl-2 text-destructive">
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-destructive/50 text-destructive">
+                                  惩罚
+                                </Badge>
+                                {inst.actualDurationMin !== undefined && (
+                                  <span>时长: {inst.actualDurationMin} 分</span>
+                                )}
+                                {inst.actualReducePercent !== undefined && (
+                                  <span>降低: {inst.actualReducePercent}%</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

@@ -10,9 +10,10 @@
  */
 import { MfyService } from '@/lib/services/mfy-service';
 import { asyncPool } from '@/lib/async-pool';
-import { bandwidthRuleStore, bandwidthLogStore } from './store';
-import { executeBandwidthLimit, COOLDOWN_BUFFER_MS } from './limit-executor';
-import type { BandwidthRule, BandwidthServiceStatus, BandwidthMetric } from './types';
+import { bandwidthRuleStore, bandwidthLogStore, bandwidthAlertStore } from './store';
+import { executeBandwidthLimit } from './limit-executor';
+import { bandwidthReleaseScheduler } from './release-scheduler';
+import type { BandwidthRule, BandwidthServiceStatus } from './types';
 
 class BandwidthManagerService {
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -24,14 +25,18 @@ class BandwidthManagerService {
   private consecutiveHits = new Map<string, number>();
   /** 正在执行的限速任务：key = `${ruleId}:${nodeId}`，value = Promise */
   private runningTasks = new Map<string, Promise<void>>();
-  /** 每台机器的最近限速时间戳：key = cloudId，用于 per-machine 冷却判断 */
-  private machineLimitTime = new Map<number, number>();
+  /** 告警防抖：key=level:targetId，value=上次告警时间戳，防止同一目标短时间内重复告警 */
+  private lastAlertTime = new Map<string, number>();
+  /** 告警防抖冷却期（毫秒）：同一实例/节点在此期间内不重复告警 */
+  private readonly ALERT_DEBOUNCE_MS = 5 * 60 * 1000; // 5 分钟
   private lastCheckAt: number | null = null;
 
   start(): void {
     if (this.started) return;
     this.started = true;
     this.scheduleNext();
+    // 启动到期自动恢复调度器
+    bandwidthReleaseScheduler.start();
     console.log('[BandwidthManager] 服务已启动');
   }
 
@@ -40,6 +45,7 @@ class BandwidthManagerService {
       clearInterval(this.timer);
       this.timer = null;
     }
+    bandwidthReleaseScheduler.stop();
     this.started = false;
     console.log('[BandwidthManager] 服务已停止');
   }
@@ -66,6 +72,8 @@ class BandwidthManagerService {
       activeRuleCount: activeRules.length,
       lastCheckAt: this.lastCheckAt,
       activeTasks: this.runningTasks.size,
+      releaseSchedulerRunning: bandwidthReleaseScheduler.isRunning(),
+      activeEventCount: bandwidthAlertStore.countActiveEvents(),
     };
   }
 
@@ -109,10 +117,22 @@ class BandwidthManagerService {
         .filter(r => r.nodeIds.includes(nodeId))
         .sort((a, b) => a.createdAt - b.createdAt);
 
+      // 节点级带宽缓存：一次 API 调用获取双向带宽，同节点多规则共享
+      // 只有存在需要上行/下行阈值的规则时才查询对应方向
+      const needUp = matchingRules.some(r => r.thresholdUp);
+      const needDown = matchingRules.some(r => r.thresholdDown);
+      let cachedBw: { up: number | null; down: number | null } | null = null;
+      const getNodeBandwidthCached = async (): Promise<{ up: number | null; down: number | null }> => {
+        if (cachedBw) return cachedBw;
+        cachedBw = await this.getNodeBandwidthBoth(nodeId, needUp, needDown);
+        return cachedBw;
+      };
+
       for (const rule of matchingRules) {
-        // 双方向检测：查上行/下行节点带宽，判断是否触发
-        const upBw = rule.thresholdUp ? await this.getNodeBandwidth(nodeId, 'bandwidth_up') : null;
-        const downBw = rule.thresholdDown ? await this.getNodeBandwidth(nodeId, 'bandwidth_down') : null;
+        // 双方向检测：使用缓存的双向带宽
+        const bw = await getNodeBandwidthCached();
+        const upBw = rule.thresholdUp ? bw.up : null;
+        const downBw = rule.thresholdDown ? bw.down : null;
 
         const triggerUp = upBw !== null && upBw > rule.thresholdUp!;
         const triggerDown = downBw !== null && downBw > rule.thresholdDown!;
@@ -257,6 +277,8 @@ class BandwidthManagerService {
     const triggerDirection: 'up' | 'down' | 'both' = triggerUp && triggerDown ? 'both' : triggerUp ? 'up' : 'down';
     try {
       const now = Date.now();
+      // 获取当前活跃限制事件（用于替代旧事件 + 冷却判断）
+      const activeLimits = bandwidthAlertStore.getActiveLimits();
       const output = await executeBandwidthLimit({
         rule,
         nodeId,
@@ -265,19 +287,20 @@ class BandwidthManagerService {
         triggerDown,
         metricValueUp,
         metricValueDown,
-        machineLimitTime: this.machineLimitTime,
+        activeLimits,
       });
 
-      // 限速成功的机器记录到 per-machine 冷却表
-      // 存储限速到期时间戳（含缓冲），而非限速时间戳，确保不同规则 durationMin 不同时也能正确防止重复限速
-      for (const inst of output.instances) {
-        if (inst.limited) {
-          const expireTs = now + rule.durationMin * 60 * 1000 + COOLDOWN_BUFFER_MS;
-          this.machineLimitTime.set(inst.cloudId, expireTs);
-        }
+      // 原子性替换事件：标记旧事件为 superseded + 创建新 active 事件
+      // 事务保证一致性，避免"旧事件已 superseded 但新事件未创建"导致实例永久被限速
+      if ((output.supersededEventIds?.length ?? 0) > 0 || (output.newEvents?.length ?? 0) > 0) {
+        bandwidthAlertStore.replaceEvents(output.supersededEventIds ?? [], output.newEvents ?? []);
       }
-      // 清理已过期的到期时间记录，避免内存无限增长
-      this.cleanupExpiredMachineLimits();
+
+      // 告警阈值检查：对刚限速的实例和节点分别检查
+      this.checkAlertThresholds(rule.name, nodeId, nodeName, output.instances.filter(i => i.limited).map(i => ({
+        cloudId: i.cloudId,
+        cloudName: i.cloudName,
+      })));
 
       bandwidthLogStore.append({
         ruleId: rule.id,
@@ -314,13 +337,70 @@ class BandwidthManagerService {
     }
   }
 
-  /** 清理已过期的 per-machine 冷却记录（machineLimitTime 存储的是到期时间戳） */
-  private cleanupExpiredMachineLimits(): void {
-    const now = Date.now();
-    for (const [cloudId, expireTs] of this.machineLimitTime) {
-      if (now >= expireTs) {
-        this.machineLimitTime.delete(cloudId);
+  /**
+   * 检查告警阈值：对刚限速的实例/节点，统计时间窗口内累计次数，达阈值则生成告警
+   * - 实例级：同一实例在窗口内被限速次数达 instanceThreshold
+   * - 节点级：同一节点下所有实例累计限速次数达 nodeThreshold
+   * - 防抖：同一目标在 ALERT_DEBOUNCE_MS 内不重复告警
+   */
+  private checkAlertThresholds(
+    ruleName: string,
+    nodeId: number,
+    nodeName: string,
+    limitedInstances: Array<{ cloudId: number; cloudName: string }>,
+  ): void {
+    try {
+      const config = bandwidthAlertStore.getConfig();
+      if (!config.enabled || limitedInstances.length === 0) return;
+
+      const now = Date.now();
+      const sinceTs = now - config.windowMin * 60 * 1000;
+
+      // 顺便清理超出窗口 2 倍时长的旧事件，避免表无限增长
+      bandwidthAlertStore.cleanExpiredEvents(now - config.windowMin * 60 * 1000 * 2);
+
+      // 实例级检查
+      for (const inst of limitedInstances) {
+        const count = bandwidthAlertStore.countEventsByCloud(inst.cloudId, sinceTs);
+        if (count >= config.instanceThreshold) {
+          const debounceKey = `instance:${inst.cloudId}`;
+          const lastAlert = this.lastAlertTime.get(debounceKey) ?? 0;
+          if (now - lastAlert < this.ALERT_DEBOUNCE_MS) continue;
+          this.lastAlertTime.set(debounceKey, now);
+          bandwidthAlertStore.appendAlert({
+            level: 'instance',
+            ruleName,
+            nodeId,
+            nodeName,
+            cloudId: inst.cloudId,
+            cloudName: inst.cloudName,
+            triggerCount: count,
+            threshold: config.instanceThreshold,
+            windowMin: config.windowMin,
+          });
+        }
       }
+
+      // 节点级检查
+      const nodeCount = bandwidthAlertStore.countEventsByNode(nodeId, sinceTs);
+      if (nodeCount >= config.nodeThreshold) {
+        const debounceKey = `node:${nodeId}`;
+        const lastAlert = this.lastAlertTime.get(debounceKey) ?? 0;
+        if (now - lastAlert >= this.ALERT_DEBOUNCE_MS) {
+          this.lastAlertTime.set(debounceKey, now);
+          bandwidthAlertStore.appendAlert({
+            level: 'node',
+            ruleName,
+            nodeId,
+            nodeName,
+            triggerCount: nodeCount,
+            threshold: config.nodeThreshold,
+            windowMin: config.windowMin,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[BandwidthManager] 告警阈值检查失败:', err);
     }
   }
 
@@ -357,27 +437,35 @@ class BandwidthManagerService {
     }
   }
 
-  /** 获取节点实时带宽（bps） */
-  private async getNodeBandwidth(
+  /** 一次 API 调用获取节点双向实时带宽（bps）
+   *  needUp/needDown 控制是否解析对应方向，避免无用字段解析
+   *  - up: 出站带宽（net_card.outbw）
+   *  - down: 入站带宽（net_card.inbw）
+   */
+  private async getNodeBandwidthBoth(
     nodeId: number,
-    metric: BandwidthMetric,
-  ): Promise<number | null> {
+    needUp: boolean,
+    needDown: boolean,
+  ): Promise<{ up: number | null; down: number | null }> {
+    const empty = { up: null as number | null, down: null as number | null };
+    if (!needUp && !needDown) return empty;
     try {
       const config = MfyService.readConfig();
       const account = MfyService.resolveMfyAccount(config);
-      // 节点状态接口含 net_card.inbw/outbw
       const result = await MfyService.request(account, `nodes/${nodeId}/status`, {}, 'GET');
-      if (!result.success || !result.data) return null;
+      if (!result.success || !result.data) return empty;
       const data = (result.data as Record<string, unknown>).data ?? result.data;
       const netCard = (data as Record<string, unknown>).net_card as Record<string, unknown> | undefined;
-      if (!netCard) return null;
+      if (!netCard) return empty;
       // bandwidth_up → 出站 outbw；bandwidth_down → 入站 inbw
-      const bps = metric === 'bandwidth_up'
-        ? Number(netCard.outbw ?? 0)
-        : Number(netCard.inbw ?? 0);
-      return isNaN(bps) ? 0 : bps;
+      const up = needUp ? (Number(netCard.outbw ?? 0) || 0) : null;
+      const down = needDown ? (Number(netCard.inbw ?? 0) || 0) : null;
+      return {
+        up: up !== null && !isNaN(up) ? up : null,
+        down: down !== null && !isNaN(down) ? down : null,
+      };
     } catch {
-      return null;
+      return empty;
     }
   }
 }

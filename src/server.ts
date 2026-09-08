@@ -8,6 +8,7 @@ import { nodeMonitorService } from './lib/services/node-monitor-service';
 import { flushLogs, migrateLogsFromJson } from './lib/services/node-monitor-store';
 import { serverToolsService } from './lib/services/server-tools/service';
 import { bandwidthManagerService } from './lib/services/bandwidth-manager';
+import { cpuLimitManagerService } from './lib/services/cpu-limit-manager';
 import { setupSshHandler } from './ws-handlers/ssh';
 import { setupSftpHandler } from './ws-handlers/sftp';
 import { setupTasksHandler } from './ws-handlers/tasks';
@@ -115,10 +116,14 @@ app.prepare().then(() => {
   // 启动智能带宽管理服务
   bandwidthManagerService.start();
 
+  // 启动 CPU 限制管理服务（含自动解除调度器）
+  cpuLimitManagerService.start();
+
   // 优雅关闭
   const shutdown = () => {
     nodeMonitorService.stop();
     bandwidthManagerService.stop();
+    cpuLimitManagerService.stop();
     serverToolsService.stop();
     flushLogs();
     server.close();

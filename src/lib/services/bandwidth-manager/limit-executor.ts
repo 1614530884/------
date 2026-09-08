@@ -13,19 +13,13 @@
  */
 import { MfyService, type MfyCredentials } from '@/lib/services/mfy-service';
 import { asyncPool } from '@/lib/async-pool';
+import { bandwidthAlertStore } from './store';
 import type {
   BandwidthRule,
   BandwidthInstanceResult,
   LimitExecutorInput,
   LimitExecutorOutput,
 } from './types';
-
-/**
- * Per-machine 冷却缓冲时间（毫秒）
- * 魔方云 temp_bw_expire_time 到期后，API 状态同步可能有延迟，
- * 增加此缓冲确保在魔方云完全解除限速前不会重复限速同一台机器。
- */
-export const COOLDOWN_BUFFER_MS = 120 * 1000; // 2 分钟
 
 /** 提取魔方云 API 返回中的 data 层 */
 function extractData(raw: unknown): Record<string, unknown> {
@@ -315,25 +309,21 @@ function extractBpsFromPoint(point: unknown): number | null {
 }
 
 /**
- * 执行限速
- * PUT clouds/{id}/bw，参数 { in_bw, out_bw, temp_bw_expire_time }
+ * 执行限速（直接修改实例带宽配置，不使用魔方云临时带宽）
+ * PUT clouds/{id}/bw，参数 { in_bw, out_bw }
+ * 到期恢复由 release-scheduler 调用 restoreInstanceBandwidth 完成
  */
 async function limitInstance(
   account: MfyCredentials,
   cloudId: number,
   inBw: number,
   outBw: number,
-  durationMin: number,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const expireTime = new Date(Date.now() + durationMin * 60 * 1000);
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const tempBwExpireTime = `${expireTime.getFullYear()}-${pad(expireTime.getMonth() + 1)}-${pad(expireTime.getDate())} ${pad(expireTime.getHours())}:${pad(expireTime.getMinutes())}:${pad(expireTime.getSeconds())}`;
-
     const result = await MfyService.request(
       account,
       `clouds/${cloudId}/bw`,
-      { in_bw: inBw, out_bw: outBw, temp_bw_expire_time: tempBwExpireTime },
+      { in_bw: inBw, out_bw: outBw },
       'PUT',
     );
     if (result.success) return { success: true };
@@ -344,6 +334,127 @@ async function limitInstance(
 }
 
 /**
+ * 恢复实例原始带宽（到期解除限速）
+ * PUT clouds/{id}/bw，参数 { in_bw, out_bw }，使用事件记录的原始带宽值
+ * 供 release-scheduler 调用
+ */
+export async function restoreInstanceBandwidth(
+  account: MfyCredentials,
+  cloudId: number,
+  originalInBw: number,
+  originalOutBw: number,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const result = await MfyService.request(
+      account,
+      `clouds/${cloudId}/bw`,
+      { in_bw: originalInBw, out_bw: originalOutBw },
+      'PUT',
+    );
+    if (result.success) return { success: true };
+    return { success: false, error: String(result.msg ?? '恢复带宽失败') };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/** 惩罚时长上限（分钟），避免指数爆炸导致长时间锁定 */
+const MAX_PENALTY_DURATION_MIN = 24 * 60; // 24 小时
+
+/**
+ * 计算规则基础限速值（首次限速，无惩罚）
+ * - percent 模式：originalBw × (100 - reducePercent) / 100
+ * - fixed 模式：limitValue
+ * 下限保护：至少 1 Mbps
+ */
+function computeBaseBw(rule: BandwidthRule, originalBw: number): number {
+  if (rule.limitMode === 'percent') {
+    const factor = (100 - rule.reducePercent) / 100;
+    const calculated = Math.round(originalBw * factor);
+    // 原带宽 > 0 时，限速值不超过原带宽；原带宽 = 0（无限制）时，直接用计算值
+    return originalBw > 0 ? Math.min(originalBw, Math.max(1, calculated)) : Math.max(1, calculated);
+  }
+  return Math.max(1, rule.limitValue);
+}
+
+/**
+ * 计算时间惩罚（对齐 CPU 限制模块的设计）
+ *
+ * 触发条件：
+ * - 实例当前已有 active 限制（限速时间内再次触发）→ 必定惩罚
+ * - 无 active 限制，但窗口内被限制次数达 penaltyThreshold → 惩罚
+ * - 否则 → 不惩罚，使用规则基础时长
+ *
+ * 惩罚公式（单步叠加，基于当前实际时长）：
+ * - multiply: currentDuration × penaltyValue（如 30×2=60 分）
+ * - add_extra: currentDuration + penaltyValue（如 30+15=45 分）
+ * - 上限：MAX_PENALTY_DURATION_MIN（24h）
+ *
+ * @param hasActiveLimit 实例是否在限速有效期内（任意方向）
+ * @param currentDurationMin 当前实际限制时长（无 active 时传 null）
+ * @param instanceLimitCount 窗口内被限制次数（含本次触发）
+ */
+function calculateTimePenalty(
+  rule: BandwidthRule,
+  hasActiveLimit: boolean,
+  currentDurationMin: number | null,
+  instanceLimitCount: number,
+): { durationMin: number; penalized: boolean } {
+  const shouldPenalize = rule.penaltyEnabled && (hasActiveLimit || instanceLimitCount >= rule.penaltyThreshold);
+  if (!shouldPenalize) {
+    return { durationMin: rule.durationMin, penalized: false };
+  }
+  const baseDuration = currentDurationMin ?? rule.durationMin;
+  let durationMin: number;
+  if (rule.penaltyMode === 'multiply') {
+    durationMin = baseDuration * rule.penaltyValue;
+  } else {
+    durationMin = baseDuration + rule.penaltyValue;
+  }
+  durationMin = Math.min(Math.round(durationMin), MAX_PENALTY_DURATION_MIN);
+  return { durationMin, penalized: true };
+}
+
+/**
+ * 计算单方向带宽惩罚（对齐 CPU 限制模块的设计）
+ *
+ * 触发条件：同 calculateTimePenalty
+ *
+ * 惩罚公式（单步，基于当前实际带宽）：
+ * - multiply: currentBw / penaltyBwValue（每次除以 N，如 N=2 → 每次减半）
+ * - add_extra: currentBw - penaltyBwValue（每次减 N Mbps）
+ * - 下限保护：minBandwidthMbps
+ *
+ * @param currentBw 当前带宽（有 active 时为已限速值，无 active 时为规则基础限速值）
+ * @param wasDirectionLimited 该方向是否在活跃限速中（影响 atMinLimit 判定）
+ * @param instanceLimitCount 窗口内被限制次数（含本次触发）
+ * @param minBw 带宽下限（Mbps）
+ * @returns { newBw, penalized, atMinLimit } atMinLimit=true 表示无法再降低，应跳过
+ */
+function applyBwPenalty(
+  currentBw: number,
+  rule: BandwidthRule,
+  wasDirectionLimited: boolean,
+  instanceLimitCount: number,
+  minBw: number,
+): { newBw: number; penalized: boolean; atMinLimit: boolean } {
+  const shouldPenalize = rule.penaltyEnabled && (wasDirectionLimited || instanceLimitCount >= rule.penaltyThreshold);
+  if (!shouldPenalize) {
+    return { newBw: currentBw, penalized: false, atMinLimit: false };
+  }
+  let newBw: number;
+  if (rule.penaltyBwMode === 'multiply') {
+    newBw = currentBw / rule.penaltyBwValue;
+  } else {
+    newBw = currentBw - rule.penaltyBwValue;
+  }
+  newBw = Math.max(Math.round(newBw), minBw);
+  // atMinLimit: 该方向已在限制中，但新值 >= 当前值，无法再降低
+  const atMinLimit = wasDirectionLimited && newBw >= currentBw;
+  return { newBw, penalized: true, atMinLimit };
+}
+
+/**
  * 限速执行器主函数（支持双方向同时触发）
  *
  * - triggerUp only: 按 outbw 排序，只限 out_bw
@@ -351,7 +462,7 @@ async function limitInstance(
  * - both: 分别排序，同一实例合并为单次 API 调用（双向限速）
  */
 export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<LimitExecutorOutput> {
-  const { rule, nodeId, triggerUp, triggerDown, loginUser, machineLimitTime } = input;
+  const { rule, nodeId, nodeName, triggerUp, triggerDown, loginUser, activeLimits } = input;
   const config = MfyService.readConfig();
   const account = MfyService.resolveMfyAccount(config, loginUser);
 
@@ -370,9 +481,13 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
 
     const now = Date.now();
 
-    // 3. 按触发方向分别排序 + 冷却过滤 + Top N + 持续监控
-    // 注意：machineLimitTime 存储的是限速到期时间戳（含缓冲），而非限速时间戳
+    // 3. 按触发方向分别排序 + 预过滤 + Top N + 持续监控
+    //    预过滤规则（对齐 CPU 限制模块）：
+    //    - 未启用惩罚 + 已在限速中 → already_limited（让原限速自然到期）
+    //    - 启用惩罚 + 该方向已在限速中 + 当前带宽 <= 最低保留 → at_min_limit（无法再降）
+    //    - 其他情况 → 加入候选（限速内可继续惩罚）
     type Candidate = { inst: typeof instances[0]; bwBps: number };
+    const minBwForPenalty = rule.penaltyEnabled ? Math.max(1, rule.minBandwidthMbps) : 1;
     const processDirection = async (
       isUp: boolean,
     ): Promise<{ candidates: Candidate[]; skipped: BandwidthInstanceResult[] }> => {
@@ -389,27 +504,66 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
         .filter(x => x.bwBps > 0)
         .sort((a, b) => b.bwBps - a.bwBps);
 
-      // 冷却过滤：machineLimitTime 存储到期时间戳，now < expireTs 表示仍在限速有效期内
+      // 预过滤：already_limited / at_min_limit
       const available: Candidate[] = [];
       for (const item of sorted) {
-        const expireTs = machineLimitTime?.get(item.inst.id) ?? 0;
-        if (expireTs && now < expireTs) {
-          const configBw = isUp ? item.inst.outBw : item.inst.inBw;
+        const activeInfo = activeLimits?.get(item.inst.id);
+        const hasActiveLimit = !!(activeInfo && now < activeInfo.expireTime);
+        if (!hasActiveLimit) {
+          available.push(item);
+          continue;
+        }
+        // 已在限速中
+        if (!rule.penaltyEnabled) {
+          // 未启用惩罚 → 跳过（让原限速自然到期）
+          const curBw = isUp ? (activeInfo!.outBw ?? 0) : (activeInfo!.inBw ?? 0);
+          const originalInBw = activeInfo!.originalInBw ?? item.inst.inBw;
+          const originalOutBw = activeInfo!.originalOutBw ?? item.inst.outBw;
           skipped.push({
             cloudId: item.inst.id,
             cloudName: item.inst.name,
-            bandwidthBefore: configBw,
-            bandwidthAfter: configBw,
+            bandwidthBefore: curBw,
+            bandwidthAfter: curBw,
             realtimeBwMbps: bpsToMbps(item.bwBps),
-            originalInBw: item.inst.inBw,
-            originalOutBw: item.inst.outBw,
-            limitDirection: limitDir,
+            originalInBw,
+            originalOutBw,
+            newInBw: activeInfo!.inBw,
+            newOutBw: activeInfo!.outBw,
+            limitDirection: activeInfo!.limitDirection,
             limited: false,
-            reason: 'in_cooldown',
+            reason: 'already_limited',
           });
-        } else {
-          available.push(item);
+          continue;
         }
+        // 启用惩罚：判断该方向是否已在限速中
+        const wasDirLimited = !!activeInfo!.limitDirection && (
+          activeInfo!.limitDirection === 'both' || activeInfo!.limitDirection === limitDir
+        );
+        if (wasDirLimited) {
+          const curBw = isUp ? (activeInfo!.outBw ?? 0) : (activeInfo!.inBw ?? 0);
+          if (curBw <= minBwForPenalty) {
+            // 该方向已达下限，无法再降
+            const originalInBw = activeInfo!.originalInBw ?? item.inst.inBw;
+            const originalOutBw = activeInfo!.originalOutBw ?? item.inst.outBw;
+            skipped.push({
+              cloudId: item.inst.id,
+              cloudName: item.inst.name,
+              bandwidthBefore: curBw,
+              bandwidthAfter: curBw,
+              realtimeBwMbps: bpsToMbps(item.bwBps),
+              originalInBw,
+              originalOutBw,
+              newInBw: activeInfo!.inBw,
+              newOutBw: activeInfo!.outBw,
+              limitDirection: activeInfo!.limitDirection,
+              limited: false,
+              reason: 'at_min_limit',
+            });
+            continue;
+          }
+        }
+        // 仍在限速中但可继续惩罚，或该方向未被限速 → 加入候选
+        available.push(item);
       }
 
       // Top N
@@ -428,14 +582,15 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
           if (overThreshold) {
             filtered.push(item);
           } else {
+            const activeInfo = activeLimits?.get(item.inst.id);
             skipped.push({
               cloudId: item.inst.id,
               cloudName: item.inst.name,
               bandwidthBefore: configBw,
               bandwidthAfter: configBw,
               realtimeBwMbps: bpsToMbps(item.bwBps),
-              originalInBw: item.inst.inBw,
-              originalOutBw: item.inst.outBw,
+              originalInBw: activeInfo?.originalInBw ?? item.inst.inBw,
+              originalOutBw: activeInfo?.originalOutBw ?? item.inst.outBw,
               limitDirection: limitDir,
               limited: false,
               reason: 'continuous_filtered',
@@ -453,18 +608,22 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
     const downResult = triggerDown ? await processDirection(false) : { candidates: [], skipped: [] };
 
     // 收集所有跳过的实例（去重：同一实例可能被两个方向都跳过）
+    // 优先级：already_limited > at_min_limit > continuous_filtered
     const skippedMap = new Map<number, BandwidthInstanceResult>();
+    const reasonPriority: Record<string, number> = {
+      already_limited: 3,
+      at_min_limit: 2,
+      in_cooldown: 2,
+      continuous_filtered: 1,
+    };
     for (const r of [...upResult.skipped, ...downResult.skipped]) {
-      // 如果已有记录且是 in_cooldown，保留（冷却比 continuous_filtered 优先）
       const existing = skippedMap.get(r.cloudId);
-      if (!existing || (existing.reason !== 'in_cooldown' && r.reason === 'in_cooldown')) {
+      const existingPri = existing ? (reasonPriority[existing.reason] ?? 0) : 0;
+      const newPri = reasonPriority[r.reason] ?? 0;
+      if (!existing || newPri > existingPri) {
         skippedMap.set(r.cloudId, r);
       }
     }
-    for (const r of skippedMap.values()) {
-      results.push(r);
-    }
-
     // 4. 合并两个方向的候选列表
     // 对于同一实例：如果两个方向都选中 → 双向限速（单次 API 调用）
     //               如果只一个方向选中 → 单向限速
@@ -496,32 +655,163 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
       }
     }
 
+    // 去重：若实例在一个方向被跳过、另一方向是候选，则从 skippedMap 中移除
+    // 避免 results 中同一实例出现两次（一次 skip + 一次 limit）
+    for (const id of mergedMap.keys()) {
+      skippedMap.delete(id);
+    }
+    // 将去重后的跳过实例加入 results
+    for (const r of skippedMap.values()) {
+      results.push(r);
+    }
+
     const mergedCandidates = Array.from(mergedMap.values());
     if (mergedCandidates.length === 0) {
       const hasSkipped = results.length > 0;
       return {
         success: true, affectedCount: 0, instances: results,
-        error: hasSkipped ? '候选实例均被过滤（冷却/持续监控）' : '无带宽数据的实例',
+        error: hasSkipped ? '候选实例均被过滤（已在限速中/已达下限/持续监控）' : '无带宽数据的实例',
       };
     }
 
-    // 5. 并发限速（并发度 3）
+    // 5. 并发限速（并发度 3），每台实例独立计算惩罚时长和带宽值
+    //    设计对齐 CPU 限制模块：限速时间内再次触发必定惩罚，基于当前实际带宽单步降低
+    const newEvents: NonNullable<LimitExecutorOutput['newEvents']> = [];
+    const supersededEventIds: string[] = [];
+
+    // 预查询各实例在窗口内的被限制次数（仅启用惩罚时才需要）
+    const instanceCountMap = new Map<number, number>();
+    if (rule.penaltyEnabled) {
+      const penaltySinceTs = now - rule.penaltyWindowMin * 60 * 1000;
+      const cloudIdToCount = bandwidthAlertStore.countCloudEventsInWindowBatch(
+        mergedCandidates.map(x => x.inst.id),
+        penaltySinceTs,
+      );
+      for (const [cid, cnt] of cloudIdToCount) {
+        instanceCountMap.set(cid, cnt);
+      }
+    }
+
     const limitResults = await asyncPool(mergedCandidates, 3, async (plan) => {
       const { inst, limitUp, limitDown, upBwBps, downBwBps } = plan;
-      let newInBw = inst.inBw;
-      let newOutBw = inst.outBw;
 
-      // 计算各方向限速值
-      if (rule.limitMode === 'percent') {
-        const factor = (100 - rule.reducePercent) / 100;
-        if (limitUp) newOutBw = Math.max(1, Math.round(inst.outBw * factor));
-        if (limitDown) newInBw = Math.max(1, Math.round(inst.inBw * factor));
-      } else {
-        if (limitUp) newOutBw = Math.max(1, rule.limitValue);
-        if (limitDown) newInBw = Math.max(1, rule.limitValue);
+      const activeInfo = activeLimits?.get(inst.id);
+      const hasActiveLimit = !!(activeInfo && now < activeInfo.expireTime);
+
+      // 未启用惩罚且已在限速中 → 跳过（让原限速自然到期）
+      // （此分支正常情况下已在 processDirection 预过滤，此处为兜底）
+      if (!rule.penaltyEnabled && hasActiveLimit) {
+        const curBw = limitUp ? (activeInfo!.outBw ?? 0) : (activeInfo!.inBw ?? 0);
+        return {
+          cloudId: inst.id,
+          cloudName: inst.name,
+          bandwidthBefore: curBw,
+          bandwidthAfter: curBw,
+          realtimeBwMbps: bpsToMbps(limitUp ? upBwBps : downBwBps),
+          originalInBw: activeInfo!.originalInBw ?? inst.inBw,
+          originalOutBw: activeInfo!.originalOutBw ?? inst.outBw,
+          newInBw: activeInfo!.inBw,
+          newOutBw: activeInfo!.outBw,
+          limitDirection: activeInfo!.limitDirection,
+          limited: false,
+          reason: 'already_limited' as const,
+          error: undefined,
+          penalized: false,
+          actualDurationMin: 0,
+          actualReducePercent: 0,
+          expireTime: 0,
+          supersededEventId: undefined as string | undefined,
+        };
       }
 
-      const limitResult = await limitInstance(account, inst.id, newInBw, newOutBw, rule.durationMin);
+      // 窗口内被限制次数（含本次触发）
+      const instanceLimitCount = (instanceCountMap.get(inst.id) ?? 0) + 1;
+
+      // 时间惩罚
+      const currentDurationMin = hasActiveLimit ? (activeInfo!.actualDurationMin ?? null) : null;
+      const { durationMin: effectiveDurationMin, penalized: timePenalized } = calculateTimePenalty(
+        rule, hasActiveLimit, currentDurationMin, instanceLimitCount,
+      );
+
+      // 带宽下限保护
+      const minBw = rule.penaltyEnabled ? Math.max(1, rule.minBandwidthMbps) : 1;
+
+      // 真实原始带宽：从 active 事件继承，确保解除时恢复到最初值（非当前限速值）
+      const trueOriginalInBw = activeInfo?.originalInBw ?? inst.inBw;
+      const trueOriginalOutBw = activeInfo?.originalOutBw ?? inst.outBw;
+
+      // 各方向独立计算限速值
+      // atMinLimit 跟踪：统计被限速方向中达下限的数量，仅当全部达下限时才跳过
+      let newInBw = inst.inBw;
+      let newOutBw = inst.outBw;
+      let bwPenalized = false;
+      let limitedDirCount = 0;
+      let atMinDirCount = 0;
+
+      if (limitUp) {
+        limitedDirCount++;
+        // 该方向是否已在限速中（影响 atMinLimit 判定 + 惩罚基准值）
+        const wasOutLimited = hasActiveLimit && !!activeInfo!.limitDirection && (
+          activeInfo!.limitDirection === 'both' || activeInfo!.limitDirection === 'out'
+        );
+        // 基准值：已限速方向用当前限制值，未限速方向用规则基础值
+        const baseOutBw = wasOutLimited ? (activeInfo!.outBw ?? 0) : computeBaseBw(rule, inst.outBw);
+        const result = applyBwPenalty(baseOutBw, rule, wasOutLimited, instanceLimitCount, minBw);
+        if (result.atMinLimit) {
+          // 该方向已达下限，保持当前值不变（不降低），但仍可限速另一方向
+          atMinDirCount++;
+          newOutBw = wasOutLimited ? (activeInfo!.outBw ?? 0) : result.newBw;
+        } else {
+          newOutBw = result.newBw;
+        }
+        bwPenalized = bwPenalized || (result.penalized && !result.atMinLimit);
+      }
+      if (limitDown) {
+        limitedDirCount++;
+        const wasInLimited = hasActiveLimit && !!activeInfo!.limitDirection && (
+          activeInfo!.limitDirection === 'both' || activeInfo!.limitDirection === 'in'
+        );
+        const baseInBw = wasInLimited ? (activeInfo!.inBw ?? 0) : computeBaseBw(rule, inst.inBw);
+        const result = applyBwPenalty(baseInBw, rule, wasInLimited, instanceLimitCount, minBw);
+        if (result.atMinLimit) {
+          atMinDirCount++;
+          newInBw = wasInLimited ? (activeInfo!.inBw ?? 0) : result.newBw;
+        } else {
+          newInBw = result.newBw;
+        }
+        bwPenalized = bwPenalized || (result.penalized && !result.atMinLimit);
+      }
+
+      // 所有被限速方向都已达下限 → 跳过，不创建新事件，旧事件保持 active
+      if (limitedDirCount > 0 && atMinDirCount === limitedDirCount) {
+        const curBw = limitUp ? (activeInfo!.outBw ?? 0) : (activeInfo!.inBw ?? 0);
+        return {
+          cloudId: inst.id,
+          cloudName: inst.name,
+          bandwidthBefore: curBw,
+          bandwidthAfter: curBw,
+          realtimeBwMbps: bpsToMbps(limitUp ? upBwBps : downBwBps),
+          originalInBw: trueOriginalInBw,
+          originalOutBw: trueOriginalOutBw,
+          newInBw: activeInfo!.inBw,
+          newOutBw: activeInfo!.outBw,
+          limitDirection: activeInfo!.limitDirection,
+          limited: false,
+          reason: 'at_min_limit' as const,
+          error: undefined,
+          penalized: false,
+          actualDurationMin: 0,
+          actualReducePercent: 0,
+          expireTime: 0,
+          supersededEventId: undefined as string | undefined,
+        };
+      }
+
+      // 限速时不修改未限速方向，保持当前配置值
+      // （limitInstance 传入的 in_bw/out_bw 都会被 PUT 到 API，所以未限速方向传当前配置）
+      const apiInBw = limitDown ? newInBw : inst.inBw;
+      const apiOutBw = limitUp ? newOutBw : inst.outBw;
+      const limitResult = await limitInstance(account, inst.id, apiInBw, apiOutBw);
 
       // 确定方向标签和展示值
       const limitDir: 'in' | 'out' | 'both' = limitUp && limitDown ? 'both' : limitUp ? 'out' : 'in';
@@ -532,26 +822,75 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
         ? newOutBw  // 双向时展示出站值，详情看 newInBw/newOutBw
         : limitUp ? newOutBw : newInBw;
 
+      const penalized = timePenalized || bwPenalized;
+      if (penalized) {
+        const fromInBw = hasActiveLimit ? (activeInfo!.inBw ?? inst.inBw) : inst.inBw;
+        const fromOutBw = hasActiveLimit ? (activeInfo!.outBw ?? inst.outBw) : inst.outBw;
+        console.log(`[BandwidthLimit] 实例 ${inst.name}(#${inst.id}) 触发惩罚：时长 ${rule.durationMin}→${effectiveDurationMin}分，出站 ${fromOutBw}→${newOutBw}M，入站 ${fromInBw}→${newInBw}M（窗口内已限速 ${instanceLimitCount} 次）`);
+      }
+
+      // 限速成功且当前有旧 active 事件 → 收集旧事件 ID 用于标记 superseded
+      const supersededEventId = (limitResult.success && activeInfo) ? activeInfo.eventId : undefined;
+      if (supersededEventId) {
+        supersededEventIds.push(supersededEventId);
+      }
+
+      const expireTime = now + effectiveDurationMin * 60 * 1000;
+
+      // 实际降低比例（用于日志审计）：基于真实原始带宽计算
+      const actualReducePercent = limitUp && trueOriginalOutBw > 0
+        ? Math.round((trueOriginalOutBw - newOutBw) / trueOriginalOutBw * 100)
+        : limitDown && trueOriginalInBw > 0
+          ? Math.round((trueOriginalInBw - newInBw) / trueOriginalInBw * 100)
+          : 0;
+
       return {
         cloudId: inst.id,
         cloudName: inst.name,
         bandwidthBefore: configBefore,
         bandwidthAfter: displayAfter,
         realtimeBwMbps: bpsToMbps(primaryBwBps),
-        originalInBw: inst.inBw,
-        originalOutBw: inst.outBw,
+        originalInBw: trueOriginalInBw,
+        originalOutBw: trueOriginalOutBw,
         newInBw,
         newOutBw,
         limitDirection: limitDir,
         limited: limitResult.success,
         reason: limitResult.success ? 'top_n' as const : 'error' as const,
         error: limitResult.error,
+        penalized,
+        actualDurationMin: effectiveDurationMin,
+        actualReducePercent,
+        expireTime,
+        supersededEventId,
       };
     });
 
     for (const r of limitResults) {
       if (r.status === 'fulfilled') {
-        results.push(r.value);
+        const v = r.value;
+        results.push(v);
+        // 限速成功 → 生成活跃事件（含原始带宽、限速值、到期时间，供 release-scheduler 恢复）
+        if (v.limited) {
+          newEvents.push({
+            ts: now,
+            ruleId: rule.id,
+            ruleName: rule.name,
+            nodeId,
+            nodeName,
+            cloudId: v.cloudId,
+            cloudName: v.cloudName,
+            startTime: now,
+            expireTime: v.expireTime!,
+            originalInBw: v.originalInBw,
+            originalOutBw: v.originalOutBw,
+            newInBw: v.newInBw,
+            newOutBw: v.newOutBw,
+            limitDirection: v.limitDirection,
+            actualDurationMin: v.actualDurationMin,
+            penalized: v.penalized,
+          });
+        }
       } else {
         results.push({
           cloudId: 0,
@@ -567,13 +906,15 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
     }
 
     const affectedCount = results.filter(r => r.limited).length;
-    return { success: true, affectedCount, instances: results };
+    return { success: true, affectedCount, instances: results, newEvents, supersededEventIds };
   } catch (err) {
     return {
       success: false,
       affectedCount: 0,
       instances: results,
       error: err instanceof Error ? err.message : String(err),
+      newEvents: [],
+      supersededEventIds: [],
     };
   }
 }
