@@ -245,6 +245,7 @@ function SortablePackageCard({
   siblingPkg,
   onSwitchCycle,
   selectedCycle,
+  disabled,
 }: {
   pkg: PackageConfig;
   isSelected: boolean;
@@ -254,6 +255,7 @@ function SortablePackageCard({
   siblingPkg?: PackageConfig | null;
   onSwitchCycle?: (targetId: string) => void;
   selectedCycle?: 'monthly' | 'annually'; // 当前选中的周期
+  disabled?: boolean; // 产品配置加载中：禁止选择/切周期，防止竞态（加载完成后再点则走正常流程）
 }) {
   const {
     attributes,
@@ -280,12 +282,17 @@ function SortablePackageCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative rounded-lg border px-3 py-2.5 cursor-pointer transition-all ${
+      className={`group relative rounded-lg border px-3 py-2.5 transition-all ${
+        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+      } ${
         isSelected
           ? 'border-primary bg-primary/15 shadow-sm shadow-primary/20'
-          : 'border-border bg-card/50 hover:border-border hover:bg-accent/40'
+          : disabled
+            ? 'border-border bg-card/50'
+            : 'border-border bg-card/50 hover:border-border hover:bg-accent/40'
       } ${isDragging ? 'shadow-lg shadow-black/30' : ''}`}
-      onClick={onSelect}
+      onClick={disabled ? undefined : onSelect}
+      title={disabled ? '配置加载中，请稍候…' : undefined}
     >
       <div className="flex items-center gap-2 mb-1">
         <button
@@ -303,17 +310,19 @@ function SortablePackageCard({
           <div className="flex ml-auto mr-1" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
+              disabled={disabled}
               className={`px-1.5 py-0.5 rounded-l text-[10px] font-medium transition-colors ${
                 activeCycle === 'monthly' ? 'bg-accent2 text-accent2-foreground' : 'bg-accent text-muted-foreground hover:bg-accent'
               }`}
-              onClick={() => { if (activeCycle !== 'monthly') onSwitchCycle?.(pkg.id); }}
+              onClick={() => { if (!disabled && activeCycle !== 'monthly') onSwitchCycle?.(pkg.id); }}
             >月付</button>
             <button
               type="button"
+              disabled={disabled}
               className={`px-1.5 py-0.5 rounded-r text-[10px] font-medium transition-colors ${
                 activeCycle === 'annually' ? 'bg-accent2 text-accent2-foreground' : 'bg-accent text-muted-foreground hover:bg-accent'
               }`}
-              onClick={() => { if (activeCycle !== 'annually' && siblingPkg) onSwitchCycle?.(siblingPkg.id); }}
+              onClick={() => { if (!disabled && activeCycle !== 'annually' && siblingPkg) onSwitchCycle?.(siblingPkg.id); }}
             >年付</button>
           </div>
         )}
@@ -1385,7 +1394,9 @@ export default function OneClickOrderPage() {
     const seq = ++packageSelectSeqRef.current;
     setSelectedPackageId(pkgId);
 
-    const isSameProduct = pkg.productId === selectedProductId;
+    // 同产品的判断前提是配置已加载完成（configOptions非空）；
+    // 产品还在加载中时点同产品套餐，仍走完整加载流程，避免把套餐值应用到空配置上
+    const isSameProduct = pkg.productId === selectedProductId && configOptions.length > 0;
 
     // 选择产品（跨产品切换时重新加载configOptions，OS会随之重新初始化）
     // invalidatePackage=false：不推进套餐守卫，等下面的检查统一裁决
@@ -6760,6 +6771,7 @@ export default function OneClickOrderPage() {
                                     siblingPkg={siblingMap.get(pkg.id) || null}
                                     onSwitchCycle={handleSwitchCycle}
                                     selectedCycle={selectedPackageId === siblingMap.get(pkg.id)?.id ? 'annually' : 'monthly'}
+                                    disabled={isLoadingConfig}
                                   />
                                 ))}
                               </div>
