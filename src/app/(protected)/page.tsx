@@ -1391,6 +1391,13 @@ export default function OneClickOrderPage() {
     // invalidatePackage=false：不推进套餐守卫，等下面的检查统一裁决
     if (!isSameProduct) {
       await handleSelectProduct(pkg.productId, false);
+    } else {
+      // 同产品切套餐：使进行中的产品加载/周期重载过期
+      // （否则 HSP/周期effect 的响应回来时会用"默认配置"覆盖刚应用的套餐值，
+      //  造成价格是新套餐、配置却是默认配置的错位）
+      productSelectSeqRef.current++;
+      cycleChangeSeqRef.current++;
+      setIsLoadingConfig(false);
     }
     // await 期间用户又点了其他套餐（推进 packageSeq）或直接点了其他产品（直点会推进 packageSeq）→ 放弃应用
     if (packageSelectSeqRef.current !== seq) return;
@@ -3884,6 +3891,8 @@ export default function OneClickOrderPage() {
       if (!res.success) {
         showNotification('error', res.message || res.msg || '一键开通失败');
         setOrderResult({ success: false, orderId: String(resData.orderId || ''), message: res.message || res.msg || '一键开通失败' });
+        // 若流程中发生过充值（可能已自动回滚/回滚失败），刷新余额显示确保与实际一致
+        if (parseFloat(String(resData.rechargedAmount ?? '0')) > 0) void refreshSelectedUser();
         return;
       }
 
@@ -3920,7 +3929,9 @@ export default function OneClickOrderPage() {
         setOrderResult({ success: true, orderId: String(resData.orderId || '') });
         showNotification('success', '一键开通成功！云服务器已自动开通');
       }
-      if (selectedUser) fetchUserProducts(selectedUser.id);
+      // 开通完成：刷新用户信息（充值已被订单扣款抵扣，余额显示需更新为实际值）和产品列表
+      // refreshSelectedUser 内部会重新搜索用户（拿到最新 credit）并调用 fetchUserProducts
+      void refreshSelectedUser();
     } catch (error) {
       // 请求本身异常（网络中断等）：服务端流程可能仍在执行，不能立即重试，先核对
       setProcessingSteps(prev => prev.map(step => step.status === 'processing' ? { ...step, status: 'failed' } : step));
