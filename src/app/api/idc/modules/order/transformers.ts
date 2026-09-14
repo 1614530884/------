@@ -52,7 +52,9 @@ export function transformCreateOrderParams(params: Record<string, unknown>): Rec
   const interiorPriceRenew = params.interior_price_renew as number | undefined;
   const configoptions = params.configoptions as Record<string, unknown> | undefined;
   const customfield = params.customfield as Record<string, unknown> | undefined;
-  const payment = (params.payment as string) || 'E007alipay';
+  // payment 不再写死兜底：由调用方（oneClickProvision 编排）实时校验财务侧网关列表后传入，
+  // 避免财务更换支付接口后旧值失效导致建单失败
+  const payment = params.payment as string | undefined;
 
   const opsEntry: Record<string, unknown> = {
     pid: String(pid || ''),

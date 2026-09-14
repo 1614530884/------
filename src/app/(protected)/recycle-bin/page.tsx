@@ -123,6 +123,21 @@ export default function RecycleBinPage() {
     return data;
   }, []);
 
+  // 实时获取有效支付方式（财务侧接口可能更换/下线，避免写死失效值）：
+  // 返回第一个启用的网关名；拉取失败返回空串（续费请求不带 payment，由财务侧默认/报错）
+  const resolveGateway = useCallback(async (): Promise<string> => {
+    try {
+      const res = await callIdcApi('getGateways');
+      if (res.success && Array.isArray(res.gateway)) {
+        const first = (res.gateway as Array<{ name: string; status: number }>).find(g => g.status === 1);
+        if (first) return first.name;
+      }
+    } catch {
+      // 拉取失败：降级不传 payment
+    }
+    return '';
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const fetchList = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -433,10 +448,11 @@ export default function RecycleBinPage() {
       }
       updStep(i3, 'completed');
 
-      // 4. 续费1周期
+      // 4. 续费1周期（续费前实时获取有效支付方式，财务侧接口可能更换）
       const renewMethodLabel = renewMethod === 'autoRecharge' ? '自动充值余额' : '扣除余额续费';
       const i4 = pushStep(`续费 ${productName} (${billingcycle}) - ${renewMethodLabel}`);
-      const renewRes = await callIdcApi('renewService', { hostid, billingcycles: billingcycle });
+      const renewPayment = await resolveGateway();
+      const renewRes = await callIdcApi('renewService', { hostid, billingcycles: billingcycle, payment: renewPayment });
       if (!(renewRes?.status === 200)) {
         updStep(i4, 'failed', String(renewRes?.msg || '续费失败'));
         return;

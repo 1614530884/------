@@ -57,7 +57,8 @@ export function transformHostRenewPageParams(params: Record<string, unknown>): R
 
 export function transformHostRenewParams(params: Record<string, unknown>): Record<string, unknown> {
   const result = { ...params };
-  if (!result.payment) result.payment = 'E007alipay';
+  // payment 不再写死兜底：由前端调用方（续费流程）实时校验财务侧网关列表后传入，
+  // 避免财务更换支付接口后旧值失效导致续费失败。未传时 GET query 自动省略该字段
   return result;
 }
 

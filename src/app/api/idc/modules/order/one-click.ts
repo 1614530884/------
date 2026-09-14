@@ -86,6 +86,8 @@ export async function handleOneClickProvision(
   const billingcycle = String(params.billingcycle || 'monthly');
   const autoRecharge = params.autoRecharge === true || params.autoRecharge === 1;
   const rechargeAmount = Math.max(0, toNum(params.rechargeAmount));
+  // force: 操作员确认要"连开多台"时跳过结果重放（运行中锁不可跳过）
+  const force = params.force === true || params.force === 1;
 
   if (!uid || !pid) {
     return NextResponse.json({ success: false, message: '缺少 uid 或 pid 参数' });
@@ -106,8 +108,9 @@ export async function handleOneClickProvision(
           message: '该用户已有开通流程正在执行中，请等待完成后再操作（勿重复点击或刷新重试）',
         });
       }
-    } else if (existing.finishedAt && now - existing.finishedAt < RESULT_TTL_MS && existing.response) {
+    } else if (!force && existing.finishedAt && now - existing.finishedAt < RESULT_TTL_MS && existing.response) {
       // 浏览器回退/刷新后短时间内重复提交：幂等返回上次结果，不再充值/开通
+      // 前端收到 replayed 标记后会弹确认，操作员确认"连开多台"时带 force 重发
       return NextResponse.json({ ...existing.response, replayed: true });
     }
     provisionLocks.delete(lockKey);
@@ -194,10 +197,63 @@ async function runProvision(
     steps.push({ id: 3, status: 'completed', message: '未启用自动充值' });
   }
 
+  // 失败回滚（仅在"确定没有创建订单"时调用）：把刚充进去的余额扣回去
+  const rollbackRecharge = async (): Promise<{ refunded: boolean; note: string }> => {
+    if (recharged <= 0) return { refunded: false, note: '' };
+    let refunded = false;
+    try {
+      const deductRes = await callIdc('deductBalance', '/credit/reduce', 'POST', transformDeductBalanceParams({
+        uid,
+        amount: recharged,
+        description: `一键开通失败自动回退充值 - 产品ID:${pid} - ${billingcycle}`,
+      }), ctx);
+      refunded = deductRes.success === true;
+    } catch {
+      refunded = false;
+    }
+    const note = refunded
+      ? `；已自动回退充值 ¥${recharged.toFixed(2)}，用户余额已恢复`
+      : `；自动回退失败，请手动处理：用户余额多充了 ¥${recharged.toFixed(2)}`;
+    return { refunded, note };
+  };
+
+  // ===== 校验/补全支付方式 =====
+  // 财务侧支付接口可能更换（下线/改名），建单前实时拉取网关列表：
+  // 当前 payment 不在启用列表时自动切换到第一个启用的网关，避免写死接口失效
+  let payment = String(params.payment || '');
+  let paymentSwitched = false;
+  try {
+    const gwRes = await callIdc('getGateways', '/common/get_getways', 'GET', {}, ctx);
+    const gwList = Array.isArray(gwRes.gateway) ? (gwRes.gateway as Array<Record<string, unknown>>) : [];
+    if (gwList.length > 0) {
+      const currentValid = payment !== '' && gwList.some((g) => String(g.name) === payment && toNum(g.status) === 1);
+      if (!currentValid) {
+        const firstActive = gwList.find((g) => toNum(g.status) === 1);
+        if (!firstActive) {
+          const errMsg = '财务系统无可用支付方式（所有支付接口均未启用），无法创建订单';
+          const { refunded, note } = await rollbackRecharge();
+          steps.push({ id: 4, status: 'failed', message: errMsg });
+          return { success: false, message: `${errMsg}${note}`, data: { steps, rechargedAmount: recharged, refunded, needManualFix: recharged > 0 && !refunded } };
+        }
+        payment = String(firstActive.name);
+        paymentSwitched = true;
+      }
+    }
+    // 网关列表为空：降级使用前端传入的 payment（保持原行为）
+  } catch {
+    // 拉取网关列表失败：降级使用前端传入的 payment
+  }
+  if (!payment) {
+    const errMsg = '未指定支付方式且无法获取财务系统的支付接口列表';
+    const { refunded, note } = await rollbackRecharge();
+    steps.push({ id: 4, status: 'failed', message: errMsg });
+    return { success: false, message: `${errMsg}${note}`, data: { steps, rechargedAmount: recharged, refunded, needManualFix: recharged > 0 && !refunded } };
+  }
+
   // ===== Step 4: 创建订单（充值成功后的关键步骤） =====
   let orderRes: Record<string, unknown>;
   try {
-    orderRes = await callIdc('createOrder', '/order/create', 'POST', transformCreateOrderParams(params), ctx);
+    orderRes = await callIdc('createOrder', '/order/create', 'POST', transformCreateOrderParams({ ...params, payment }), ctx);
   } catch (error) {
     // 建单请求超时/网络中断：订单是否实际生成未知，此时不能自动回滚充值
     // （若订单实际已创建并余额扣款，回滚会造成订单欠费），交给人工核对最稳
@@ -219,24 +275,7 @@ async function runProvision(
   if (!orderRes.success) {
     const errMsg = String(orderRes.msg || orderRes.message || '订单创建失败');
     // 失败回滚：把刚充进去的余额扣回去，保证"没开机器就不动余额"
-    let refunded = false;
-    if (recharged > 0) {
-      try {
-        const deductRes = await callIdc('deductBalance', '/credit/reduce', 'POST', transformDeductBalanceParams({
-          uid,
-          amount: recharged,
-          description: `一键开通失败自动回退充值 - 产品ID:${pid} - ${billingcycle}`,
-        }), ctx);
-        refunded = deductRes.success === true;
-      } catch {
-        refunded = false;
-      }
-    }
-    const refundNote = recharged <= 0
-      ? ''
-      : refunded
-        ? `；已自动回退充值 ¥${recharged.toFixed(2)}，用户余额已恢复`
-        : `；自动回退失败，请手动处理：用户余额多充了 ¥${recharged.toFixed(2)}`;
+    const { refunded, note: refundNote } = await rollbackRecharge();
     steps.push({ id: 4, status: 'failed', message: errMsg });
     return {
       success: false,
@@ -281,7 +320,7 @@ async function runProvision(
       success: true,
       partial: true,
       message: '订单已创建（扣款正常），但服务信息获取超时，请稍后在管理页核对开通结果，切勿立即重复开通',
-      data: { orderId, results: [] as ProvisionResultItem[], steps, rechargedAmount: recharged },
+      data: { orderId, results: [] as ProvisionResultItem[], steps, rechargedAmount: recharged, paymentUsed: payment, paymentSwitched },
     };
   }
 
@@ -358,6 +397,6 @@ async function runProvision(
     message: incompleteCount > 0
       ? `${incompleteCount}台服务器信息暂未就绪，可稍后在管理页查看`
       : '一键开通成功！云服务器已自动开通',
-    data: { orderId, results, steps, rechargedAmount: recharged },
+    data: { orderId, results, steps, rechargedAmount: recharged, paymentUsed: payment, paymentSwitched },
   };
 }

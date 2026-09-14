@@ -1700,6 +1700,9 @@ export default function OneClickOrderPage() {
 
         let renewFailed = false;
 
+        // 续费前实时校验支付方式（财务侧接口可能更换，避免写死失效值）
+        const renewPayment = await resolveValidGateway();
+
         // 逐周期续费：每次续费 → 充值 → 支付完成即可进行下一周期
         for (let i = 0; i < renewCycles; i++) {
           const stepId = renewCycles > 1 ? `${hostId}-cycle-${i}` : hostId;
@@ -1709,7 +1712,7 @@ export default function OneClickOrderPage() {
 
           try {
             // 1. 调用续费API（生成账单）
-            const renewRes = await callIdcApi('renewService', { hostid: hostId, billingcycles: billingCycle });
+            const renewRes = await callIdcApi('renewService', { hostid: hostId, billingcycles: billingCycle, payment: renewPayment });
             if (!(renewRes && renewRes.status === 200)) {
               renewFailed = true;
               failCount++;
@@ -2490,10 +2493,11 @@ export default function OneClickOrderPage() {
       }
       updStep(i2, 'completed');
 
-      // 3. 续费1周期
+      // 3. 续费1周期（续费前实时校验支付方式，财务侧接口可能更换）
       const renewMethodLabel = renewMethod === 'autoRecharge' ? '自动充值余额' : '扣除余额续费';
       const i3 = pushStep(`续费 ${productName} (${billingcycle}) - ${renewMethodLabel}`);
-      const renewRes = await callIdcApi('renewService', { hostid, billingcycles: billingcycle });
+      const renewPayment = await resolveValidGateway();
+      const renewRes = await callIdcApi('renewService', { hostid, billingcycles: billingcycle, payment: renewPayment });
       if (!(renewRes?.status === 200)) {
         updStep(i3, 'failed', String(renewRes?.msg || '续费失败'));
         showNotification('error', '续费失败');
@@ -3016,6 +3020,72 @@ export default function OneClickOrderPage() {
       // 加载网关失败不影响主流程
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 实时校验支付方式（财务侧接口可能更换/下线）：返回当前有效的支付方式名。
+  // 当前选择仍有效则沿用；已失效则自动切换到第一个启用的接口并提示；
+  // 拉取失败时降级返回当前选择。续费等操作前调用。
+  const resolveValidGateway = useCallback(async (): Promise<string> => {
+    try {
+      const res = await callIdcApi('getGateways');
+      if (res.success && Array.isArray(res.gateway)) {
+        const list = res.gateway as Array<{ id: number; name: string; title: string; status: number }>;
+        setGateways(list);
+        if (selectedGateway) {
+          const current = list.find(g => g.name === selectedGateway && g.status === 1);
+          if (current) return current.name;
+        }
+        const firstActive = list.find(g => g.status === 1);
+        if (firstActive) {
+          setSelectedGateway(firstActive.name);
+          showNotification('info', `支付方式已自动切换为「${firstActive.title || firstActive.name}」（原支付接口在财务侧已不可用）`);
+          return firstActive.name;
+        }
+        return selectedGateway; // 无启用网关：降级用当前值，由财务侧报错暴露
+      }
+    } catch {
+      // 拉取失败：降级用当前选择
+    }
+    return selectedGateway;
+  }, [selectedGateway, showNotification]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 套餐支付接口自动迁移：财务侧更换/停用支付接口后，
+  // 自动把套餐里保存的失效接口更新为当前第一个启用的接口并持久化。
+  // 本会话只执行一次（无论成败），避免失败重试循环；迁移失败时支付前的实时校验仍会兜底
+  const gatewayMigrationDoneRef = useRef(false);
+  useEffect(() => {
+    if (gatewayMigrationDoneRef.current) return;
+    if (gateways.length === 0 || savedPackages.length === 0) return;
+    const activeGateways = gateways.filter(g => g.status === 1);
+    if (activeGateways.length === 0) return;
+    const activeNames = activeGateways.map(g => g.name);
+    const outdated = savedPackages.filter(p => p.gateway && !activeNames.includes(p.gateway));
+    gatewayMigrationDoneRef.current = true; // 先置位再执行，防止异步更新触发循环
+    if (outdated.length === 0) return;
+
+    const newGateway = activeGateways[0];
+    void (async () => {
+      try {
+        let updated = 0;
+        for (const pkg of outdated) {
+          const res = await fetch('/api/packages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save', pkg: { ...pkg, gateway: newGateway.name } }),
+          });
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            setSavedPackages(json.data as PackageConfig[]);
+            updated++;
+          }
+        }
+        if (updated > 0) {
+          showNotification('info', `已自动更新 ${updated} 个套餐的支付接口为「${newGateway.title || newGateway.name}」（原接口已在财务侧停用）`);
+        }
+      } catch {
+        // 迁移失败不打扰用户，支付前的实时校验（resolveValidGateway）仍会兜底
+      }
+    })();
+  }, [gateways, savedPackages, showNotification]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 加载产品列表
   const loadProducts = useCallback(async () => {
@@ -3868,12 +3938,12 @@ export default function OneClickOrderPage() {
 
       // Step 3-5: 服务端一体化执行（充值→建单→轮询开通→取详情）
       updateStep(3, 'processing', '服务端执行中（充值/建单/开通），请耐心等待…');
-      const res = await callIdcApi('oneClickProvision', {
+      const provisionParams: Record<string, unknown> = {
         uid: selectedUser.id,
         pid: selectedProductId,
         billingcycle: selectedBillingCycle,
         qty: productQty,
-        payment: selectedGateway || 'E007alipay',
+        payment: selectedGateway,
         use_credit: (autoRecharge || useCredit) ? 1 : 0,
         interior_price: firstPrice ? parseFloat(firstPrice) : 0,
         interior_price_renew: renewPrice ? parseFloat(renewPrice) : 0,
@@ -3881,7 +3951,25 @@ export default function OneClickOrderPage() {
         customfield,
         autoRecharge,
         rechargeAmount,
-      });
+      };
+      let res = await callIdcApi('oneClickProvision', provisionParams);
+
+      // 90秒内重复开通被幂等拦截：返回的是上次结果（未新开机器）。
+      // 弹确认让操作员决定——防止"回退误重复"误伤"故意连开多台"
+      let isReplayOnly = false;
+      if (res.replayed === true && res.success) {
+        const confirmed = window.confirm(
+          '该用户在 90 秒内刚开通过机器，本次未开通新机器（当前显示的是上次的结果）。\n\n' +
+          '如果这是误操作（如页面回退后重复点击），请点击「取消」。\n' +
+          '如果确实要再开一台，请点击「确定」。'
+        );
+        if (confirmed) {
+          updateStep(3, 'processing', '正在再开一台（已确认）…');
+          res = await callIdcApi('oneClickProvision', { ...provisionParams, force: true });
+        } else {
+          isReplayOnly = true;
+        }
+      }
       const resData = (res.data || {}) as Record<string, unknown>;
 
       // 用服务端返回的步骤结果刷新本地步骤展示
@@ -3929,6 +4017,15 @@ export default function OneClickOrderPage() {
           productName: currentProductName,
         };
       });
+      if (isReplayOnly) {
+        // 操作员取消了"再开一台"：展示上次的开通结果（参考用），并明确标注未新开机器
+        setResultData(results.length > 0 ? results : null);
+        setProgress(100);
+        setOrderResult({ success: true, orderId: String(resData.orderId || ''), message: '已拦截重复开通：以上是 90 秒内的上次开通结果，本次未开通新机器' });
+        showNotification('info', '已拦截重复开通，显示的是上次结果（未新开机器）');
+        return;
+      }
+
       if (res.partial === true) {
         // partial：服务信息未获取到，resultData 保持开头的 null（不渲染产品卡片/话术区，
         // 空数组会导致话术预览 buildVars(items[0]) 取到 undefined 而渲染崩溃）
@@ -3939,6 +4036,16 @@ export default function OneClickOrderPage() {
         setProgress(100);
         setOrderResult({ success: true, orderId: String(resData.orderId || '') });
         showNotification('success', '一键开通成功！云服务器已自动开通');
+      }
+      // 财务侧支付接口更换时，服务端已自动切换到可用网关：同步本地选择并提示操作员
+      const usedPayment = resData.paymentUsed !== undefined && resData.paymentUsed !== null ? String(resData.paymentUsed) : '';
+      if (usedPayment && usedPayment !== selectedGateway) {
+        const usedTitle = gateways.find(g => g.name === usedPayment)?.title || usedPayment;
+        const reason = selectedGateway
+          ? `原支付接口「${gateways.find(g => g.name === selectedGateway)?.title || selectedGateway}」在财务侧已不可用`
+          : '未选择支付方式';
+        setSelectedGateway(usedPayment);
+        showNotification('info', `支付方式：已使用「${usedTitle}」（${reason}）`);
       }
       // 开通完成：刷新用户信息（充值已被订单扣款抵扣，余额显示需更新为实际值）和产品列表
       // refreshSelectedUser 内部会重新搜索用户（拿到最新 credit）并调用 fetchUserProducts
