@@ -518,7 +518,15 @@ yes y | bash install_panel.sh 02a5b375`;
         let lastProgressUpdate = 0;
         // 当前阶段：1=换源 2=挂载 3=安装
         let currentPhase = 1;
-        let fullOutput = '';
+        // 只保留末尾一段输出用于收尾补喂 BtCapture（安装输出可能有几十 MB，全量保留会撑爆内存）
+        const TAIL_LIMIT = 64 * 1024;
+        let tailOutput = '';
+        const appendTail = (text: string) => {
+          tailOutput += text;
+          if (tailOutput.length > TAIL_LIMIT) {
+            tailOutput = tailOutput.slice(-TAIL_LIMIT);
+          }
+        };
 
         const updateProgress = () => {
           let progress: number;
@@ -539,7 +547,7 @@ yes y | bash install_panel.sh 02a5b375`;
           .on('data', (chunk: Buffer) => {
             const text = chunk.toString('utf-8');
             buffer += text;
-            fullOutput += text;
+            appendTail(text);
             btCapture.feed(text);
             const lines = buffer.split('\n');
             buffer = lines.pop() ?? '';
@@ -570,7 +578,7 @@ yes y | bash install_panel.sh 02a5b375`;
           .stderr.on('data', (chunk: Buffer) => {
             const text = chunk.toString('utf-8');
             buffer += text;
-            fullOutput += text;
+            appendTail(text);
             btCapture.feed(text);
           })
           .on('close', (code: number | null) => {
@@ -585,8 +593,8 @@ yes y | bash install_panel.sh 02a5b375`;
             }
             this.appendLog(task.id, 'info', `安装进程退出，code=${code}`);
 
-            if (!btCapture.isCompleted() && fullOutput.length > 0) {
-              btCapture.feed(fullOutput);
+            if (!btCapture.isCompleted() && tailOutput.length > 0) {
+              btCapture.feed(tailOutput);
             }
 
             const captured = btCapture.getCaptured();

@@ -56,6 +56,8 @@ const SshTerminal = forwardRef<SshTerminalHandle, SshTerminalProps>(function Ssh
   const tokenRef = useRef<string | null>(null);
   const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pasteFnRef = useRef<(() => void) | null>(null);
+  // ws.onclose 里要读最新状态，用 ref 避免拿到闭包里的旧值
+  const statusRef = useRef<'idle' | 'connecting' | 'creating_shell' | 'connected' | 'disconnected' | 'error'>('idle');
 
   const [connected, setConnected] = useState(false);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'creating_shell' | 'connected' | 'disconnected' | 'error'>('idle');
@@ -63,6 +65,7 @@ const SshTerminal = forwardRef<SshTerminalHandle, SshTerminalProps>(function Ssh
 
   // 更新状态并通知外部
   const updateStatus = (s: typeof status) => {
+    statusRef.current = s;
     setStatus(s);
     onStatusChange?.(s);
   };
@@ -145,6 +148,8 @@ const SshTerminal = forwardRef<SshTerminalHandle, SshTerminalProps>(function Ssh
     };
 
     ws.onmessage = event => {
+      // 旧 socket 迟到的消息不能影响当前会话（重连后旧连接的 close/输出会打乱新连接状态）
+      if (wsRef.current !== ws) return;
       let msg: { type: string; payload?: unknown };
       try {
         msg = JSON.parse(event.data);
@@ -175,14 +180,14 @@ const SshTerminal = forwardRef<SshTerminalHandle, SshTerminalProps>(function Ssh
           break;
         }
         case 'output': {
-          const term = termRef.current;
-          if (term) {
+          if (termRef.current) {
+            const text = msg.payload as string;
             // 记录写入前是否处于底部，仅在用户未上滚时自动滚动到底部
-            const buffer = term.buffer.active;
-            const wasAtBottom = buffer.baseY + term.rows >= buffer.length;
-            term.write(msg.payload as string);
+            const buffer = termRef.current.buffer.active;
+            const wasAtBottom = buffer.baseY + termRef.current.rows >= buffer.length;
+            termRef.current.write(text);
             if (wasAtBottom) {
-              term.scrollToBottom();
+              termRef.current.scrollToBottom();
             }
           }
           break;
@@ -206,6 +211,7 @@ const SshTerminal = forwardRef<SshTerminalHandle, SshTerminalProps>(function Ssh
     };
 
     ws.onerror = () => {
+      if (wsRef.current !== ws) return;
       const term = termRef.current;
       term?.write(`\r\n\x1b[31m[WebSocket 错误]\x1b[0m\r\n`);
       updateStatus('error');
@@ -213,13 +219,15 @@ const SshTerminal = forwardRef<SshTerminalHandle, SshTerminalProps>(function Ssh
     };
 
     ws.onclose = () => {
+      // 旧 socket 的 close 不能把新连接重置成 disconnected
+      if (wsRef.current !== ws) return;
       if (heartbeatTimerRef.current) {
         clearInterval(heartbeatTimerRef.current);
         heartbeatTimerRef.current = null;
       }
       setConnected(false);
       // 仅在非 error 状态时显示 disconnected
-      if (status !== 'error') {
+      if (statusRef.current !== 'error') {
         updateStatus('disconnected');
       }
     };
@@ -232,8 +240,9 @@ const SshTerminal = forwardRef<SshTerminalHandle, SshTerminalProps>(function Ssh
       heartbeatTimerRef.current = null;
     }
     if (wsRef.current) {
-      try { wsRef.current.close(); } catch { /* ignore */ }
+      const ws = wsRef.current;
       wsRef.current = null;
+      try { ws.close(); } catch { /* ignore */ }
     }
     setConnected(false);
     updateStatus('disconnected');

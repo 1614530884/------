@@ -12,15 +12,21 @@
  * - shell 创建时传入初始 cols/rows，避免 pty 默认 80x24 与 xterm 实际尺寸不匹配
  */
 import type { WebSocket, WebSocketServer } from 'ws';
+import type { ClientChannel } from 'ssh2';
 import { sshClientManager, type SSHSession } from '@/lib/services/server-tools/ssh-client';
 import { connectionStore } from '@/lib/services/server-tools/store';
 import type { SshWsMessageIn, SshWsMessageOut, ServerStats } from '@/lib/services/server-tools/types';
+
+// WS 待发送缓冲超过 4MB 就暂停读取远端输出，降到 2MB 以下再恢复
+const MAX_WS_BUFFERED_BYTES = 4 * 1024 * 1024;
 
 interface WSContext {
   sessionId: string;
   connectionId?: string;
   session?: SSHSession;
   loginUser?: string;
+  /** shell 尚未就绪时的 resize 暂存回调 */
+  pendingResize?: (cols: number, rows: number) => void;
 }
 
 function send(ws: WebSocket, msg: SshWsMessageOut): void {
@@ -46,6 +52,11 @@ export function setupSshHandler(wss: WebSocketServer): void {
         send(ws, { type: 'error', payload: '消息格式错误' });
         return;
       }
+      // JSON.parse 可能得到 null / 纯字符串等非对象值，后面读 msg.type 会直接抛异常
+      if (!msg || typeof msg !== 'object') {
+        send(ws, { type: 'error', payload: '消息格式错误' });
+        return;
+      }
 
       switch (msg.type) {
         case 'ping':
@@ -53,6 +64,8 @@ export function setupSshHandler(wss: WebSocketServer): void {
           break;
 
         case 'connect': {
+          // 重复 connect（例如前端点了两次）只处理第一次，避免同一 WS 上挂两条 SSH 连接
+          if (connectMsgReceived) break;
           connectMsgReceived = true;
           clearTimeout(connectTimeout);
           void handleConnect(ws, ctx, msg.payload);
@@ -69,6 +82,8 @@ export function setupSshHandler(wss: WebSocketServer): void {
         case 'resize': {
           if (ctx.session?.stream) {
             sshClientManager.resizeShell(ctx.session.stream, msg.payload.cols, msg.payload.rows);
+          } else {
+            ctx.pendingResize?.(msg.payload.cols, msg.payload.rows);
           }
           break;
         }
@@ -94,10 +109,6 @@ export function setupSshHandler(wss: WebSocketServer): void {
       clearTimeout(connectTimeout);
       if (ctx.sessionId) sshClientManager.removeSession(ctx.sessionId);
     });
-
-    ws.on('error', () => {
-      if (ctx.sessionId) sshClientManager.removeSession(ctx.sessionId);
-    });
   });
 }
 
@@ -109,6 +120,10 @@ async function handleConnect(
   const { connectionId, host, port, username, password, cols, rows } = payload;
   ctx.connectionId = connectionId;
   console.log(`[SSH] handleConnect: ${host}:${port} as ${username}`);
+
+  // shell 建好前收到的 resize 先记下来，建好后补发（用对象容器，闭包赋值后类型不会被收窄成 null）
+  const resizeHolder: { value: { cols: number; rows: number } | null } = { value: null };
+  ctx.pendingResize = (c, r) => { resizeHolder.value = { cols: c, rows: r }; };
 
   send(ws, { type: 'status', payload: 'connecting' });
 
@@ -122,6 +137,30 @@ async function handleConnect(
       readyTimeout: 30000,
     });
     console.log('[SSH] Connection established, creating shell...');
+
+    // 连接层断开时也要通知前端，否则网络中断后界面一直显示已连接
+    client.on('close', () => {
+      if (!ctx.session) return;
+      ctx.session.isConnected = false;
+      send(ws, { type: 'status', payload: 'disconnected' });
+    });
+
+    // 运行期错误（握手后）不会 reject createConnection，这里必须接住并告知前端，否则用户只看到"卡住"
+    client.on('error', (err: Error) => {
+      console.error(`[SSH] 连接错误: ${err.message}`);
+      if (ctx.session) ctx.session.isConnected = false;
+      send(ws, { type: 'error', payload: `SSH 连接中断: ${err.message}` });
+      send(ws, { type: 'status', payload: 'disconnected' });
+    });
+
+    // WS 已关闭/换了新连接时，别再把这个连接放进 session 表（否则会一直泄漏）
+    if (ws.readyState !== ws.OPEN) {
+      sshClientManager.closeConnection(client);
+      return;
+    }
+
+    // 复用同一 sessionId 的位置上已有会话（异常情况），先清掉，避免覆盖后旧连接没人管
+    sshClientManager.removeSession(ctx.sessionId);
 
     send(ws, { type: 'status', payload: 'creating_shell' });
 
@@ -137,11 +176,37 @@ async function handleConnect(
     // 使用 TextDecoder stream 模式：跨 chunk 的多字节 UTF-8 字符会被正确拼接
     // 避免 Buffer.toString('utf-8') 在不完整序列处产生 \uFFFD（"在在在"乱码根因）
     const decoder = new TextDecoder('utf-8');
+    let resumeTimer: ReturnType<typeof setInterval> | null = null;
+    let pausedStream: ClientChannel | null = null;
+    const stopResumeTimer = (): void => {
+      if (resumeTimer) {
+        clearInterval(resumeTimer);
+        resumeTimer = null;
+      }
+    };
     const onData = (data: Buffer): void => {
       const text = decoder.decode(data, { stream: true });
-      if (text) send(ws, { type: 'output', payload: text });
+      if (!text) return;
+      // 前端处理不过来时暂停读取远端数据（背压），避免大输出把内存堆满
+      if (!resumeTimer && ws.bufferedAmount > MAX_WS_BUFFERED_BYTES) {
+        stream.pause();
+        pausedStream = stream;
+        resumeTimer = setInterval(() => {
+          if (pausedStream?.destroyed) {
+            stopResumeTimer();
+            return;
+          }
+          if (ws.bufferedAmount <= MAX_WS_BUFFERED_BYTES / 2) {
+            stopResumeTimer();
+            pausedStream?.resume();
+            pausedStream = null;
+          }
+        }, 50);
+      }
+      send(ws, { type: 'output', payload: text });
     };
     const onClose = (): void => {
+      stopResumeTimer();
       // flush 残留字节
       const tail = decoder.decode();
       if (tail) send(ws, { type: 'output', payload: tail });
@@ -160,6 +225,11 @@ async function handleConnect(
     session.isConnected = true;
     sshClientManager.saveSession(ctx.sessionId, session);
     ctx.session = session;
+
+    // 容器尺寸在 shell 创建期间发生变化时，这里补发一次，避免 pty 停在旧尺寸
+    if (resizeHolder.value) {
+      sshClientManager.resizeShell(stream, resizeHolder.value.cols, resizeHolder.value.rows);
+    }
 
     // 更新最后连接时间
     connectionStore.updateLastConnectedAt(connectionId);
@@ -188,10 +258,11 @@ async function handleConnect(
  */
 async function handleCheckDatadisk(ws: WebSocket, ctx: WSContext): Promise<void> {
   if (!ctx.session) return;
+  const session = ctx.session;
   try {
     // 第一行 ROOT:<根盘名>，后续为 lsblk -P 的 pairs 行
     const lsblkOutput = await sshClientManager.executeCommand(
-      ctx.session.client,
+      session.client,
       `echo "ROOT:$(lsblk -no PKNAME "$(findmnt -no SOURCE /)" 2>/dev/null | head -1)"
 lsblk -Po NAME,SIZE,FSTYPE,MOUNTPOINT,TYPE,TRAN,PKNAME 2>/dev/null`,
     );
@@ -258,11 +329,12 @@ lsblk -Po NAME,SIZE,FSTYPE,MOUNTPOINT,TYPE,TRAN,PKNAME 2>/dev/null`,
  */
 async function handleGetStats(ws: WebSocket, ctx: WSContext): Promise<void> {
   if (!ctx.session) return;
+  const session = ctx.session;
   try {
     // CPU 改用 /proc/stat 两次采样（间隔 1s）计算 1 秒平均使用率
     // 1s 窗口比 0.3s 更稳定，数值跳动更小
     const cmd = `echo "===UPTIME==="; uptime; echo "===LOAD==="; cat /proc/loadavg; echo "===CPU==="; head -1 /proc/stat; sleep 1; head -1 /proc/stat; echo "===MEM==="; free -h; echo "===DISK==="; df -h; echo "===NET==="; cat /proc/net/dev | awk 'NR>2 {print $1, $2, $10}'`;
-    const output = await sshClientManager.executeCommand(ctx.session.client, cmd);
+    const output = await sshClientManager.executeCommand(session.client, cmd);
     send(ws, { type: 'stats', payload: parseStats(output) });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

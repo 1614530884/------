@@ -6,6 +6,13 @@
  */
 import { Client, type ClientChannel } from 'ssh2';
 
+// 20s 主动 ping 一次，连续 3 次没响应才判定断线
+// 注意：ssh2 的 keepaliveInterval 只主动发 ping 保活，服务端收到任何包都会重置 ClientAlive 计数
+const KEEPALIVE_INTERVAL_MS = 20000;
+const KEEPALIVE_COUNT_MAX = 3;
+// 单条命令最多保留 4MB 输出，超出截断，避免长任务输出撑爆进程内存
+const DEFAULT_MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
+
 export interface SSHConnectionConfig {
   host: string;
   port: number;
@@ -32,15 +39,24 @@ class SSHClientManager {
   async createConnection(config: SSHConnectionConfig): Promise<Client> {
     return new Promise((resolve, reject) => {
       const client = new Client();
+      let settled = false;
       client
-        .on('ready', () => resolve(client))
-        .on('error', err => reject(new Error(`SSH连接失败: ${err.message}`)))
+        // 必须先挂 error：握手阶段失败走 reject；建连成功后的运行期错误不能让它变成未捕获异常
+        .on('error', err => {
+          if (!settled) reject(new Error(`SSH连接失败: ${err.message}`));
+        })
+        .on('ready', () => {
+          settled = true;
+          resolve(client);
+        })
         .connect({
           host: config.host,
           port: config.port,
           username: config.username,
           password: config.password,
           readyTimeout: config.readyTimeout ?? 30000,
+          keepaliveInterval: KEEPALIVE_INTERVAL_MS,
+          keepaliveCountMax: KEEPALIVE_COUNT_MAX,
         });
     });
   }
@@ -75,23 +91,41 @@ class SSHClientManager {
 
   /**
    * 执行命令并返回完整输出（不通过 shell）
+   *
+   * 输出上限：安装宝塔/跑脚本这类任务动辄几十 MB 输出，全量累积在内存里会把进程撑爆。
+   * 因此只保留前 maxOutputBytes 字节，超出后丢弃后续输出（流继续消费，命令不会卡住）。
    */
-  async executeCommand(client: Client, command: string): Promise<string> {
+  async executeCommand(client: Client, command: string, maxOutputBytes = DEFAULT_MAX_OUTPUT_BYTES): Promise<string> {
     return new Promise((resolve, reject) => {
       client.exec(command, (err, stream) => {
         if (err) {
           reject(new Error(`执行命令失败: ${err.message}`));
           return;
         }
-        let output = '';
+        const chunks: Buffer[] = [];
+        let keptBytes = 0;
+        let truncated = false;
+
+        const append = (chunk: Buffer): void => {
+          if (truncated) return;
+          const remain = maxOutputBytes - keptBytes;
+          if (chunk.length >= remain) {
+            chunks.push(chunk.subarray(0, remain));
+            keptBytes += remain;
+            truncated = true;
+            return;
+          }
+          chunks.push(chunk);
+          keptBytes += chunk.length;
+        };
+
         stream
-          .on('data', (chunk: Buffer) => {
-            output += chunk.toString('utf-8');
+          .on('data', append)
+          .stderr.on('data', append)
+          .on('close', () => {
+            const output = Buffer.concat(chunks).toString('utf-8');
+            resolve(truncated ? `${output}\n...[输出过多，已截断]` : output);
           })
-          .stderr.on('data', (chunk: Buffer) => {
-            output += chunk.toString('utf-8');
-          })
-          .on('close', () => resolve(output))
           .on('error', err => reject(err));
       });
     });
@@ -124,6 +158,10 @@ class SSHClientManager {
   removeSession(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (session) {
+      // 先解绑数据回调：已经废弃的会话不应再往前端推输出，也不该触发 disconnected 把新连接的状态改掉
+      session.stream?.removeAllListeners('data');
+      session.stream?.removeAllListeners('close');
+      session.stream?.stderr?.removeAllListeners('data');
       this.closeConnection(session.client);
       try {
         this.closeShell(session.stream);
