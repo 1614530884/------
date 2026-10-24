@@ -31,6 +31,7 @@ export class MfyService {
   private static configMtime = 0;
   private static loginInFlight = new Map<string, Promise<string>>();
   private static writeQueue: Promise<void> = Promise.resolve();
+  private static enqueueTails = new Map<string, Promise<void>>();
 
   /** 清除配置缓存（配置保存后调用） */
   static clearConfigCache(): void {
@@ -268,6 +269,29 @@ export class MfyService {
     }
 
     return this.doRequest(credentials, targetUrl, fetchOptions, retry);
+  }
+
+  /**
+   * 串行执行：同一队列名下的任务按提交顺序依次执行，单个失败不影响后续。
+   * 用于后台批量任务，避免并发请求触发魔方云接口限流。
+   */
+  static async runSerial<T>(queueName: string, task: () => Promise<T>): Promise<T> {
+    const prev = this.enqueueTails.get(queueName) ?? Promise.resolve();
+    let release: () => void = () => {};
+    const current = new Promise<void>((resolve) => { release = resolve; });
+    const tail = prev.then(() => current);
+    this.enqueueTails.set(queueName, tail);
+
+    await prev;
+    try {
+      return await task();
+    } finally {
+      release();
+      // 队列空闲时清理，避免 Map 无限增长
+      if (this.enqueueTails.get(queueName) === tail) {
+        this.enqueueTails.delete(queueName);
+      }
+    }
   }
 
   /** 执行HTTP请求 */

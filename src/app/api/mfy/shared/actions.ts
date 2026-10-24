@@ -132,3 +132,15 @@ export const UNSUPPORTED_BATCH_ACTIONS = new Set([
   'diskList',
   'diskStores',
 ]);
+
+/**
+ * 有副作用的批量操作黑名单：这些接口必须走专用路由（内部完成 IP 去重与并发保护），
+ * 禁止通过 /api/mfy/batch 直接透传，避免同一 IP 被绑定到多个实例。
+ */
+export const WRITE_BATCH_BLOCKED_ACTIONS = new Set([
+  'cloudAddFloatIp',
+  'cloudIpDelete',
+  'cloudUpdateIp',
+  'cloudUpdateIpv6',
+  'cloudSetMainIp',
+]);

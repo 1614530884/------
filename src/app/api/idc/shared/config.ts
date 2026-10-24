@@ -22,13 +22,22 @@ export function clearBaseUrlCache(): void {
   cachedBaseUrl = null;
 }
 
+// Origin 头只能是「协议+域名+端口」，带上后台路径会被下游判定为非法来源
+export function getOrigin(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return url;
+  }
+}
+
 export function buildHeaders(baseUrl: string, cookie: string, phpSessId: string): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Referer': `${baseUrl}/`,
-    'Origin': baseUrl,
+    'Origin': getOrigin(baseUrl),
     'X-Requested-With': 'XMLHttpRequest',
   };
 

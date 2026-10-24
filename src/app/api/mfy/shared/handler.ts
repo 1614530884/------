@@ -1,5 +1,5 @@
 import { MfyService, MfyCredentials } from '@/lib/services/mfy-service';
-import { actionMap, MfyActionDef, UNSUPPORTED_BATCH_ACTIONS } from './actions';
+import { actionMap, MfyActionDef, UNSUPPORTED_BATCH_ACTIONS, WRITE_BATCH_BLOCKED_ACTIONS } from './actions';
 
 export interface MfyRequestParams {
   id?: string | number;
@@ -36,7 +36,8 @@ export async function executeMfyAction(
     return { success: false, msg: `未知魔方云操作: ${action}` };
   }
 
-  if (UNSUPPORTED_BATCH_ACTIONS.has(action)) {
+  // 有副作用的操作不进入批量接口（多实例加IP需走专用路由做IP去重与限速保护）
+  if (UNSUPPORTED_BATCH_ACTIONS.has(action) || WRITE_BATCH_BLOCKED_ACTIONS.has(action)) {
     return { success: false, msg: `操作 ${action} 不支持批量调用` };
   }
 

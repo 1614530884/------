@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { createSessionToken, SESSION_COOKIE_NAME, getSessionCookieOptions } from '@/lib/auth-server';
+import { getOrigin } from '../idc/shared/config';
 
 // 读取后台基础URL配置（从文件读取，安全且可修改）
 function getBaseUrl(urlFromFrontend?: string): string {
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
       'Accept': 'application/json, text/plain, */*',
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Referer': `${baseUrl}/`,
-      'Origin': baseUrl,
+      'Origin': getOrigin(baseUrl),
     };
 
     if (cookie) {
