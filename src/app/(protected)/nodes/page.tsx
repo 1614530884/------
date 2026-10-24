@@ -7,12 +7,13 @@ import {
   ChevronLeft, ChevronRight,
   Monitor, HardDrive, Wifi, Cpu, MemoryStick,
   Copy, AlertCircle, CheckCircle, XCircle,
-  MoreVertical, Shield, Gauge,
+  MoreVertical, Shield, Gauge, Globe,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MonitorSheet } from '@/components/node-monitor/MonitorSheet';
 import { BandwidthSheet } from '@/components/bandwidth/BandwidthSheet';
 import { CpuLimitSheet } from '@/components/cpu-limit/CpuLimitSheet';
+import { IpBatchSheet } from '@/components/nodes/IpBatchSheet';
 import { getLoginUser } from '@/lib/auth-client';
 import { PageHeader } from '@/components/layout/page-header';
 
@@ -225,6 +226,9 @@ function NodesContent() {
   const [monitorSheetOpen, setMonitorSheetOpen] = useState(false);
   const [bandwidthSheetOpen, setBandwidthSheetOpen] = useState(false);
   const [cpuLimitSheetOpen, setCpuLimitSheetOpen] = useState(false);
+  const [ipBatchSheetOpen, setIpBatchSheetOpen] = useState(false);
+  /** 打开批量 IP 管理时预选的节点（单行操作时使用） */
+  const [ipBatchNodes, setIpBatchNodes] = useState<Set<number>>(new Set());
   const abortRef = useRef<AbortController | null>(null);
 
   const callMfyApi = useCallback(async (action: string, params: Record<string, unknown> = {}, signal?: AbortSignal): Promise<Record<string, unknown>> => {
@@ -604,6 +608,16 @@ function NodesContent() {
         ) : (
           <div className="px-3 py-1.5 text-xs text-muted-foreground">无IP段信息</div>
         )}
+
+        <div className="border-t border-border mt-1 pt-1">
+          <button
+            onClick={() => { setDropdownId(null); setIpBatchNodes(new Set([node.id])); setIpBatchSheetOpen(true); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground/80 hover:bg-accent transition-colors"
+          >
+            <Globe className="w-3.5 h-3.5 text-primary" />
+            批量 IP 管理
+          </button>
+        </div>
       </div>
     </>
   );
@@ -660,6 +674,16 @@ function NodesContent() {
               title="CPU 限制管理"
             >
               <Cpu className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                setIpBatchNodes(selectedNodeIds.size > 0 ? new Set(selectedNodeIds) : new Set(nodes.slice(0, 1).map(n => n.id)));
+                setIpBatchSheetOpen(true);
+              }}
+              className={`p-2 rounded-lg hover:bg-accent transition-colors ${selectedNodeIds.size > 0 ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+              title="批量 IP 管理"
+            >
+              <Globe className="w-4 h-4" />
             </button>
           </>
         }
@@ -1096,6 +1120,14 @@ function NodesContent() {
         onOpenChange={setCpuLimitSheetOpen}
         nodes={nodes.map(n => ({ id: n.id, name: n.name, ip: n.ip }))}
         selectedNodeIds={selectedNodeIds}
+      />
+
+      {/* 批量 IP 管理 Sheet */}
+      <IpBatchSheet
+        open={ipBatchSheetOpen}
+        onOpenChange={setIpBatchSheetOpen}
+        nodes={nodes.map(n => ({ id: n.id, name: n.name, ip: n.ip }))}
+        initialNodeIds={ipBatchNodes}
       />
     </div>
   );

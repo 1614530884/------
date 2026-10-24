@@ -4,7 +4,9 @@ const nextConfig: NextConfig = {
   // outputFileTracingRoot: path.resolve(__dirname, '../../'),  // Uncomment and add 'import path from "path"' if needed
   /* config options here */
   allowedDevOrigins: ['*.dev.coze.site'],
-  serverExternalPackages: ['better-sqlite3', 'ssh2', 'ws'],
+  // better-sqlite3 是原生模块必须外置；ws 外置正常。
+  // ssh2 外置后 Turbopack 会解析成带哈希的别名并加载失败，故交由 Turbopack 打包。
+  serverExternalPackages: ['better-sqlite3', 'ws'],
   images: {
     remotePatterns: [
       {

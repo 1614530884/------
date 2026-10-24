@@ -3,23 +3,45 @@
  *
  * 使用 better-sqlite3 单例，自动建表（CREATE TABLE IF NOT EXISTS）
  * 数据库文件位于项目根目录 server-tools.db
+ *
+ * 注意：better-sqlite3 是原生模块，需编译后的 .node 二进制。
+ * 这里延迟到首次 getDb() 时才 require，避免模块加载期就把整个进程带崩
+ * （未安装二进制时，import 不报错但一用就抛 Could not locate the bindings file）。
  */
-import Database from 'better-sqlite3';
+import type BetterSqlite3 from 'better-sqlite3';
 import { join } from 'path';
+
+type DatabaseConstructor = typeof BetterSqlite3;
+type SqliteDatabase = BetterSqlite3.Database;
 
 const DB_PATH = join(process.cwd(), 'server-tools.db');
 
 // 使用 globalThis 确保单例跨模块实例共享（同 serverToolsService）
 const globalForDb = globalThis as unknown as {
-  __serverToolsDb?: Database.Database;
+  __serverToolsDb?: SqliteDatabase;
 };
+
+/** 加载原生模块，失败时给出可操作的提示 */
+function loadDatabase(): DatabaseConstructor {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('better-sqlite3') as DatabaseConstructor;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message.split('\n')[0] : String(err);
+    throw new Error(
+      `better-sqlite3 原生模块不可用（${reason}）。` +
+      `请在项目目录执行 npm rebuild better-sqlite3 重新编译，或安装 Visual Studio Build Tools 后重试。`
+    );
+  }
+}
 
 /**
  * 获取数据库单例（首次调用时初始化并建表）
  */
-export function getDb(): Database.Database {
+export function getDb(): SqliteDatabase {
   if (globalForDb.__serverToolsDb) return globalForDb.__serverToolsDb;
 
+  const Database = loadDatabase();
   const db = new Database(DB_PATH);
   db.pragma('journal_mode = WAL'); // 并发读 + 写不阻塞
   db.pragma('foreign_keys = ON');
@@ -32,7 +54,7 @@ export function getDb(): Database.Database {
 /**
  * 初始化表结构（幂等）
  */
-function initSchema(db: Database.Database): void {
+function initSchema(db: SqliteDatabase): void {
   db.exec(`
     -- 服务器连接记录
     CREATE TABLE IF NOT EXISTS connections (
@@ -450,7 +472,7 @@ function initSchema(db: Database.Database): void {
 /**
  * 增量迁移（只加列，不破坏现有数据）
  */
-function runMigrations(db: Database.Database): void {
+function runMigrations(db: SqliteDatabase): void {
   const columns = db.prepare('PRAGMA table_info(scripts)').all() as { name: string }[];
   const hasSortOrder = columns.some(c => c.name === 'sort_order');
   if (!hasSortOrder) {

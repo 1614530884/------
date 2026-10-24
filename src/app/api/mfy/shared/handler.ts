@@ -36,11 +36,6 @@ export async function executeMfyAction(
     return { success: false, msg: `未知魔方云操作: ${action}` };
   }
 
-  // 有副作用的操作不进入批量接口（多实例加IP需走专用路由做IP去重与限速保护）
-  if (UNSUPPORTED_BATCH_ACTIONS.has(action) || WRITE_BATCH_BLOCKED_ACTIONS.has(action)) {
-    return { success: false, msg: `操作 ${action} 不支持批量调用` };
-  }
-
   const params: MfyRequestParams = { ...rawParams };
   const apiPath = buildApiPath(apiDef, params);
 
@@ -54,4 +49,20 @@ export async function executeMfyAction(
   }
 
   return MfyService.request(account, apiPath, params as Record<string, unknown>, apiDef.method);
+}
+
+/**
+ * 供 /api/mfy/batch 使用的入口：额外拦截有副作用的操作，
+ * 这些操作必须走各自的专用路由（内部做串行与去重），避免并发直调。
+ * 服务端内部编排（如批量 IP 任务）请直接用 executeMfyAction。
+ */
+export async function executeMfyBatchAction(
+  account: MfyCredentials,
+  action: string,
+  rawParams: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  if (UNSUPPORTED_BATCH_ACTIONS.has(action) || WRITE_BATCH_BLOCKED_ACTIONS.has(action)) {
+    return { success: false, msg: `操作 ${action} 不支持批量调用` };
+  }
+  return executeMfyAction(account, action, rawParams);
 }

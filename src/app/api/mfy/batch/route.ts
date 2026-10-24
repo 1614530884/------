@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MfyService } from '@/lib/services/mfy-service';
 import { asyncPool } from '@/lib/async-pool';
-import { executeMfyAction } from '../shared/handler';
+import { executeMfyBatchAction } from '../shared/handler';
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth-server';
 import { logUnauthorizedAccess } from '@/lib/access-log';
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const startTime = Date.now();
     const settled = await asyncPool(requests, concurrency, (req) => {
       const { action, ...params } = req;
-      return executeMfyAction(account, action, params);
+      return executeMfyBatchAction(account, action, params);
     });
 
     const results = settled.map((r) => {

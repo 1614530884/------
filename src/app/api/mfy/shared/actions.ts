@@ -36,6 +36,10 @@ export const actionMap: Record<string, MfyActionDef> = {
   'cloudUpdate': { path: 'clouds/{id}', method: 'PUT', pathHasId: true },
   'cloudUpdateBw': { path: 'clouds/{id}/bw', method: 'PUT', pathHasId: true },
   'cloudUpdateIp': { path: 'clouds/{id}/ip', method: 'PUT', pathHasId: true },
+  // 获取实例 IP（含每个公网 IP 所属 IP 段）
+  'cloudIpList': { path: 'clouds/{id}/ip', method: 'GET', pathHasId: true },
+  // 按数量添加 IP：num 必填，bw_group 加入已有限速组（不传则新建限速组）
+  'cloudAddIpNum': { path: 'clouds/{id}/ip', method: 'POST', pathHasId: true },
   'cloudUpdateIpv6': { path: 'clouds/{id}/ipv6', method: 'PUT', pathHasId: true },
   'cloudSetMainIp': { path: 'clouds/{id}/mainip', method: 'POST', pathHasId: true },
   // CPU 限制（独立接口，参数 cpu_limit 0-100，100=无限制）
@@ -139,6 +143,7 @@ export const UNSUPPORTED_BATCH_ACTIONS = new Set([
  */
 export const WRITE_BATCH_BLOCKED_ACTIONS = new Set([
   'cloudAddFloatIp',
+  'cloudAddIpNum',
   'cloudIpDelete',
   'cloudUpdateIp',
   'cloudUpdateIpv6',
