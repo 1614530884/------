@@ -41,6 +41,21 @@ const COOLDOWN_OPTIONS = [
   { value: 1800, label: '30分钟' },
 ];
 
+/** 白名单文本（每行一个主机名）→ 数组 */
+function parseWhitelistText(text: string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const line of text.split('\n')) {
+    const name = line.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(name);
+  }
+  return result;
+}
+
 export function CpuLimitRuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeIds, onSaved }: CpuLimitRuleFormDialogProps) {
   const isEdit = !!rule;
   const [saving, setSaving] = useState(false);
@@ -72,6 +87,8 @@ export function CpuLimitRuleFormDialog({ open, onOpenChange, rule, nodes, select
   const [penaltyCpuLimitMode, setPenaltyCpuLimitMode] = useState<CpuLimitPenaltyMode>('multiply');
   const [penaltyCpuLimitValue, setPenaltyCpuLimitValue] = useState('2');
   const [minCpuLimitPercent, setMinCpuLimitPercent] = useState('5');
+  // 主机名白名单（每行一个），命中的实例不参与限制
+  const [whitelistText, setWhitelistText] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -96,6 +113,7 @@ export function CpuLimitRuleFormDialog({ open, onOpenChange, rule, nodes, select
         setPenaltyCpuLimitMode(rule.penaltyCpuLimitMode ?? 'multiply');
         setPenaltyCpuLimitValue(String(rule.penaltyCpuLimitValue ?? 2));
         setMinCpuLimitPercent(String(rule.minCpuLimitPercent ?? 5));
+        setWhitelistText((rule.whitelistHostnames ?? []).join('\n'));
       } else {
         setName('');
         setNodeIds(selectedNodeIds.size > 0 ? [...selectedNodeIds] : []);
@@ -116,6 +134,7 @@ export function CpuLimitRuleFormDialog({ open, onOpenChange, rule, nodes, select
         setPenaltyCpuLimitMode('multiply');
         setPenaltyCpuLimitValue('2');
         setMinCpuLimitPercent('5');
+        setWhitelistText('');
       }
       setNodeSearch('');
     }
@@ -193,6 +212,13 @@ export function CpuLimitRuleFormDialog({ open, onOpenChange, rule, nodes, select
 
     setSaving(true);
     try {
+      // 白名单：每行一个主机名，命中的实例不参与限制
+      const whitelist = parseWhitelistText(whitelistText);
+      if (whitelist.length > 500) {
+        setError('主机名白名单最多 500 条');
+        setSaving(false);
+        return;
+      }
       const ruleData: Partial<CpuLimitRule> = {
         name: name.trim(),
         nodeIds,
@@ -215,6 +241,7 @@ export function CpuLimitRuleFormDialog({ open, onOpenChange, rule, nodes, select
         penaltyCpuLimitMode,
         penaltyCpuLimitValue: Number(penaltyCpuLimitValue),
         minCpuLimitPercent: Number(minCpuLimitPercent),
+        whitelistHostnames: whitelist,
       };
       if (isEdit) ruleData.id = rule!.id;
 
@@ -363,6 +390,26 @@ export function CpuLimitRuleFormDialog({ open, onOpenChange, rule, nodes, select
               <Input type="number" value={triggerCount} onChange={e => setTriggerCount(e.target.value)}
                 min={1} max={10} className="bg-background border-border text-foreground h-9 text-xs" />
             </div>
+          </div>
+
+          {/* 主机名白名单 */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-foreground">主机名白名单</Label>
+              <span className="text-[10px] text-muted-foreground">
+                已填 {parseWhitelistText(whitelistText).length} 个
+              </span>
+            </div>
+            <textarea
+              value={whitelistText}
+              onChange={e => setWhitelistText(e.target.value)}
+              rows={3}
+              placeholder={'每行一个主机名，如：\nweb-01\nweb-02'}
+              className="w-full rounded-md bg-background border border-border text-foreground px-2 py-1.5 text-xs font-mono resize-y focus:outline-none focus:border-primary"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              白名单内的主机不受 CPU 限制影响，也不占用 Top N 名额；匹配主机名，不区分大小写
+            </p>
           </div>
 
           {/* 节点并发限制上限 */}

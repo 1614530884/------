@@ -48,6 +48,7 @@ interface BandwidthRuleRow {
   penalty_bw_mode: string;
   penalty_bw_value: number;
   min_bandwidth_mbps: number;
+  whitelist_hostnames: string | null;
 }
 
 interface BandwidthLogRow {
@@ -120,6 +121,22 @@ function rowToEvent(row: BandwidthEventRow): BandwidthLimitEvent {
 }
 
 // ─── 行→对象转换 ──────────────────────────────────────────
+/** 解析白名单 JSON 列，异常或空值返回空数组 */
+function parseWhitelist(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 序列化白名单列，空数组存 null */
+function serializeWhitelist(list: string[] | undefined): string | null {
+  return list && list.length > 0 ? JSON.stringify(list) : null;
+}
+
 function rowToRule(row: BandwidthRuleRow): BandwidthRule {
   return {
     id: row.id,
@@ -148,6 +165,7 @@ function rowToRule(row: BandwidthRuleRow): BandwidthRule {
     penaltyBwMode: (row.penalty_bw_mode ?? 'add_extra') as BandwidthPenaltyMode,
     penaltyBwValue: row.penalty_bw_value ?? 10,
     minBandwidthMbps: row.min_bandwidth_mbps ?? 10,
+    whitelistHostnames: parseWhitelist(row.whitelist_hostnames),
   };
 }
 
@@ -201,8 +219,8 @@ export const bandwidthRuleStore = {
         continuous_enabled, continuous_window_min, continuous_percent,
         duration_min, reduce_percent, interval, cooldown, trigger_count, enabled, created_at,
         penalty_enabled, penalty_window_min, penalty_threshold, penalty_mode, penalty_value,
-        penalty_bw_mode, penalty_bw_value, min_bandwidth_mbps
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        penalty_bw_mode, penalty_bw_value, min_bandwidth_mbps, whitelist_hostnames
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id, rule.name, JSON.stringify(rule.nodeIds),
       rule.thresholdUp ?? null, rule.thresholdDown ?? null,
@@ -213,6 +231,7 @@ export const bandwidthRuleStore = {
       rule.penaltyEnabled ? 1 : 0, rule.penaltyWindowMin, rule.penaltyThreshold,
       rule.penaltyMode, rule.penaltyValue,
       rule.penaltyBwMode, rule.penaltyBwValue, rule.minBandwidthMbps,
+      serializeWhitelist(rule.whitelistHostnames),
     );
     return this.getById(id)!;
   },
@@ -225,7 +244,7 @@ export const bandwidthRuleStore = {
         continuous_enabled = ?, continuous_window_min = ?, continuous_percent = ?,
         duration_min = ?, reduce_percent = ?, interval = ?, cooldown = ?, trigger_count = ?, enabled = ?,
         penalty_enabled = ?, penalty_window_min = ?, penalty_threshold = ?, penalty_mode = ?, penalty_value = ?,
-        penalty_bw_mode = ?, penalty_bw_value = ?, min_bandwidth_mbps = ?
+        penalty_bw_mode = ?, penalty_bw_value = ?, min_bandwidth_mbps = ?, whitelist_hostnames = ?
       WHERE id = ?
     `).run(
       rule.name, JSON.stringify(rule.nodeIds),
@@ -237,6 +256,7 @@ export const bandwidthRuleStore = {
       rule.penaltyEnabled ? 1 : 0, rule.penaltyWindowMin, rule.penaltyThreshold,
       rule.penaltyMode, rule.penaltyValue,
       rule.penaltyBwMode, rule.penaltyBwValue, rule.minBandwidthMbps,
+      serializeWhitelist(rule.whitelistHostnames),
       id,
     );
     return this.getById(id);

@@ -76,7 +76,27 @@ function validateRule(rule: Partial<BandwidthRule>): string | null {
       return '最低带宽保留（Mbps）必须≥1';
     }
   }
+  if (rule.whitelistHostnames !== undefined && rule.whitelistHostnames.length > 500) {
+    return '主机名白名单最多 500 条';
+  }
   return null;
+}
+
+/** 归一化主机名白名单：去空格、去空项、去重，最多 500 条 */
+function normalizeWhitelist(list: unknown): string[] {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of list) {
+    const name = String(item ?? '').trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(name);
+    if (result.length >= 500) break;
+  }
+  return result;
 }
 
 export async function GET(request: NextRequest) {
@@ -201,6 +221,7 @@ export async function POST(request: NextRequest) {
           penaltyBwMode: (rule.penaltyBwMode ?? 'add_extra') as BandwidthPenaltyMode,
           penaltyBwValue: Math.max(1, Number(rule.penaltyBwValue ?? 10)),
           minBandwidthMbps: Math.max(1, Number(rule.minBandwidthMbps ?? 10)),
+          whitelistHostnames: normalizeWhitelist(rule.whitelistHostnames),
         };
 
         let saved: BandwidthRule;

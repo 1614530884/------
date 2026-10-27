@@ -49,6 +49,23 @@ interface CpuLimitRuleRow {
   penalty_cpu_limit_mode: string;
   penalty_cpu_limit_value: number;
   min_cpu_limit_percent: number;
+  whitelist_hostnames?: string | null;
+}
+
+/** 解析白名单 JSON 列，异常或空值返回空数组 */
+function parseWhitelist(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 序列化白名单列，空数组存 null */
+function serializeWhitelist(list: string[] | undefined): string | null {
+  return list && list.length > 0 ? JSON.stringify(list) : null;
 }
 
 function rowToRule(row: CpuLimitRuleRow): CpuLimitRule {
@@ -81,6 +98,7 @@ function rowToRule(row: CpuLimitRuleRow): CpuLimitRule {
     penaltyCpuLimitMode: (row.penalty_cpu_limit_mode ?? 'multiply') as CpuLimitPenaltyMode,
     penaltyCpuLimitValue: row.penalty_cpu_limit_value ?? 2,
     minCpuLimitPercent: row.min_cpu_limit_percent ?? 5,
+    whitelistHostnames: parseWhitelist(row.whitelist_hostnames),
   };
 }
 
@@ -108,6 +126,7 @@ function ruleToRow(rule: CpuLimitRule): CpuLimitRuleRow {
     penalty_cpu_limit_mode: rule.penaltyCpuLimitMode ?? 'multiply',
     penalty_cpu_limit_value: rule.penaltyCpuLimitValue ?? 2,
     min_cpu_limit_percent: rule.minCpuLimitPercent ?? 5,
+    whitelist_hostnames: serializeWhitelist(rule.whitelistHostnames),
   };
 }
 
@@ -218,14 +237,15 @@ export const cpuLimitRuleStore = {
         duration_min, interval, cooldown, trigger_count, enabled, created_at,
         max_active_instances,
         penalty_enabled, penalty_window_min, penalty_threshold, penalty_mode, penalty_value,
-        penalty_cpu_limit_mode, penalty_cpu_limit_value, min_cpu_limit_percent
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        penalty_cpu_limit_mode, penalty_cpu_limit_value, min_cpu_limit_percent, whitelist_hostnames
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       row.id, row.name, row.node_ids, row.metric, row.threshold, row.top_n, row.cpu_limit_percent,
       row.duration_min, row.interval, row.cooldown, row.trigger_count, row.enabled, row.created_at,
       row.max_active_instances,
       row.penalty_enabled, row.penalty_window_min, row.penalty_threshold, row.penalty_mode, row.penalty_value,
       row.penalty_cpu_limit_mode, row.penalty_cpu_limit_value, row.min_cpu_limit_percent,
+      row.whitelist_hostnames,
     );
   },
 
@@ -239,7 +259,7 @@ export const cpuLimitRuleStore = {
         trigger_count = ?, enabled = ?,
         max_active_instances = ?,
         penalty_enabled = ?, penalty_window_min = ?, penalty_threshold = ?, penalty_mode = ?, penalty_value = ?,
-        penalty_cpu_limit_mode = ?, penalty_cpu_limit_value = ?, min_cpu_limit_percent = ?
+        penalty_cpu_limit_mode = ?, penalty_cpu_limit_value = ?, min_cpu_limit_percent = ?, whitelist_hostnames = ?
       WHERE id = ?
     `).run(
       row.name, row.node_ids, row.metric, row.threshold, row.top_n,
@@ -248,6 +268,7 @@ export const cpuLimitRuleStore = {
       row.max_active_instances,
       row.penalty_enabled, row.penalty_window_min, row.penalty_threshold, row.penalty_mode, row.penalty_value,
       row.penalty_cpu_limit_mode, row.penalty_cpu_limit_value, row.min_cpu_limit_percent,
+      row.whitelist_hostnames,
       row.id,
     );
   },

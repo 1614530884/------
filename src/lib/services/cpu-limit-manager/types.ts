@@ -81,6 +81,8 @@ export interface CpuLimitRule {
   penaltyCpuLimitValue: number;
   /** CPU 限制最低百分比（1-100）：惩罚后至少保留此 CPU 限制值，防止实例卡死 */
   minCpuLimitPercent: number;
+  /** 主机名白名单：命中的实例不参与限制（不区分大小写） */
+  whitelistHostnames?: string[];
 }
 
 /** 单台实例的处理结果 */
@@ -96,7 +98,7 @@ export interface CpuInstanceResult {
   /** 是否实际执行了限制 */
   limited: boolean;
   /** 处理原因 */
-  reason: 'top_n' | 'already_limited' | 'in_cooldown' | 'error' | 'no_data' | 'at_min_limit';
+  reason: 'top_n' | 'already_limited' | 'in_cooldown' | 'error' | 'no_data' | 'at_min_limit' | 'whitelisted';
   /** 错误信息 */
   error?: string;
   /** 是否触发了惩罚（基于当前值单步降低或首次达阈值） */

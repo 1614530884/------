@@ -30,6 +30,14 @@ export const CPU_LIMIT_RELEASE_PERCENT = 100;
 /** 惩罚时长上限（分钟），避免指数爆炸 */
 const MAX_PENALTY_DURATION_MIN = 24 * 60; // 24 小时
 
+/** 实例是否命中规则的主机名白名单（不区分大小写，忽略前后空格） */
+function isWhitelisted(hostname: string, whitelist?: string[]): boolean {
+  if (!whitelist || whitelist.length === 0) return false;
+  const name = hostname.trim().toLowerCase();
+  if (!name) return false;
+  return whitelist.some(w => w.trim().toLowerCase() === name);
+}
+
 /** 从 API 响应中提取数组列表（兼容多种包装格式） */
 function extractList(respData: unknown): unknown[] {
   if (Array.isArray(respData)) return respData;
@@ -46,13 +54,13 @@ function extractList(respData: unknown): unknown[] {
 
 /**
  * 获取节点下所有实例列表（自动分页）
- * 返回 [{ id, name }]，仅需 ID 和名称（CPU 使用率从 real_data 获取）
+ * 返回 [{ id, name, hostname }]，仅需 ID、名称和主机名（CPU 使用率从 real_data 获取）
  */
 async function getNodeInstances(
   account: MfyCredentials,
   nodeId: number,
-): Promise<Array<{ id: number; name: string }>> {
-  const instances: Array<{ id: number; name: string }> = [];
+): Promise<Array<{ id: number; name: string; hostname: string }>> {
+  const instances: Array<{ id: number; name: string; hostname: string }> = [];
   let page = 1;
   const perPage = 100;
   // 最多拉 20 页（2000 实例）防死循环
@@ -66,6 +74,7 @@ async function getNodeInstances(
       instances.push({
         id: Number(c.id) || 0,
         name: String(c.name ?? c.hostname ?? `实例${c.id}`),
+        hostname: String(c.hostname ?? ''),
       });
     }
     if (list.length < perPage) break;
@@ -276,12 +285,28 @@ export async function executeCpuLimit(input: CpuLimitExecutorInput): Promise<Cpu
 
     // 4. 按 CPU 使用率降序排序，过滤无数据的实例
     //    注意：不再过滤 active 实例 —— 限速时间内若 CPU 仍高，应基于当前限制值再次惩罚
+    //    白名单实例：不参与 Top N 排序，也不会被限制（旧限制由 release-scheduler 正常到期解除）
+    const whitelist = rule.whitelistHostnames;
     const sorted = instances
       .map(inst => ({
         inst,
         cpuUsage: cpuUsageMap.get(inst.id) ?? -1,
       }))
       .filter(x => x.cpuUsage >= 0)  // -1 表示未获取到数据，过滤掉
+      .filter(x => {
+        if (isWhitelisted(x.inst.hostname, whitelist)) {
+          results.push({
+            cloudId: x.inst.id,
+            cloudName: x.inst.name,
+            cpuUsage: x.cpuUsage,
+            cpuLimitAfter: activeLimits.get(x.inst.id)?.cpuLimit ?? rule.cpuLimitPercent,
+            limited: false,
+            reason: 'whitelisted',
+          });
+          return false;
+        }
+        return true;
+      })
       .sort((a, b) => b.cpuUsage - a.cpuUsage);
 
     if (sorted.length === 0) {

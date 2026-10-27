@@ -37,6 +37,21 @@ const COOLDOWN_OPTIONS = [
 
 
 
+/** 白名单文本（每行一个主机名）→ 数组 */
+function parseWhitelistText(text: string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const line of text.split('\n')) {
+    const name = line.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(name);
+  }
+  return result;
+}
+
 export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selectedNodeIds, onSaved }: BandwidthRuleFormDialogProps) {
   const isEdit = !!rule;
   const [saving, setSaving] = useState(false);
@@ -74,6 +89,8 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
   const [penaltyBwMode, setPenaltyBwMode] = useState<BandwidthPenaltyMode>('add_extra');
   const [penaltyBwValue, setPenaltyBwValue] = useState('10');
   const [minBandwidthMbps, setMinBandwidthMbps] = useState('10');
+  // 主机名白名单（每行一个），命中的实例不参与限速
+  const [whitelistText, setWhitelistText] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -105,6 +122,7 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
         setPenaltyBwMode(rule.penaltyBwMode ?? 'add_extra');
         setPenaltyBwValue(String(rule.penaltyBwValue ?? 10));
         setMinBandwidthMbps(String(rule.minBandwidthMbps ?? 10));
+        setWhitelistText((rule.whitelistHostnames ?? []).join('\n'));
       } else {
         setName('');
         setNodeIds(selectedNodeIds.size > 0 ? [...selectedNodeIds] : []);
@@ -132,6 +150,7 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
         setPenaltyBwMode('add_extra');
         setPenaltyBwValue('10');
         setMinBandwidthMbps('10');
+        setWhitelistText('');
       }
       setNodeSearch('');
     }
@@ -221,6 +240,13 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
 
     setSaving(true);
     try {
+      // 白名单：每行一个主机名，命中的实例不参与限速
+      const whitelist = parseWhitelistText(whitelistText);
+      if (whitelist.length > 500) {
+        setError('主机名白名单最多 500 条');
+        setSaving(false);
+        return;
+      }
       const ruleData: Partial<BandwidthRule> = {
         name: name.trim(),
         nodeIds,
@@ -248,6 +274,7 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
         penaltyBwMode,
         penaltyBwValue: Number(penaltyBwValue),
         minBandwidthMbps: minBwMbpsNum,
+        whitelistHostnames: whitelist,
       };
       if (isEdit) ruleData.id = rule!.id;
 
@@ -467,6 +494,26 @@ export function BandwidthRuleFormDialog({ open, onOpenChange, rule, nodes, selec
               <Input type="number" value={triggerCount} onChange={e => setTriggerCount(e.target.value)}
                 min={1} max={10} className="bg-background border-border text-foreground h-9 text-xs" />
             </div>
+          </div>
+
+          {/* 主机名白名单 */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-foreground">主机名白名单</Label>
+              <span className="text-[10px] text-muted-foreground">
+                已填 {parseWhitelistText(whitelistText).length} 个
+              </span>
+            </div>
+            <textarea
+              value={whitelistText}
+              onChange={e => setWhitelistText(e.target.value)}
+              rows={3}
+              placeholder={'每行一个主机名，如：\nweb-01\nweb-02'}
+              className="w-full rounded-md bg-background border border-border text-foreground px-2 py-1.5 text-xs font-mono resize-y focus:outline-none focus:border-primary"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              白名单内的主机不受限速影响，也不占用 Top N 名额；匹配主机名，不区分大小写
+            </p>
           </div>
 
           {/* 惩罚机制 */}

@@ -77,6 +77,8 @@ export interface BandwidthRule {
   penaltyBwValue: number;
   /** 最低带宽保留（Mbps）：惩罚后带宽不低于此值，达到后不再降低 */
   minBandwidthMbps: number;
+  /** 主机名白名单：命中的实例不参与限速（不区分大小写） */
+  whitelistHostnames?: string[];
 }
 
 /** 限速执行器：单台实例的处理结果 */
@@ -102,7 +104,7 @@ export interface BandwidthInstanceResult {
   /** 是否实际执行了限速 */
   limited: boolean;
   /** 处理原因 */
-  reason: 'top_n' | 'continuous_filtered' | 'already_limited' | 'at_min_limit' | 'in_cooldown' | 'error' | 'no_data';
+  reason: 'top_n' | 'continuous_filtered' | 'already_limited' | 'at_min_limit' | 'in_cooldown' | 'error' | 'no_data' | 'whitelisted';
   /** 错误信息（reason=error 时） */
   error?: string;
   /** 是否触发惩罚（惩罚时长/降低比例与规则基础值不同） */

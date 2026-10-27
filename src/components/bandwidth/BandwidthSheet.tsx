@@ -369,6 +369,7 @@ export function BandwidthSheet({ open, onOpenChange, nodes, selectedNodeIds }: B
                       </div>
                       <div className="mt-1 text-[10px] text-muted-foreground">
                         目标节点: {getNodeNames(rule.nodeIds)} | 触发: {rule.triggerCount}次 | 间隔: {rule.interval}s | 冷却: {rule.cooldown}s
+                        {rule.whitelistHostnames && rule.whitelistHostnames.length > 0 && ` | 白名单: ${rule.whitelistHostnames.length}个`}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">

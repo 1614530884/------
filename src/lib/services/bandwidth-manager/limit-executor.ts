@@ -93,13 +93,13 @@ function parseBwToBps(value: unknown): number {
 
 /**
  * 获取节点下所有实例列表（自动分页遍历所有页）
- * 返回 [{ id, name, inBw, outBw }]，inBw/outBw 为配置的带宽上限（Mbps）
+ * 返回 [{ id, name, hostname, inBw, outBw }]，inBw/outBw 为配置的带宽上限（Mbps）
  */
 async function getNodeInstances(
   account: MfyCredentials,
   nodeId: number,
-): Promise<Array<{ id: number; name: string; inBw: number; outBw: number }>> {
-  const instances: Array<{ id: number; name: string; inBw: number; outBw: number }>= [];
+): Promise<Array<{ id: number; name: string; hostname: string; inBw: number; outBw: number }>> {
+  const instances: Array<{ id: number; name: string; hostname: string; inBw: number; outBw: number }>= [];
   let page = 1;
   const perPage = 100;
   // 最多拉 20 页（2000 实例）防死循环
@@ -112,9 +112,11 @@ async function getNodeInstances(
       const c = item as Record<string, unknown>;
       // in_bw/out_bw 直接在实例对象上（Mbps），default_bw_group 作为兼容 fallback
       const bwGroup = c.default_bw_group as Record<string, unknown> | undefined;
+      const hostname = String(c.hostname ?? '');
       instances.push({
         id: Number(c.id) || 0,
         name: String(c.name ?? c.hostname ?? `实例${c.id}`),
+        hostname,
         inBw: Number(bwGroup?.in_bw ?? c.in_bw ?? 0) || 0,
         outBw: Number(bwGroup?.out_bw ?? c.out_bw ?? 0) || 0,
       });
@@ -361,6 +363,14 @@ export async function restoreInstanceBandwidth(
 /** 惩罚时长上限（分钟），避免指数爆炸导致长时间锁定 */
 const MAX_PENALTY_DURATION_MIN = 24 * 60; // 24 小时
 
+/** 实例是否命中规则的主机名白名单（不区分大小写，忽略前后空格） */
+function isWhitelisted(hostname: string, whitelist?: string[]): boolean {
+  if (!whitelist || whitelist.length === 0) return false;
+  const name = hostname.trim().toLowerCase();
+  if (!name) return false;
+  return whitelist.some(w => w.trim().toLowerCase() === name);
+}
+
 /**
  * 计算规则基础限速值（首次限速，无惩罚）
  * - percent 模式：originalBw × (100 - reducePercent) / 100
@@ -481,6 +491,36 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
 
     const now = Date.now();
 
+    // 白名单实例：不参与 Top N 排序，也不会被限速（旧限速由 release-scheduler 正常到期恢复）
+    const whitelist = rule.whitelistHostnames;
+    const whitelistedInstances = whitelist && whitelist.length > 0
+      ? instances.filter(inst => isWhitelisted(inst.hostname, whitelist))
+      : [];
+    const candidatesPool = whitelistedInstances.length > 0
+      ? instances.filter(inst => !isWhitelisted(inst.hostname, whitelist))
+      : instances;
+    for (const inst of whitelistedInstances) {
+      const activeInfo = activeLimits?.get(inst.id);
+      const curInBw = activeInfo?.inBw ?? inst.inBw;
+      const curOutBw = activeInfo?.outBw ?? inst.outBw;
+      results.push({
+        cloudId: inst.id,
+        cloudName: inst.name,
+        bandwidthBefore: curOutBw,
+        bandwidthAfter: curOutBw,
+        realtimeBwMbps: bpsToMbps(
+          (triggerUp ? realtimeMap.get(inst.id)?.outbwBps : realtimeMap.get(inst.id)?.inbwBps) ?? 0,
+        ),
+        originalInBw: activeInfo?.originalInBw ?? inst.inBw,
+        originalOutBw: activeInfo?.originalOutBw ?? inst.outBw,
+        newInBw: curInBw,
+        newOutBw: curOutBw,
+        limitDirection: activeInfo?.limitDirection,
+        limited: false,
+        reason: 'whitelisted',
+      });
+    }
+
     // 3. 按触发方向分别排序 + 预过滤 + Top N + 持续监控
     //    预过滤规则（对齐 CPU 限制模块）：
     //    - 未启用惩罚 + 已在限速中 → already_limited（让原限速自然到期）
@@ -494,8 +534,8 @@ export async function executeBandwidthLimit(input: LimitExecutorInput): Promise<
       const skipped: BandwidthInstanceResult[] = [];
       const limitDir: 'in' | 'out' = isUp ? 'out' : 'in';
 
-      // 排序：按目标方向带宽降序
-      const sorted = instances
+      // 排序：按目标方向带宽降序（白名单实例已排除）
+      const sorted = candidatesPool
         .map(inst => {
           const rt = realtimeMap.get(inst.id);
           const bwBps = isUp ? (rt?.outbwBps ?? 0) : (rt?.inbwBps ?? 0);

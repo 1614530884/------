@@ -415,6 +415,10 @@ function initSchema(db: SqliteDatabase): void {
   // 增量迁移：min_bandwidth_percent → min_bandwidth_mbps（最低带宽保留改为 Mbps 绝对值，更直观）
   try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN min_bandwidth_mbps INTEGER NOT NULL DEFAULT 10'); } catch { /* 列已存在 */ }
 
+  // 增量迁移：规则增加主机名白名单（JSON 数组，命中的实例不参与限速）
+  try { db.exec('ALTER TABLE bandwidth_rules ADD COLUMN whitelist_hostnames TEXT'); } catch { /* 列已存在 */ }
+  try { db.exec('ALTER TABLE cpu_limit_rules ADD COLUMN whitelist_hostnames TEXT'); } catch { /* 列已存在 */ }
+
   // 增量迁移：bandwidth_limit_events 扩展为完整事件结构（支持直接调控 + 到期自动恢复）
   // 旧表仅用于告警统计（8字段），改造后需跟踪活跃限制、到期恢复、原始带宽记录
   try { db.exec('ALTER TABLE bandwidth_limit_events ADD COLUMN status TEXT NOT NULL DEFAULT \'active\''); } catch { /* 列已存在 */ }
